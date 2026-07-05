@@ -1,4 +1,4 @@
-package com.wow.whynago;
+package com.neogul.whynago;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
