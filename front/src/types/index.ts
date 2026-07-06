@@ -19,6 +19,8 @@ export interface ProfileMenuItem {
   icon: ProfileMenuIcon;
   /** 로그아웃 등 강조(위험) 스타일 여부 */
   danger?: boolean;
+  /** 단순 이동이 아닌 클라이언트 액션 (예: 로그아웃) */
+  action?: "logout";
 }
 
 /** 로그인한 사용자 정보 */

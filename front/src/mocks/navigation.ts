@@ -15,5 +15,5 @@ export const profileMenu: ProfileMenuItem[] = [
   { label: "진척도", href: "/progress", icon: "progress" },
   { label: "마이페이지", href: "/mypage", icon: "user" },
   { label: "알림 설정", href: "/settings", icon: "settings" },
-  { label: "로그아웃", href: "/login", icon: "logout", danger: true },
+  { label: "로그아웃", href: "/login", icon: "logout", danger: true, action: "logout" },
 ];

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ProfileMenuIcon } from "@/types";
 import { navItems, profileMenu } from "@/mocks/navigation";
 import { currentUser, learningStats } from "@/mocks/user";
@@ -60,10 +60,26 @@ function MenuIcon({ name }: { name: ProfileMenuIcon }) {
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // 인증 화면(로그인/회원가입)에서는 공통 헤더를 숨긴다
+  if (pathname === "/login" || pathname === "/signup") return null;
+
+  // 클라이언트 측 더미 로그아웃: 세션 정보를 비우고 로그인 화면으로 이동
+  const handleLogout = () => {
+    setProfileOpen(false);
+    if (!window.confirm("로그아웃 하시겠어요?")) return;
+    try {
+      window.localStorage.removeItem("whynago:auth");
+    } catch {
+      // localStorage 접근 불가 환경은 무시 (더미 동작)
+    }
+    router.push("/login");
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#E6E6E0] bg-[#F1F1ED] py-[11px]">
@@ -169,19 +185,37 @@ export default function Header() {
                     </span>
                   </div>
                 </div>
-                {profileMenu.map((m) => (
-                  <Link
-                    key={m.label}
-                    href={m.href}
-                    onClick={() => setProfileOpen(false)}
-                    className={`flex items-center gap-2.5 rounded-[9px] px-3 py-2.5 text-[13px] font-medium transition-colors hover:bg-[#FAFAF7] ${
-                      m.danger ? "text-[#DC2626]" : "text-[#3A3A34]"
-                    }`}
-                  >
-                    <MenuIcon name={m.icon} />
-                    <span>{m.label}</span>
-                  </Link>
-                ))}
+                {profileMenu.map((m) => {
+                  const itemClass = `flex w-full items-center gap-2.5 rounded-[9px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAF7] ${
+                    m.danger ? "text-[#DC2626]" : "text-[#3A3A34]"
+                  }`;
+
+                  if (m.action === "logout") {
+                    return (
+                      <button
+                        key={m.label}
+                        type="button"
+                        onClick={handleLogout}
+                        className={itemClass}
+                      >
+                        <MenuIcon name={m.icon} />
+                        <span>{m.label}</span>
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={m.label}
+                      href={m.href}
+                      onClick={() => setProfileOpen(false)}
+                      className={itemClass}
+                    >
+                      <MenuIcon name={m.icon} />
+                      <span>{m.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </>
           )}
