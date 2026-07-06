@@ -13,9 +13,9 @@ Git Bash에서는 `./gradlew`, PowerShell에서는 `gradlew.bat`을 사용한다
 - 빌드: `./gradlew build`
 - 앱 실행: `./gradlew bootRun`
 - 전체 테스트: `./gradlew test`
-- 단일 테스트 클래스: `./gradlew test --tests 'com.neogul.whynago.auth.implement.JwtProviderTest'`
-- 단일 테스트 메서드: `./gradlew test --tests 'com.neogul.whynago.auth.implement.JwtProviderTest.parseToken'`
-- 컴파일만 (리팩터링 후 빠른 확인): `./gradlew compileJava`
+- 단일 테스트 클래스: `./gradlew test --tests '패키지.클래스명'`
+- 단일 테스트 메서드: `./gradlew test --tests '패키지.클래스명.메서드명'`
+- 컴파일만 (리팩터링 후 빠른 확인): `./gradlew compileJava` 
 
 ## 참고 문서
 
