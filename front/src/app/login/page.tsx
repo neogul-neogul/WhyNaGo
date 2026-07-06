@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { login } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,11 +12,7 @@ export default function LoginPage() {
   // 클라이언트 측 더미 로그인: 세션 플래그를 저장하고 메인으로 이동
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-      window.localStorage.setItem("whynago:auth", "1");
-    } catch {
-      // localStorage 접근 불가 환경은 무시 (더미 동작)
-    }
+    login();
     router.push("/");
   };
 

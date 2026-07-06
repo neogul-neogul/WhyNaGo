@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ProfileMenuIcon } from "@/types";
 import { navItems, profileMenu } from "@/mocks/navigation";
 import { currentUser, learningStats } from "@/mocks/user";
+import { logout as authLogout, useAuth, useHydrated } from "@/lib/auth";
 
 // 프로필 메뉴 아이콘 (더미 UI용 인라인 SVG)
 function MenuIcon({ name }: { name: ProfileMenuIcon }) {
@@ -61,6 +62,8 @@ function MenuIcon({ name }: { name: ProfileMenuIcon }) {
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const loggedIn = useAuth();
+  const hydrated = useHydrated();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isActive = (href: string) =>
@@ -69,16 +72,12 @@ export default function Header() {
   // 인증 화면(로그인/회원가입)에서는 공통 헤더를 숨긴다
   if (pathname === "/login" || pathname === "/signup") return null;
 
-  // 클라이언트 측 더미 로그아웃: 세션 정보를 비우고 로그인 화면으로 이동
+  // 클라이언트 측 더미 로그아웃: 세션 정보를 비우고 메인 페이지로 이동
   const handleLogout = () => {
     setProfileOpen(false);
     if (!window.confirm("로그아웃 하시겠어요?")) return;
-    try {
-      window.localStorage.removeItem("whynago:auth");
-    } catch {
-      // localStorage 접근 불가 환경은 무시 (더미 동작)
-    }
-    router.push("/login");
+    authLogout();
+    router.push("/");
   };
 
   return (
@@ -126,8 +125,10 @@ export default function Header() {
           })}
         </nav>
 
-        {/* 스트릭 + 프로필 */}
+        {/* 우측: 로그인 시 스트릭 + 프로필, 로그아웃 시 로그인 버튼 */}
         <div className="relative flex flex-shrink-0 items-center gap-[11px]">
+          {!hydrated ? null : loggedIn ? (
+            <>
           <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#EA580C]">
             🔥{learningStats.streakDays}
           </div>
@@ -218,6 +219,15 @@ export default function Header() {
                 })}
               </div>
             </>
+          )}
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-[10px] bg-[#1C1C1A] px-[18px] py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#333]"
+            >
+              로그인
+            </Link>
           )}
         </div>
       </div>
