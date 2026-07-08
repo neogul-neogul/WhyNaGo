@@ -221,55 +221,25 @@ Mock은 외부 협력 객체의 결과를 통제해야 할 때만 사용한다.
 
 ## DB 테스트 독립 환경 설정
 
-각 테스트의 독립적인 환경을 위한 롤백 처리 방식으로 직접 `DBCleaner` 를 만들어 사용한다.
+각 테스트의 독립성은 별도 cleanup 컴포넌트 없이 테스트에 `@Transactional`을 선언해 테스트 종료 시 자동 롤백하는 방식으로 확보한다.
 
 권장한다.
 
 ```java
-@Component
-public class DbCleaner {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @Autowired(required = false)
-    private StringRedisTemplate redisTemplate;
-
-    public void clean() {
-        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0");
-        List<String> tables = jdbcTemplate.queryForList(
-                """
-                        SELECT table_name
-                        FROM information_schema.tables
-                        WHERE table_schema = DATABASE()
-                          AND table_type = 'BASE TABLE'
-                        """,
-                String.class
-        );
-        tables.forEach(table ->
-                jdbcTemplate.execute("TRUNCATE TABLE `" + table + "`")
-        );
-        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1");
-        if (redisTemplate != null && redisTemplate.getConnectionFactory() != null) {
-            redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
-        }
-    }
-}
-
-@BeforeEach
-void init() {
-	dbCleaner.clean();
+@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = WebEnvironment.NONE)
+@Transactional
+public abstract class IntegrationTestSupport {
 }
 ```
+
+- `@Transactional`을 선언하면 각 테스트 메서드가 끝날 때 트랜잭션이 롤백되어 다음 테스트에 영향을 주지 않는다.
+- `@DataJpaTest`는 기본적으로 트랜잭션 롤백이 적용되므로 Repository 테스트에는 별도 설정이 필요 없다.
+- 영속성 반영을 실제로 확인해야 하면 `EntityManager`의 `flush()`, `clear()`로 1차 캐시를 비운 뒤 재조회한다.
 
 지양한다.
 
-```java
-@Transactional
-@DisplayName("결제에 성공한다")
-@Test
-void pay() {}
-```
+- 별도 `DbCleaner` 컴포넌트를 만들어 `@BeforeEach`에서 전체 테이블을 `TRUNCATE` 하는 방식
 
 ## 계층별 테스트
 
@@ -346,18 +316,11 @@ Service 테스트는 가능하면 실제와 가까운 환경에서 검증한다.
 ```java
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = WebEnvironment.NONE)
+@Transactional
 public abstract class IntegrationTestSupport {
 
     @MockitoSpyBean
     protected JwtProvider jwtProvider;
-
-    @Autowired
-    private DbCleaner dbCleaner;
-
-    @BeforeEach
-    void setUp() {
-        dbCleaner.clean();
-    }
 }
 ```
 
@@ -367,21 +330,15 @@ Repository 테스트는 실제 DB와 가까운 환경에서 검증한다.
 
 ```java
 @ActiveProfiles("test")
-@Import({DbCleaner.class, JpaConfiguration.class})
 @DataJpaTest
 public abstract class RepositoryTestSupport {
 
     @Autowired
     protected TestEntityManager em;
-    @Autowired
-    private DbCleaner dbCleaner;
-
-    @BeforeEach
-    void setUp() {
-        dbCleaner.clean();
-    }
 }
 ```
+
+`@DataJpaTest`는 기본적으로 각 테스트를 트랜잭션으로 감싸고 종료 시 롤백하므로 별도 cleanup이 필요 없다.
 
 권장한다.
 
@@ -399,7 +356,7 @@ public abstract class RepositoryTestSupport {
 
 - 테스트는 서로 독립적이어야 한다.
 - 실행 순서에 의존하지 않는다.
-- DB 테스트는 트랜잭션 롤백 또는 명시적 cleanup 전략을 사용한다.
+- DB 테스트는 `@Transactional` 롤백 전략을 사용한다.
 
 ## **리뷰 체크리스트**
 
