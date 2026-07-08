@@ -9,10 +9,10 @@ public class TokenExtractor {
 
     private static final String BEARER_PREFIX = "Bearer ";
 
-    public static String extractToken(String authorization) {
-        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+    public String extractToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(AuthErrorCode.AUTH_TOKEN_INVALID);
         }
-        return authorization.substring(BEARER_PREFIX.length());
+        return authorizationHeader.substring(BEARER_PREFIX.length());
     }
 }
