@@ -86,8 +86,8 @@
 |--------------|--------| --- |
 | id           | PK     | |
 | userId       | 사용자 ID | FK → User |
-| sessionId    | 문제 ID  | FK → Question (틀린 문항) |
-| isBookmarked | 뷱머크 여부 | |
+| questionId   | 문제 ID  | FK → Question (틀린 문항) |
+| isBookmarked | 북마크 여부 | |
 
 ### EssaySolved (푼 서술형 문제, 작성 중)
 
