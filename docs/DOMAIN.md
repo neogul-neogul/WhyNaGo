@@ -52,7 +52,6 @@
 | --- | --- | --- |
 | id | 세션 ID | PK |
 | userId | 사용자 ID | FK → User |
-| rootQuestionId | 진입 문제 ID | 세션을 시작한 본질문(문제은행에서 고른 문제) |
 | type | 유형 | `MULTIPLE_CHOICE` \| `ESSAY` |
 | source | 출처 | `PROBLEM_SOLVING`(문제 풀이) \| `WRONG_REVIEW`(오답 복습) \| `MOCK`(모의 진단) \| `CATEGORY`(카테고리별) — 학습 기록의 `method` |
 | status | 상태 | `COMPLETED`(끝까지 진행) \| `ABANDONED`(중간 "종료하기") — [세션 종료 정책](#세션-집계-정책) |
@@ -68,7 +67,6 @@
 | --- | --- | --- |
 | id | PK | |
 | solvedSessionId | 풀이 세션 ID | FK → SolvedSession |
-| questionId | 문제 ID | FK → Question |
 | userId | 사용자 ID | (조회 편의를 위한 비정규화, 세션에서도 도출 가능) |
 | type | 문항 유형 | `MAIN`(본질문) \| `FOLLOWUP`(꼬리질문) |
 | sequence | 세션 내 순서 | 본질문이면 1, 이후 꼬리질문 2·3… |
@@ -80,14 +78,14 @@
 
 ### WrongNote (오답노트)
 
-오답이 발생하면 자동 생성/갱신된다. **복습 상태(미복습/복습중/해결완료 등)는 두지 않는다** — 단순히 "틀린 문제 목록"이며, 반복 횟수·북마크·출처만 관리한다. → [오답 자동 저장 정책](#오답-자동-저장-정책)
+오답이 발생하면 자동 생성/갱신된다. — 단순히 "틀린 문제 목록"이며, 반복 횟수·북마크·출처만 관리한다. → [오답 자동 저장 정책](#오답-자동-저장-정책)
 
-| 이름           | 한글     | 설명 |
-|--------------|--------| --- |
-| id           | PK     | |
-| userId       | 사용자 ID | FK → User |
-| questionId   | 문제 ID  | FK → Question (틀린 문항) |
-| isBookmarked | 북마크 여부 | |
+| 이름              | 한글       | 설명                               |
+|-----------------|----------|----------------------------------|
+| id              | PK       |                                  |
+| userId          | 사용자 ID   | FK → User                        |
+| solvedSessionId | 풀이 세션 ID | FK → SolvedSession (틀린 문제 풀이 세션) |
+| isBookmarked    | 북마크 여부   |                                  |
 
 ### EssaySolved (푼 서술형 문제, 작성 중)
 
