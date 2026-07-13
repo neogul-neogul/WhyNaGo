@@ -43,7 +43,7 @@ void pay_pointIsNotEnough() {
 규칙은 다음과 같다.
 
 - `@DisplayName`은 사용자 행위 또는 비즈니스 규칙 중심으로 작성한다.
-    - 어투는 `~다.` 형태로 작성한다.
+    - 어투는 `~다.` 형태로 작성한다.
 
       `@DisplayName("~이라면 예외가 발생한다.")
       @DisplayName("~이라면 예외가 발생하지 않는다.")`
@@ -54,7 +54,7 @@ void pay_pointIsNotEnough() {
 
 ## **Given-When-Then**
 
-테스트 본문은 given, when, then 구역으로 나눈다.
+테스트 본문은 given, when, then 구역으로 나눈다.
 
 ```java
 @DisplayName("포인트를 사용해 결제하면 사용 포인트가 차감된다")
@@ -169,9 +169,9 @@ void pay_pointIsNotEnough() {
 - builder의 기본값은 정상 케이스를 만들 수 있는 값으로 둔다.
 - builder 메서드는 체이닝을 위해 자기 자신을 반환한다.
 - build()는 항상 유효한 테스트 객체를 반환해야 한다.
-- 모든 필드를 한 번에 받는 create(id, name, age, status, ...) 형태의 fixture 메서드는 만들지 않는다.
+- 모든 필드를 한 번에 받는 create(id, name, age, status, ...) 형태의 fixture 메서드는 만들지 않는다.
 - 테스트마다 값이 자주 바뀌는 필드만 builder 메서드로 노출한다.
-- builder는 src/test 아래 테스트 코드에서만 사용한다.
+- builder는 src/test 아래 테스트 코드에서만 사용한다.
 
 ## **Assertion 규칙**
 
@@ -196,9 +196,9 @@ assertThrows(NotEnoughPointException.class, () -> paymentService.pay(command));
 
 규칙은 다음과 같다.
 
-- 기본 검증은 assertThat(actual).isEqualTo(expected) 형식을 사용한다.
-- 예외 검증은 assertThatThrownBy 또는 assertThatExceptionOfType을 사용한다.
-- 컬렉션 검증은 containsExactly, extracting, filteredOn 등 AssertJ의 표현력 있는 메서드를 사용한다.
+- 기본 검증은 assertThat(actual).isEqualTo(expected) 형식을 사용한다.
+- 예외 검증은 assertThatThrownBy 또는 assertThatExceptionOfType을 사용한다.
+- 컬렉션 검증은 containsExactly, extracting, filteredOn 등 AssertJ의 표현력 있는 메서드를 사용한다.
 - JUnit assertion은 테스트 생명주기와 관련된 특수 상황이 아니면 사용하지 않는다.
 
 ## **Mock 사용 규칙**
@@ -217,29 +217,18 @@ Mock은 외부 협력 객체의 결과를 통제해야 할 때만 사용한다.
 - 도메인 모델 mock
 - 단순 값 객체 mock
 - 같은 모듈의 작은 객체까지 과도하게 mock 처리
-- 실제 검증보다 verify() 호출 수에만 집중한 테스트
+- 실제 검증보다 verify() 호출 수에만 집중한 테스트
 
 ## DB 테스트 독립 환경 설정
 
-각 테스트의 독립성은 별도 cleanup 컴포넌트 없이 테스트에 `@Transactional`을 선언해 테스트 종료 시 자동 롤백하는 방식으로 확보한다.
-
-권장한다.
+각 테스트의 독립적인 환경을 위한 롤백 처리 방식으로 `@Transactional` 을 사용한다.
 
 ```java
-@ActiveProfiles("test")
-@SpringBootTest(webEnvironment = WebEnvironment.NONE)
 @Transactional
-public abstract class IntegrationTestSupport {
-}
+@DisplayName("결제에 성공한다")
+@Test
+void pay() {}
 ```
-
-- `@Transactional`을 선언하면 각 테스트 메서드가 끝날 때 트랜잭션이 롤백되어 다음 테스트에 영향을 주지 않는다.
-- `@DataJpaTest`는 기본적으로 트랜잭션 롤백이 적용되므로 Repository 테스트에는 별도 설정이 필요 없다.
-- 영속성 반영을 실제로 확인해야 하면 `EntityManager`의 `flush()`, `clear()`로 1차 캐시를 비운 뒤 재조회한다.
-
-지양한다.
-
-- 별도 `DbCleaner` 컴포넌트를 만들어 `@BeforeEach`에서 전체 테이블을 `TRUNCATE` 하는 방식
 
 ## 계층별 테스트
 
@@ -258,7 +247,7 @@ Controller 테스트는 HTTP 계약을 검증한다.
 
 비즈니스 로직 자체는 Controller 테스트에서 깊게 검증하지 않는다.
 
-Controller 테스트는 RestAssuredMockMvc를 표준으로 사용한다.
+Controller 테스트는 RestAssuredMockMvc를 표준으로 사용한다.
 
 권장 형식:
 
@@ -300,12 +289,12 @@ class PaymentControllerTest {
 
 규칙은 다음과 같다.
 
-- Controller 테스트의 요청/응답 검증은 RestAssuredMockMvc를 사용한다.
-- 단순 MockMvc.perform() 방식은 새 테스트에서 사용하지 않는다.
+- Controller 테스트의 요청/응답 검증은 RestAssuredMockMvc를 사용한다.
+- 단순 MockMvc.perform() 방식은 새 테스트에서 사용하지 않는다.
 - HTTP Method, URL, Header, Query Parameter, Request Body, Status Code, Response Body를 API 계약 관점에서 검증한다.
 - Service는 mock 처리하고 Controller의 HTTP 계약에 집중한다.
 - 복잡한 비즈니스 성공/실패 조합은 Service 테스트에서 검증한다.
-- RestAssuredMockMvc 설정은 공통 테스트 베이스 클래스 또는 @BeforeEach에서 초기화한다.
+- RestAssuredMockMvc 설정은 공통 테스트 베이스 클래스 또는 @BeforeEach에서 초기화한다.
 
 ### Service 테스트
 
@@ -316,11 +305,18 @@ Service 테스트는 가능하면 실제와 가까운 환경에서 검증한다.
 ```java
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = WebEnvironment.NONE)
-@Transactional
 public abstract class IntegrationTestSupport {
 
     @MockitoSpyBean
     protected JwtProvider jwtProvider;
+
+    @Autowired
+    private DbCleaner dbCleaner;
+
+    @BeforeEach
+    void setUp() {
+        dbCleaner.clean();
+    }
 }
 ```
 
@@ -330,15 +326,21 @@ Repository 테스트는 실제 DB와 가까운 환경에서 검증한다.
 
 ```java
 @ActiveProfiles("test")
+@Import({DbCleaner.class, JpaConfiguration.class})
 @DataJpaTest
 public abstract class RepositoryTestSupport {
 
     @Autowired
     protected TestEntityManager em;
+    @Autowired
+    private DbCleaner dbCleaner;
+
+    @BeforeEach
+    void setUp() {
+        dbCleaner.clean();
+    }
 }
 ```
-
-`@DataJpaTest`는 기본적으로 각 테스트를 트랜잭션으로 감싸고 종료 시 롤백하므로 별도 cleanup이 필요 없다.
 
 권장한다.
 
@@ -356,7 +358,7 @@ public abstract class RepositoryTestSupport {
 
 - 테스트는 서로 독립적이어야 한다.
 - 실행 순서에 의존하지 않는다.
-- DB 테스트는 `@Transactional` 롤백 전략을 사용한다.
+- DB 테스트는 트랜잭션 롤백 또는 명시적 cleanup 전략을 사용한다.
 
 ## **리뷰 체크리스트**
 

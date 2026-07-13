@@ -32,7 +32,13 @@ export interface NavItem {
 }
 
 /** 프로필 드롭다운 메뉴 아이콘 종류 */
-export type ProfileMenuIcon = "records" | "progress" | "user" | "settings" | "logout";
+export type ProfileMenuIcon =
+  | "records"
+  | "progress"
+  | "weekly"
+  | "user"
+  | "settings"
+  | "logout";
 
 /** 프로필 드롭다운 메뉴 항목 */
 export interface ProfileMenuItem {
@@ -97,4 +103,158 @@ export interface LearningMenuItem {
   /** 아이콘 선(stroke)색 */
   accentFg: string;
   badge?: string;
+}
+
+// ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
+
+/** 객관식 꼬리질문 */
+export interface MultipleChoiceFollowup {
+  text: string;
+  options: string[];
+  /** 정답 보기 인덱스 */
+  answer: number;
+  explanation: string;
+  /** 보기별 오답 해설 (정답 보기는 빈 문자열) */
+  optExp?: string[];
+}
+
+/** 객관식 문제 (본 질문 + 꼬리질문) */
+export interface MultipleChoiceQuestion {
+  cat: string;
+  diff: string;
+  text: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+  optExp: string[];
+  tags: string[];
+  followups: MultipleChoiceFollowup[];
+}
+
+/** 서술형 문제 (AI 면접식 꼬리질문) */
+export interface EssayQuestion {
+  cat: string;
+  diff: string;
+  text: string;
+  /** 모범답안 */
+  model: string;
+  keywords: string[];
+  /** 꼬리질문 목록 */
+  followups: string[];
+  /** 본 질문 + 꼬리질문별 피드백 */
+  feedbacks: string[];
+  /** 꼬리질문별 모범답안 */
+  followupModels: string[];
+}
+
+/** 문제은행 항목 */
+export interface Problem {
+  type: "객관식" | "서술형";
+  /** 객관식이면 multipleChoiceQuestions[], 서술형이면 essayQuestions[]의 인덱스 */
+  qi: number;
+  title: string;
+  cat: string;
+  keywords: string[];
+  diff: string;
+  /** 완료한 사람 수 */
+  solved: number;
+  /** 정답률(%) */
+  rate: number;
+  status: "완료" | "오답" | "안 푼 문제";
+}
+
+/** 오답노트 꼬리질문 */
+export interface WrongFollowup {
+  text: string;
+  options: string[];
+  answer: number;
+  myAnswer: number;
+  explanation: string;
+  wrongExp: string;
+}
+
+/** 오답노트 항목 */
+export interface WrongNote {
+  q: string;
+  cat: string;
+  diff: string;
+  status: "미복습" | "복습 중" | "반복 오답" | "해결 완료";
+  repeat: number;
+  source: string;
+  solvedAt: string;
+  options: string[];
+  myAnswer: number;
+  correctAnswer: number;
+  explanation: string;
+  wrongExp: string;
+  followups: WrongFollowup[];
+}
+
+/** 1일 1면접 문항 (카테고리별) */
+export interface InterviewItem {
+  q: string;
+  feedback: string;
+  followup: string;
+  improved: string;
+  keywords: string[];
+}
+
+/** 모의진단 카테고리별 통계 */
+export interface CatStat {
+  name: string;
+  acc: number;
+  count: number;
+  grade: string;
+  change: string;
+}
+
+/** 카테고리별 성장 곡선 데이터 */
+export interface GrowthDatum {
+  cat: string;
+  /** 주차별 등급 (A~D) */
+  grades: string[];
+}
+
+/** 학습 기록 항목 */
+export interface RecordItem {
+  date: string;
+  time: string;
+  method: string;
+  cats: string[];
+  solved: number;
+  correct: number;
+  wrong: number;
+  score: number;
+}
+
+/** 잔디 한 칸 */
+export interface GrassDay {
+  level: number;
+  color: string;
+  count: number;
+}
+
+/** 진척도 지표 카드 */
+export interface ProgressMetric {
+  label: string;
+  value: string;
+  unit: string;
+  color: string;
+}
+
+/** 주간 리포트 카드 */
+export interface WeeklyCard {
+  label: string;
+  value: string;
+  delta: string;
+  deltaColor: string;
+}
+
+/** 마이페이지 프로필 */
+export interface Profile {
+  nickname: string;
+  email: string;
+  job: string;
+  goal: string;
+  bio: string;
 }
