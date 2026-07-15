@@ -1,9 +1,8 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:whynago;MODE=MySQL;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${DB_URL:jdbc:h2:mem:whynago;}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -16,8 +15,8 @@ spring:
       enabled: true
 
 jwt:
-  secret: iC8y1JF5aJgEHAgzniJCEW4f4OJGOZnYotlGkt0uvlw
+  secret: ${JWT_SECRET}
   access:
-    expiration: 1800000       # 30분 (ms)
+    expiration: 1800000
   refresh:
-    expiration: 604800000     # 7일 (ms)
+    expiration: 604800000
