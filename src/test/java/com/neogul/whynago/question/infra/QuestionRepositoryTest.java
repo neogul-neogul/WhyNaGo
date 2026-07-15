@@ -31,15 +31,17 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
     @DisplayName("객관식 루트 문제를 필터링해 조회한다.")
     void findRootMultipleChoices() {
         Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
-        questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
         questionRepository.save(QuestionFixture.essayRoot());
+        // followup은 root 선택지의 꼬리질문으로 참조되므로 진입 문제가 아니다.
+        answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
         questionTagRepository.save(QuestionTag.create(root.getId(), "NETWORK"));
 
         List<Question> result = questionRepository.findRootMultipleChoices(
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
-                "TCP"
+                "UDP"
         );
 
         assertThat(result).extracting(Question::getId).containsExactly(root.getId());

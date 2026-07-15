@@ -41,17 +41,13 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String explanation;
 
-    @Column(nullable = false)
-    private boolean isRoot;
-
     private Question(
             String title,
             String content,
             QuestionType type,
             Difficulty difficulty,
             Category category,
-            String explanation,
-            boolean isRoot
+            String explanation
     ) {
         this.title = title;
         this.content = content;
@@ -59,7 +55,6 @@ public class Question {
         this.difficulty = difficulty;
         this.category = category;
         this.explanation = explanation;
-        this.isRoot = isRoot;
     }
 
     public static Question create(
@@ -68,9 +63,8 @@ public class Question {
             QuestionType type,
             Difficulty difficulty,
             Category category,
-            String explanation,
-            boolean isRoot
+            String explanation
     ) {
-        return new Question(title, content, type, difficulty, category, explanation, isRoot);
+        return new Question(title, content, type, difficulty, category, explanation);
     }
 }

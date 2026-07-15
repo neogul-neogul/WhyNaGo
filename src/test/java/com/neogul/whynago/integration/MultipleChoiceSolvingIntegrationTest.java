@@ -8,14 +8,15 @@ import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
-import com.neogul.whynago.solvedsession.domain.SessionSource;
 import com.neogul.whynago.solvedsession.domain.SessionStatus;
+import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
+import com.neogul.whynago.solvedsession.domain.SolvedSession;
 import com.neogul.whynago.solvedsession.infra.SolvedMultipleChoiceRepository;
 import com.neogul.whynago.solvedsession.infra.SolvedSessionRepository;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmitSessionCommand;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmitSessionResult;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmittedAnswer;
+import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionCommand;
+import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
+import com.neogul.whynago.solvedsession.service.dto.SolvedQuestionCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
 import java.util.List;
@@ -44,32 +45,37 @@ class MultipleChoiceSolvingIntegrationTest extends IntegrationTestSupport {
     private WrongNoteRepository wrongNoteRepository;
 
     @Test
-    @DisplayName("전체 객관식 풀이 결과를 제출하면 DB에 완료 세션이 저장된다.")
-    void submitMultipleChoiceSolving() {
-        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
+    @DisplayName("본질문 1개와 꼬리질문 2개를 이어 푼 세션을 저장하면 DB에 완료 세션과 문항, 오답노트가 저장된다.")
+    void createMultipleChoiceSolvingSession() {
         Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
-        AnswerChoice rootCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
-        AnswerChoice followupCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup.getId(), 1, null));
-        AnswerChoice followupWrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup.getId(), 2));
+        Question followup1 = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question followup2 = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        AnswerChoice rootCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup1.getId()));
+        answerChoiceRepository.save(AnswerChoiceFixture.wrong(root.getId(), 2));
+        AnswerChoice followup1Correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup1.getId(), 1, followup2.getId()));
+        AnswerChoice followup2Correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup2.getId(), 1, null));
+        AnswerChoice followup2Wrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup2.getId(), 2));
 
-        SubmitSessionResult result = solvedSessionService.submit(
-                99L,
-                new SubmitSessionCommand(
-                        root.getId(),
-                        SessionSource.PROBLEM_SOLVING,
-                        true,
-                        List.of(
-                                new SubmittedAnswer(root.getId(), rootCorrect.getId()),
-                                new SubmittedAnswer(followup.getId(), followupWrong.getId())
-                        )
+        CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
+                new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                List.of(
+                        new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
+                        new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
                 )
         );
 
-        assertThat(result.status()).isEqualTo(SessionStatus.COMPLETED);
-        assertThat(result.correctCount()).isEqualTo(1);
-        assertThat(result.items().get(1).correctChoiceId()).isEqualTo(followupCorrect.getId());
-        assertThat(solvedSessionRepository.findById(result.sessionId())).isPresent();
-        assertThat(solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId())).hasSize(2);
+        CreateSolvedSessionResult result = solvedSessionService.create(99L, command);
+
+        SolvedSession savedSession = solvedSessionRepository.findById(result.sessionId()).orElseThrow();
+        assertThat(savedSession.getStatus()).isEqualTo(SessionStatus.COMPLETED);
+        assertThat(savedSession.getTotalCount()).isEqualTo(3);
+        assertThat(savedSession.getCorrectCount()).isEqualTo(2);
         assertThat(wrongNoteRepository.existsByUserIdAndSolvedSessionId(99L, result.sessionId())).isTrue();
+
+        List<SolvedMultipleChoice> items = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items).hasSize(3);
+        assertThat(items.get(2).getUserChoiceId()).isEqualTo(followup2Wrong.getId());
+        assertThat(items.get(2).getAnswerChoiceId()).isEqualTo(followup2Correct.getId());
+        assertThat(items.get(2).isCorrect()).isFalse();
     }
 }

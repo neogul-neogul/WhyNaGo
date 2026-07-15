@@ -12,14 +12,15 @@ import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.solvedsession.domain.ItemType;
-import com.neogul.whynago.solvedsession.domain.SessionSource;
 import com.neogul.whynago.solvedsession.domain.SessionStatus;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
+import com.neogul.whynago.solvedsession.domain.SolvedSession;
+import com.neogul.whynago.solvedsession.exception.SolvedSessionErrorCode;
 import com.neogul.whynago.solvedsession.infra.SolvedMultipleChoiceRepository;
 import com.neogul.whynago.solvedsession.infra.SolvedSessionRepository;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmitSessionCommand;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmitSessionResult;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmittedAnswer;
+import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionCommand;
+import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
+import com.neogul.whynago.solvedsession.service.dto.SolvedQuestionCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
 import java.util.List;
@@ -48,119 +49,113 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
     private WrongNoteRepository wrongNoteRepository;
 
     @Test
-    @DisplayName("전체 풀이 결과를 한 번에 제출하면 세션과 문항 결과, 오답노트를 저장한다.")
-    void submit() {
-        QuizData quizData = saveQuizData();
+    @DisplayName("본질문과 꼬리질문을 이어 푼 결과를 제출하면 세션과 문항 결과, 오답노트를 저장한다.")
+    void create() {
+        QuizData quiz = saveQuizData();
 
-        SubmitSessionResult result = solvedSessionService.submit(
-                10L,
-                new SubmitSessionCommand(
-                        quizData.root().getId(),
-                        SessionSource.PROBLEM_SOLVING,
-                        true,
-                        List.of(
-                                new SubmittedAnswer(quizData.root().getId(), quizData.rootCorrect().getId()),
-                                new SubmittedAnswer(quizData.followup().getId(), quizData.followupWrong().getId())
-                        )
-                )
-        );
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, quiz.toCommand());
 
-        assertThat(result.totalCount()).isEqualTo(2);
-        assertThat(result.correctCount()).isEqualTo(1);
-        assertThat(result.wrongCount()).isEqualTo(1);
-        assertThat(result.status()).isEqualTo(SessionStatus.COMPLETED);
-        assertThat(result.correctRate()).isEqualTo(50.0);
-        assertThat(solvedSessionRepository.findById(result.sessionId())).isPresent();
+        SolvedSession savedSession = solvedSessionRepository.findById(result.sessionId()).orElseThrow();
+        assertThat(savedSession.getTotalCount()).isEqualTo(3);
+        assertThat(savedSession.getCorrectCount()).isEqualTo(2);
+        assertThat(savedSession.getStatus()).isEqualTo(SessionStatus.COMPLETED);
         assertThat(wrongNoteRepository.existsByUserIdAndSolvedSessionId(10L, result.sessionId())).isTrue();
 
         List<SolvedMultipleChoice> items = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
-        assertThat(items).hasSize(2);
+        assertThat(items).hasSize(3);
         assertThat(items.get(0).getType()).isEqualTo(ItemType.MAIN);
-        assertThat(items.get(0).getSequence()).isZero();
-        assertThat(items.get(0).isCorrect()).isTrue();
+        assertThat(items.get(0).getSequence()).isOne();
         assertThat(items.get(1).getType()).isEqualTo(ItemType.FOLLOWUP);
-        assertThat(items.get(1).getSequence()).isOne();
-        assertThat(items.get(1).isCorrect()).isFalse();
-        assertThat(items.get(1).getAnswerChoiceId()).isEqualTo(quizData.followupCorrect().getId());
+        assertThat(items.get(2).getType()).isEqualTo(ItemType.FOLLOWUP);
+        assertThat(items.get(2).isCorrect()).isFalse();
+        assertThat(items.get(2).getAnswerChoiceId()).isEqualTo(quiz.followup2Correct().getId());
     }
 
     @Test
     @DisplayName("전부 정답이면 오답노트를 만들지 않는다.")
-    void submitAllCorrect() {
-        QuizData quizData = saveQuizData();
+    void createAllCorrect() {
+        QuizData quiz = saveQuizData();
 
-        SubmitSessionResult result = solvedSessionService.submit(
-                10L,
-                new SubmitSessionCommand(
-                        quizData.root().getId(),
-                        SessionSource.PROBLEM_SOLVING,
-                        false,
-                        List.of(
-                                new SubmittedAnswer(quizData.root().getId(), quizData.rootCorrect().getId()),
-                                new SubmittedAnswer(quizData.followup().getId(), quizData.followupCorrect().getId())
-                        )
-                )
-        );
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, quiz.toAllCorrectCommand());
 
-        assertThat(result.status()).isEqualTo(SessionStatus.ABANDONED);
-        assertThat(result.correctCount()).isEqualTo(2);
+        SolvedSession savedSession = solvedSessionRepository.findById(result.sessionId()).orElseThrow();
+        assertThat(savedSession.getCorrectCount()).isEqualTo(3);
         assertThat(wrongNoteRepository.existsByUserIdAndSolvedSessionId(10L, result.sessionId())).isFalse();
     }
 
     @Test
-    @DisplayName("루트 문제가 객관식 루트가 아니면 예외가 발생한다.")
-    void submitWithInvalidRootQuestion() {
-        Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
+    @DisplayName("꼬리질문이 다음 문제와 연결되지 않으면 예외가 발생한다.")
+    void createWithBrokenChain() {
+        QuizData quiz = saveQuizData();
+        CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L),
+                List.of()
+        );
 
-        assertThatThrownBy(() -> solvedSessionService.submit(
-                10L,
-                new SubmitSessionCommand(
-                        essayRoot.getId(),
-                        SessionSource.PROBLEM_SOLVING,
-                        true,
-                        List.of(new SubmittedAnswer(essayRoot.getId(), 1L))
-                )
-        ))
+        assertThatThrownBy(() -> solvedSessionService.create(10L, command))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
-                        .isEqualTo(QuestionErrorCode.QUESTION_NOT_ROOT));
+                        .isEqualTo(SolvedSessionErrorCode.SOLVED_SESSION_BROKEN_CHAIN));
     }
 
     @Test
     @DisplayName("선택지가 제출 문항에 속하지 않으면 예외가 발생한다.")
-    void submitWithChoiceNotInQuestion() {
-        QuizData quizData = saveQuizData();
+    void createWithChoiceNotInQuestion() {
+        QuizData quiz = saveQuizData();
+        CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId()),
+                List.of()
+        );
 
-        assertThatThrownBy(() -> solvedSessionService.submit(
-                10L,
-                new SubmitSessionCommand(
-                        quizData.root().getId(),
-                        SessionSource.PROBLEM_SOLVING,
-                        true,
-                        List.of(new SubmittedAnswer(quizData.root().getId(), quizData.followupCorrect().getId()))
-                )
-        ))
+        assertThatThrownBy(() -> solvedSessionService.create(10L, command))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(QuestionErrorCode.CHOICE_NOT_IN_QUESTION));
     }
 
     private QuizData saveQuizData() {
-        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
         Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
-        AnswerChoice rootCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
+        Question followup1 = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question followup2 = questionRepository.save(QuestionFixture.followupMultipleChoice());
+
+        AnswerChoice rootCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup1.getId()));
         answerChoiceRepository.save(AnswerChoiceFixture.wrong(root.getId(), 2));
-        AnswerChoice followupCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup.getId(), 1, null));
-        AnswerChoice followupWrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup.getId(), 2));
-        return new QuizData(root, followup, rootCorrect, followupCorrect, followupWrong);
+        AnswerChoice followup1Correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup1.getId(), 1, followup2.getId()));
+        answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup1.getId(), 2));
+        AnswerChoice followup2Correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup2.getId(), 1, null));
+        AnswerChoice followup2Wrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup2.getId(), 2));
+
+        return new QuizData(root, followup1, followup2, rootCorrect, followup1Correct, followup2Correct, followup2Wrong);
     }
 
     private record QuizData(
             Question root,
-            Question followup,
+            Question followup1,
+            Question followup2,
             AnswerChoice rootCorrect,
-            AnswerChoice followupCorrect,
-            AnswerChoice followupWrong
+            AnswerChoice followup1Correct,
+            AnswerChoice followup2Correct,
+            AnswerChoice followup2Wrong
     ) {
+
+        CreateSolvedSessionCommand toCommand() {
+            return new CreateSolvedSessionCommand(
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    List.of(
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
+                    )
+            );
+        }
+
+        CreateSolvedSessionCommand toAllCorrectCommand() {
+            return new CreateSolvedSessionCommand(
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    List.of(
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null)
+                    )
+            );
+        }
     }
 }

@@ -27,9 +27,6 @@ public class SolvedSession {
     private QuestionType type;
 
     @Enumerated(EnumType.STRING)
-    private SessionSource source;
-
-    @Enumerated(EnumType.STRING)
     private SessionStatus status;
 
     private int totalCount;
@@ -43,7 +40,6 @@ public class SolvedSession {
     private SolvedSession(
             Long userId,
             QuestionType type,
-            SessionSource source,
             SessionStatus status,
             int totalCount,
             int correctCount,
@@ -52,7 +48,6 @@ public class SolvedSession {
     ) {
         this.userId = userId;
         this.type = type;
-        this.source = source;
         this.status = status;
         this.totalCount = totalCount;
         this.correctCount = correctCount;
@@ -63,7 +58,6 @@ public class SolvedSession {
     public static SolvedSession completed(
             Long userId,
             QuestionType type,
-            SessionSource source,
             int totalCount,
             int correctCount,
             LocalDateTime solvedAt
@@ -71,7 +65,6 @@ public class SolvedSession {
         return new SolvedSession(
                 userId,
                 type,
-                source,
                 SessionStatus.COMPLETED,
                 totalCount,
                 correctCount,
@@ -80,23 +73,4 @@ public class SolvedSession {
         );
     }
 
-    public static SolvedSession abandoned(
-            Long userId,
-            QuestionType type,
-            SessionSource source,
-            int totalCount,
-            int correctCount,
-            LocalDateTime solvedAt
-    ) {
-        return new SolvedSession(
-                userId,
-                type,
-                source,
-                SessionStatus.ABANDONED,
-                totalCount,
-                correctCount,
-                solvedAt,
-                LocalDateTime.now()
-        );
-    }
 }

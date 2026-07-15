@@ -4,13 +4,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-import com.neogul.whynago.solvedsession.domain.SessionStatus;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.ScoredAnswer;
-import com.neogul.whynago.solvedsession.service.SolvedSessionService.SubmitSessionResult;
+import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
 import io.restassured.http.ContentType;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
-import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,29 +32,19 @@ class SolvedSessionControllerTest {
     }
 
     @Test
-    @DisplayName("전체 풀이 결과를 한 번에 제출한다.")
-    void submit() {
-        given(solvedSessionService.submit(eq(10L), any())).willReturn(new SubmitSessionResult(
-                1L,
-                2,
-                1,
-                1,
-                50.0,
-                SessionStatus.COMPLETED,
-                List.of(new ScoredAnswer(1L, 1L, 1L, true))
-        ));
+    @DisplayName("본질문과 꼬리질문 풀이 결과를 한 번에 제출한다.")
+    void create() {
+        given(solvedSessionService.create(eq(10L), any())).willReturn(new CreateSolvedSessionResult(1L));
 
         RestAssuredMockMvc.given()
                 .contentType(ContentType.JSON)
-                .header("X-User-Id", 10L)
+                .queryParam("userId", 10L)
                 .body("""
                         {
-                          "rootQuestionId": 1,
-                          "source": "PROBLEM_SOLVING",
-                          "completed": true,
-                          "answers": [
-                            {"questionId": 1, "choiceId": 1},
-                            {"questionId": 2, "choiceId": 6}
+                          "rootQuestion": {"questionId": 1, "choiceId": 3, "relationQuestionId": 5},
+                          "followupQuestions": [
+                            {"questionId": 5, "choiceId": 11, "relationQuestionId": 8},
+                            {"questionId": 8, "choiceId": 21, "relationQuestionId": null}
                           ]
                         }
                         """)
@@ -65,25 +52,18 @@ class SolvedSessionControllerTest {
                 .post("/api/solved-sessions")
                 .then()
                 .statusCode(201)
-                .body("sessionId", Matchers.equalTo(1))
-                .body("totalCount", Matchers.equalTo(2))
-                .body("correctRate", Matchers.equalTo(50.0f))
-                .body("status", Matchers.equalTo("COMPLETED"))
-                .body("items[0].correct", Matchers.equalTo(true));
+                .body("sessionId", Matchers.equalTo(1));
     }
 
     @Test
-    @DisplayName("answers가 비어 있으면 400을 반환한다.")
-    void submitWithEmptyAnswers() {
+    @DisplayName("rootQuestion이 없으면 400을 반환한다.")
+    void createWithoutRootQuestion() {
         RestAssuredMockMvc.given()
                 .contentType(ContentType.JSON)
-                .header("X-User-Id", 10L)
+                .queryParam("userId", 10L)
                 .body("""
                         {
-                          "rootQuestionId": 1,
-                          "source": "PROBLEM_SOLVING",
-                          "completed": true,
-                          "answers": []
+                          "followupQuestions": []
                         }
                         """)
                 .when()

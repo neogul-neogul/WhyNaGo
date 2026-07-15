@@ -27,10 +27,4 @@ public class AnswerChoiceReader {
     public List<AnswerChoice> readChoices(Long questionId) {
         return answerChoiceRepository.findByQuestionIdOrderBySequence(questionId);
     }
-
-    public void validateChoiceInQuestion(AnswerChoice choice, Long questionId) {
-        if (!choice.getQuestionId().equals(questionId)) {
-            throw new BusinessException(QuestionErrorCode.CHOICE_NOT_IN_QUESTION);
-        }
-    }
 }

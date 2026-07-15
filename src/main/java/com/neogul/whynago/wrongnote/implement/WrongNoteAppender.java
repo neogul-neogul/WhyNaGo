@@ -11,6 +11,12 @@ public class WrongNoteAppender {
 
     private final WrongNoteRepository wrongNoteRepository;
 
+    public void appendIfWrongAnswer(Long userId, Long solvedSessionId, boolean hasWrongAnswer) {
+        if (hasWrongAnswer) {
+            appendIfAbsent(userId, solvedSessionId);
+        }
+    }
+
     public void appendIfAbsent(Long userId, Long solvedSessionId) {
         if (!wrongNoteRepository.existsByUserIdAndSolvedSessionId(userId, solvedSessionId)) {
             wrongNoteRepository.save(WrongNote.create(userId, solvedSessionId));

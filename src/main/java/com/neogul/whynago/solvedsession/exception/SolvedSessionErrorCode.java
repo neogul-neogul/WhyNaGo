@@ -1,18 +1,17 @@
-package com.neogul.whynago.question.exception;
+package com.neogul.whynago.solvedsession.exception;
 
 import com.neogul.whynago.common.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
 
-public enum QuestionErrorCode implements ErrorCode {
+public enum SolvedSessionErrorCode implements ErrorCode {
 
-    CHOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHOICE_NOT_FOUND", "선택지를 찾을 수 없습니다."),
-    CHOICE_NOT_IN_QUESTION(HttpStatus.BAD_REQUEST, "CHOICE_NOT_IN_QUESTION", "선택지가 해당 문제에 속하지 않습니다.");
+    SOLVED_SESSION_BROKEN_CHAIN(HttpStatus.BAD_REQUEST, "SOLVED_SESSION_BROKEN_CHAIN", "꼬리질문 연결이 올바르지 않습니다.");
 
     private final HttpStatus status;
     private final String code;
     private final String message;
 
-    QuestionErrorCode(HttpStatus status, String code, String message) {
+    SolvedSessionErrorCode(HttpStatus status, String code, String message) {
         this.status = status;
         this.code = code;
         this.message = message;

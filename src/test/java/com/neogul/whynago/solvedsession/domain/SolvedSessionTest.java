@@ -17,7 +17,6 @@ class SolvedSessionTest {
         SolvedSession solvedSession = SolvedSession.completed(
                 1L,
                 QuestionType.MULTIPLE_CHOICE,
-                SessionSource.PROBLEM_SOLVING,
                 2,
                 1,
                 solvedAt
@@ -28,20 +27,5 @@ class SolvedSessionTest {
         assertThat(solvedSession.getCorrectCount()).isEqualTo(1);
         assertThat(solvedSession.getSolvedAt()).isEqualTo(solvedAt);
         assertThat(solvedSession.getCreatedAt()).isNotNull();
-    }
-
-    @Test
-    @DisplayName("중단 세션을 생성한다.")
-    void abandoned() {
-        SolvedSession solvedSession = SolvedSession.abandoned(
-                1L,
-                QuestionType.MULTIPLE_CHOICE,
-                SessionSource.PROBLEM_SOLVING,
-                2,
-                1,
-                LocalDateTime.now()
-        );
-
-        assertThat(solvedSession.getStatus()).isEqualTo(SessionStatus.ABANDONED);
     }
 }

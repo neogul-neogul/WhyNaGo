@@ -17,8 +17,7 @@ public final class QuestionFixture {
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
-                "TCP는 연결 지향형이고 UDP는 비연결형이다.",
-                true
+                "TCP는 연결 지향형이고 UDP는 비연결형이다."
         );
     }
 
@@ -29,8 +28,7 @@ public final class QuestionFixture {
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
-                "낮은 지연이 중요하다.",
-                false
+                "낮은 지연이 중요하다."
         );
     }
 
@@ -41,8 +39,7 @@ public final class QuestionFixture {
                 QuestionType.ESSAY,
                 Difficulty.HIGH,
                 Category.DB,
-                "격리 수준별 이상 현상이 다르다.",
-                true
+                "격리 수준별 이상 현상이 다르다."
         );
     }
 }

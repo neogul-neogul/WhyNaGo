@@ -14,8 +14,12 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("""
             select q
             from Question q
-            where q.isRoot = true
-              and q.type = com.neogul.whynago.question.domain.QuestionType.MULTIPLE_CHOICE
+            where q.type = com.neogul.whynago.question.domain.QuestionType.MULTIPLE_CHOICE
+              and q.id not in (
+                  select ac.relatedQuestionId
+                  from AnswerChoice ac
+                  where ac.relatedQuestionId is not null
+              )
               and (:type is null or q.type = :type)
               and (:difficulty is null or q.difficulty = :difficulty)
               and (:category is null or q.category = :category)

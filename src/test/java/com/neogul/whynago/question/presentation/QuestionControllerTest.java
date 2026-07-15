@@ -7,8 +7,8 @@ import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.service.QuestionService;
-import com.neogul.whynago.question.service.QuestionService.ChoiceResult;
-import com.neogul.whynago.question.service.QuestionService.QuestionResult;
+import com.neogul.whynago.question.service.dto.ChoiceResult;
+import com.neogul.whynago.question.service.dto.QuestionResult;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import java.util.List;
 import org.hamcrest.Matchers;
@@ -46,7 +46,6 @@ class QuestionControllerTest {
                         Difficulty.MEDIUM,
                         Category.NETWORK,
                         "해설",
-                        true,
                         List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
                         List.of("NETWORK")
                 )
