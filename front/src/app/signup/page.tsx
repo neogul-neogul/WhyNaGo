@@ -2,19 +2,40 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { login } from "@/lib/auth";
+import { requestSignup } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
 
 export default function SignupPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 클라이언트 측 더미 회원가입: 세션 플래그를 저장하고 메인으로 이동
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // 백엔드에 회원가입 요청 → 성공 시 로그인 페이지로 이동, 실패 시 에러 표시
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    login();
-    router.push("/");
+    setError("");
+    setLoading(true);
+    try {
+      await requestSignup(email, password, nickname);
+      router.push("/login");
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "USER_DUPLICATE_EMAIL") {
+        setError("이미 사용 중인 이메일입니다.");
+      } else if (err instanceof ApiError && err.code === "USER_DUPLICATE_NICKNAME") {
+        setError("이미 사용 중인 닉네임입니다.");
+      } else if (err instanceof ApiError && err.status === 400) {
+        setError("입력 형식을 확인해주세요. (비밀번호 8~12자, 닉네임 4~8자)");
+      } else if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputClass =
@@ -59,15 +80,21 @@ export default function SignupPage() {
           placeholder="닉네임"
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
-          className={`${inputClass} mb-[18px]`}
+          className={`${inputClass} ${error ? "mb-[9px]" : "mb-[18px]"}`}
         />
+
+        {/* 에러 메시지 */}
+        {error && (
+          <p className="mb-[9px] w-full text-[13px] text-[#DC2626]">{error}</p>
+        )}
 
         {/* 액션 */}
         <button
           type="submit"
-          className="w-full rounded-[11px] bg-[#1C1C1A] py-[14px] text-[15px] font-semibold text-white transition-colors hover:bg-[#333]"
+          disabled={loading}
+          className="w-full rounded-[11px] bg-[#1C1C1A] py-[14px] text-[15px] font-semibold text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          가입하기
+          {loading ? "가입 중..." : "가입하기"}
         </button>
         <button
           type="button"

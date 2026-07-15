@@ -1,5 +1,27 @@
 // 공용 타입 정의
 
+/** 사용자 직무 (백엔드 Position enum과 대응) */
+export type Position = "BACKEND" | "FRONTEND" | "FULLSTACK";
+
+/** 로그인한 사용자 정보 (백엔드 로그인 응답의 사용자 부분) */
+export interface AuthUser {
+  id: number;
+  email: string;
+  nickname: string;
+  position: Position;
+}
+
+/** 로그인 API 응답 바디 */
+export interface LoginResponse extends AuthUser {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/** 회원가입 API 응답 바디 */
+export interface SignUpResponse {
+  userId: number;
+}
+
 /** 상단 공통 헤더의 내비게이션 항목 */
 export interface NavItem {
   key: string;

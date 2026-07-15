@@ -4,9 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ProfileMenuIcon } from "@/types";
+import type { Position } from "@/types";
 import { navItems, profileMenu } from "@/mocks/navigation";
-import { currentUser, learningStats } from "@/mocks/user";
-import { logout as authLogout, useAuth, useHydrated } from "@/lib/auth";
+import { learningStats } from "@/mocks/user";
+import { logout as authLogout, useAuth, useCurrentUser, useHydrated } from "@/lib/auth";
+
+// 직무(Position)를 화면 표기용 한글 라벨로 변환
+const POSITION_LABEL: Record<Position, string> = {
+  BACKEND: "백엔드",
+  FRONTEND: "프론트엔드",
+  FULLSTACK: "풀스택",
+};
 
 // 프로필 메뉴 아이콘 (더미 UI용 인라인 SVG)
 function MenuIcon({ name }: { name: ProfileMenuIcon }) {
@@ -71,6 +79,7 @@ export default function Header() {
   const router = useRouter();
   const loggedIn = useAuth();
   const hydrated = useHydrated();
+  const user = useCurrentUser();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const isActive = (href: string) =>
@@ -134,7 +143,7 @@ export default function Header() {
 
         {/* 우측: 로그인 시 스트릭 + 프로필, 로그아웃 시 로그인 버튼 */}
         <div className="relative flex flex-shrink-0 items-center gap-[11px]">
-          {!hydrated ? null : loggedIn ? (
+          {!hydrated ? null : loggedIn && user ? (
             <>
           <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#EA580C]">
             🔥{learningStats.streakDays}
@@ -146,13 +155,13 @@ export default function Header() {
             className="flex items-center gap-[11px] rounded-[10px] px-2 py-[5px] transition-colors hover:bg-black/[0.04]"
           >
             <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-sm font-semibold text-white">
-              {currentUser.initial}
+              {user.nickname.charAt(0)}
             </div>
             <div className="flex flex-col text-left leading-[1.25]">
               <span className="text-[13px] font-semibold text-[#1C1C1A]">
-                {currentUser.name}
+                {user.nickname}
               </span>
-              <span className="text-[11px] text-[#9A9A90]">{currentUser.role}</span>
+              <span className="text-[11px] text-[#9A9A90]">{POSITION_LABEL[user.position]}</span>
             </div>
             <svg
               width="15"
@@ -182,14 +191,14 @@ export default function Header() {
               <div className="absolute right-0 top-[calc(100%+8px)] z-50 flex w-[236px] flex-col gap-0.5 rounded-[14px] border border-[#ECECE8] bg-white p-2 shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
                 <div className="mb-1 flex items-center gap-[11px] border-b border-[#F2F2EE] px-3 pb-3 pt-2.5">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-base font-semibold text-white">
-                    {currentUser.initial}
+                    {user.nickname.charAt(0)}
                   </div>
                   <div className="flex min-w-0 flex-col leading-[1.3]">
                     <span className="text-sm font-bold text-[#1C1C1A]">
-                      {currentUser.name}
+                      {user.nickname}
                     </span>
                     <span className="truncate text-xs text-[#9A9A90]">
-                      {currentUser.email}
+                      {user.email}
                     </span>
                   </div>
                 </div>
