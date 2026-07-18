@@ -53,7 +53,6 @@ export default function SolvePage() {
               key={`essay-${qi}`}
               question={essay}
               onQuit={() => setStage("setup")}
-              onFinish={finish}
             />
           ))}
 
