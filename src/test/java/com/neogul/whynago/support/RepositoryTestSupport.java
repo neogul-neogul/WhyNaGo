@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 
-@ActiveProfiles("test")
+//@ActiveProfiles("test")
 @Import(TestcontainersConfiguration.class)
 @DataJpaTest
 public abstract class RepositoryTestSupport {

@@ -4,32 +4,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-import com.neogul.whynago.solvedsession.service.SolvedSessionService;
 import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
+import com.neogul.whynago.support.ControllerTestSupport;
 import io.restassured.http.ContentType;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.HttpHeaders;
 
-@WebMvcTest(SolvedSessionController.class)
-class SolvedSessionControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private SolvedSessionService solvedSessionService;
-
-    @BeforeEach
-    void setUp() {
-        RestAssuredMockMvc.mockMvc(mockMvc);
-    }
+class SolvedSessionControllerTest extends ControllerTestSupport {
 
     @Test
     @DisplayName("본질문과 꼬리질문 풀이 결과를 한 번에 제출한다.")
@@ -37,6 +21,7 @@ class SolvedSessionControllerTest {
         given(solvedSessionService.create(eq(10L), any())).willReturn(new CreateSolvedSessionResult(1L));
 
         RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
                 .queryParam("userId", 10L)
                 .body("""
@@ -59,6 +44,7 @@ class SolvedSessionControllerTest {
     @DisplayName("rootQuestion이 없으면 400을 반환한다.")
     void createWithoutRootQuestion() {
         RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
                 .queryParam("userId", 10L)
                 .body("""

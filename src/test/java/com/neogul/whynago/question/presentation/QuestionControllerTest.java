@@ -6,33 +6,17 @@ import static org.mockito.BDDMockito.given;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
-import com.neogul.whynago.question.service.QuestionService;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
+import com.neogul.whynago.support.ControllerTestSupport;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import java.util.List;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.HttpHeaders;
 
-@WebMvcTest(QuestionController.class)
-class QuestionControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private QuestionService questionService;
-
-    @BeforeEach
-    void setUp() {
-        RestAssuredMockMvc.mockMvc(mockMvc);
-    }
+class QuestionControllerTest extends ControllerTestSupport {
 
     @Test
     @DisplayName("문제 목록을 조회한다.")
@@ -52,6 +36,7 @@ class QuestionControllerTest {
         ));
 
         RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .queryParam("type", "MULTIPLE_CHOICE")
                 .queryParam("difficulty", "MEDIUM")
                 .queryParam("category", "NETWORK")

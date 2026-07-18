@@ -9,46 +9,22 @@ import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.auth.fixture.LoginRequestFixture;
 import com.neogul.whynago.auth.fixture.SignUpRequestFixture;
-import com.neogul.whynago.auth.presentation.config.WebConfig;
 import com.neogul.whynago.auth.presentation.dto.LoginRequest;
 import com.neogul.whynago.auth.presentation.dto.SignUpRequest;
-import com.neogul.whynago.auth.presentation.interceptor.AuthInterceptor;
-import com.neogul.whynago.auth.presentation.resolver.LoginUserArgumentResolver;
-import com.neogul.whynago.auth.service.AuthService;
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.support.ControllerTestSupport;
 import com.neogul.whynago.user.domain.Position;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import io.restassured.http.ContentType;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(controllers = AuthController.class,
-        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
-                classes = {WebConfig.class, AuthInterceptor.class, LoginUserArgumentResolver.class}))
-class AuthControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private AuthService authService;
-
-    @BeforeEach
-    void setUp() {
-        RestAssuredMockMvc.mockMvc(mockMvc);
-    }
+class AuthControllerTest extends ControllerTestSupport {
 
     @DisplayName("회원가입에 성공하면 201 Created와 userId를 응답한다.")
     @Test

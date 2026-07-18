@@ -1,80 +1,51 @@
-package project.kjhjdh.ibid.support;
+package com.neogul.whynago.support;
 
-import java.util.List;
-
+import com.neogul.whynago.auth.domain.JwtClaim;
+import com.neogul.whynago.auth.implement.JwtProvider;
+import com.neogul.whynago.auth.presentation.AuthController;
+import com.neogul.whynago.auth.presentation.interceptor.TokenExtractor;
+import com.neogul.whynago.auth.service.AuthService;
+import com.neogul.whynago.question.presentation.QuestionController;
+import com.neogul.whynago.question.service.QuestionService;
+import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
+import com.neogul.whynago.solvedsession.service.SolvedSessionService;
+import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.MethodParameter;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import io.restassured.module.mockmvc.RestAssuredMockMvc;
-import project.kjhjdh.ibid.auth.application.AuthService;
-import project.kjhjdh.ibid.auth.domain.UserInfo;
-import project.kjhjdh.ibid.auth.presentation.cookie.RefreshTokenCookieHandler;
-import project.kjhjdh.ibid.auth.presentation.interceptor.AuthenticationInterceptor;
-import project.kjhjdh.ibid.auth.presentation.resolver.LoginUser;
-import project.kjhjdh.ibid.common.config.WebConfig;
-import project.kjhjdh.ibid.order.application.OrderService;
-import project.kjhjdh.ibid.product.application.ProductService;
-
-@ActiveProfiles("test")
-@Import({RefreshTokenCookieHandler.class, ControllerTestSupport.LoginUserArgumentResolverTest.class})
-@WebMvcTest(excludeFilters = @ComponentScan.Filter(
-        type = FilterType.ASSIGNABLE_TYPE,
-        classes = {WebConfig.class, AuthenticationInterceptor.class}))
+@WebMvcTest(controllers = {
+        AuthController.class,
+        QuestionController.class,
+        SolvedSessionController.class
+})
+@Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
 
     @Autowired
     protected MockMvc mockMvc;
 
+    @Autowired
+    protected JwtProvider jwtProvider;
+
     @MockitoBean
     protected AuthService authService;
 
     @MockitoBean
-    protected ProductService productService;
+    protected QuestionService questionService;
 
     @MockitoBean
-    protected OrderService orderService;
+    protected SolvedSessionService solvedSessionService;
 
     @BeforeEach
     void setUpMockMvc() {
         RestAssuredMockMvc.mockMvc(mockMvc);
     }
 
-    @TestConfiguration
-    static class LoginUserArgumentResolverTest implements WebMvcConfigurer {
-
-        static final Long LOGIN_USER_ID = 1L;
-
-        @Override
-        public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-            resolvers.add(new HandlerMethodArgumentResolver() {
-
-                @Override
-                public boolean supportsParameter(MethodParameter parameter) {
-                    return parameter.hasParameterAnnotation(LoginUser.class);
-                }
-
-                @Override
-                public Object resolveArgument(MethodParameter parameter,
-                                              ModelAndViewContainer mavContainer,
-                                              NativeWebRequest webRequest,
-                                              WebDataBinderFactory binderFactory) {
-                    return new UserInfo(LOGIN_USER_ID);
-                }
-            });
-        }
+    protected String bearerToken(Long userId) {
+        return "Bearer " + jwtProvider.createAccessToken(new JwtClaim(userId));
     }
 }
