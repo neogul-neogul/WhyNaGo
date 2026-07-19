@@ -1,5 +1,7 @@
 package com.neogul.whynago.solvedsession.presentation;
 
+import com.neogul.whynago.auth.presentation.AuthContext;
+import com.neogul.whynago.auth.presentation.resolver.LoginUser;
 import com.neogul.whynago.solvedsession.presentation.dto.CreateSolvedSessionRequest;
 import com.neogul.whynago.solvedsession.presentation.dto.CreateSolvedSessionResponse;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
@@ -21,11 +23,11 @@ public class SolvedSessionController {
 
     @PostMapping
     public ResponseEntity<CreateSolvedSessionResponse> create(
-            Long userId,
+            @LoginUser AuthContext authContext,
             @Valid @RequestBody CreateSolvedSessionRequest request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(CreateSolvedSessionResponse.from(solvedSessionService.create(userId, request.toCommand())));
+                .body(CreateSolvedSessionResponse.from(solvedSessionService.create(authContext.id(), request.toCommand())));
     }
 }
