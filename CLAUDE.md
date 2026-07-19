@@ -34,6 +34,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`docs/ARCHITECTURE.md`** — 아키텍처 컨벤션.
   도메인을 최상위로 두고 그 안에서 `presentation / service / implement / infra / domain` 레이어를 나누는 패키지 구조, 레이어 간 의존성 방향(항상 아래로만, 건너뛰기 금지), service/implement/infra/domain 각 레이어의 작성 규칙과 트랜잭션 경계를 규정한다. 핵심은 "service가 상세 구현을 몰라도 비즈니스 흐름을 읽을 수 있게" 만드는 것.
 
+- **`docs/CONVENTION.md`** — 공통 개발 컨벤션.
+  특정 레이어에 종속되지 않고 코드 전반에 적용되는 규칙(Command·Result 등 모델의 파일 분리와 inner class/record 지양, record 기반 불변 모델, 정적 팩토리 메서드(`from`/`of`) 변환, `@RequiredArgsConstructor` 생성자 주입)을 규정한다.
+
 - **`docs/EXCEPTION.md`** — 예외 처리 컨벤션.
   예외 분류, 일관된 에러 응답 형식(`{code, message}`), 도메인 단위 `ErrorCode` 네이밍(`{DOMAIN}_{REASON}`), `BusinessException`, `GlobalExceptionHandler`의 처리 우선순위와 로깅 규칙을 규정한다. 실제 구현 스캐폴딩은 `src/main/java/com/neogul/whynago/common/exception/`에 있다.
 

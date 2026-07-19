@@ -10,11 +10,9 @@ type Entry = { label: string; question: string; answer: string; feedback: string
 export default function EssayQuiz({
   question,
   onQuit,
-  onFinish,
 }: {
   question: EssayQuestion;
   onQuit: () => void;
-  onFinish: (correct: number, total: number) => void;
 }) {
   const seq = useMemo(() => [question.text, ...question.followups], [question]);
   const models = useMemo(() => [question.model, ...question.followupModels], [question]);
@@ -197,12 +195,13 @@ export default function EssayQuiz({
                 </button>
               )}
               {done && (
+                /* 면접 완료: 저장하고 문제은행으로 복귀 (디자인: 저장하기 → setup) */
                 <button
                   type="button"
-                  onClick={() => onFinish(seq.length, seq.length)}
+                  onClick={onQuit}
                   className="rounded-[10px] bg-[#1C1C1A] px-6 py-[11px] text-[14px] font-semibold text-white"
                 >
-                  종료하기
+                  저장하기
                 </button>
               )}
             </div>

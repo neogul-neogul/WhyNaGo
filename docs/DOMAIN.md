@@ -53,8 +53,7 @@
 | id | 세션 ID | PK |
 | userId | 사용자 ID | FK → User |
 | type | 유형 | `MULTIPLE_CHOICE` \| `ESSAY` |
-| source | 출처 | `PROBLEM_SOLVING`(문제 풀이) \| `WRONG_REVIEW`(오답 복습) \| `MOCK`(모의 진단) \| `CATEGORY`(카테고리별) — 학습 기록의 `method` |
-| status | 상태 | `COMPLETED`(끝까지 진행) \| `ABANDONED`(중간 "종료하기") — [세션 종료 정책](#세션-집계-정책) |
+| status | 상태 | `COMPLETED`(끝까지 진행). 저장 API는 완료된 세션만 받는다 — [세션 종료 정책](#세션-집계-정책) |
 | totalCount | 전체 문항 수 | 세션에서 실제 응답한 문항 수(본질문+거친 꼬리질문) |
 | correctCount | 정답 수 | 맞힌 문항 수 |
 | solvedAt | 완료 시각 | |
@@ -130,7 +129,7 @@
 ### 세션 집계 정책
 - 본질문~꼬리질문 전체가 하나의 `SolvedSession` 이다.
 - 결과 화면의 값 = 세션 집계: 정답률 `correctCount / totalCount`, 정답 수, 오답 수(`totalCount - correctCount`).
-- "종료하기"로 중간에 끝내면 `ABANDONED`, 마지막 문항까지 답하고 "결과 보기"로 끝내면 `COMPLETED`.
+- 마지막 문항까지 답하고 "저장하기"로 끝낸 세션만 저장하며 상태는 `COMPLETED`다. 중간에 "종료하기"로 이탈한 풀이는 저장하지 않는다(중단 세션 저장은 추후 필요 시 별도 논의).
 
 ### 문제은행 표시 정책
 - `완료한 사람 수` = 그 문제를 푼(세션에 포함된) 사용자 수(집계).
@@ -147,7 +146,6 @@
 | Category | `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` |
 | Difficulty | `LOW`(하) · `MEDIUM`(중) · `HIGH`(상) |
 | QuestionType | `MULTIPLE_CHOICE` · `ESSAY` |
-| SessionSource | `PROBLEM_SOLVING` · `WRONG_REVIEW` · `MOCK` · `CATEGORY` |
 | WrongNoteSource | `PROBLEM_SOLVING` · `SELF_DIAGNOSIS` · `RETRY` · `MANUAL` |
 
 ---

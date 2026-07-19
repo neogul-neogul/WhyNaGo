@@ -8,6 +8,8 @@
 
 이 문서는 Gemini Kim의 글 **지속 성장 가능한 소프트웨어를 만들어가는 방법**의 방향성을 프로젝트 컨벤션으로 구체화한 것이다.
 
+> 레이어에 종속되지 않는 공통 코드 컨벤션(모델 파일 분리와 inner class/record 지양, record 기반 불변 모델, 정적 팩토리 메서드 변환, 생성자 주입 등)은 `docs/CONVENTION.md`를 참고한다.
+
 ## **기본 패키지 구조**
 
 도메인을 최상위 기준으로 나누고, 도메인 내부에서 레이어를 나눈다.
@@ -108,6 +110,10 @@ public class PaymentService {
     public PaymentResponse pay(PaymentRequest request) {
         // 조회, 검증, 포인트 차감, 결제 생성, 응답 조립이 모두 섞인 형태는 지양한다.
     }
+	
+	public record PaymentRequest(
+		//request 필드
+    ){}
 }
 ```
 

@@ -125,7 +125,7 @@ export default function ProblemBank({
                 </span>
                 <span className="flex flex-wrap gap-1.5">
                   {p.keywords.map((kw) => (
-                    <span key={kw} className="whitespace-nowrap rounded-[5px] px-1 py-0.5 text-[10px] font-medium text-[#6B6B62]">
+                    <span key={kw} className="whitespace-nowrap rounded-[5px] bg-white px-1 py-0.5 text-[10px] font-medium text-[#6B6B62]">
                       {kw}
                     </span>
                   ))}

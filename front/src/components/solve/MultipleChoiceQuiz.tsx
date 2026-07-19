@@ -213,13 +213,16 @@ export default function MultipleChoiceQuiz({
 
             {/* 푸터 */}
             <div className="flex justify-end gap-2 border-t border-[#ECECE8] px-[22px] py-3.5">
-              <button
-                type="button"
-                onClick={() => onFinish(correct, seq.length)}
-                className="rounded-[10px] border border-[#DCDCD4] bg-white px-[22px] py-[11px] text-[14px] font-semibold text-[#6B6B62]"
-              >
-                종료하기
-              </button>
+              {/* 모든 질문을 다 풀면 종료하기 버튼을 숨긴다 (디자인: showEndQuiz) */}
+              {!allAnswered && (
+                <button
+                  type="button"
+                  onClick={() => onFinish(correct, seq.length)}
+                  className="rounded-[10px] border border-[#DCDCD4] bg-white px-[22px] py-[11px] text-[14px] font-semibold text-[#6B6B62]"
+                >
+                  종료하기
+                </button>
+              )}
               {!cell.checked ? (
                 <button
                   type="button"
@@ -239,12 +242,13 @@ export default function MultipleChoiceQuiz({
                   다음 질문
                 </button>
               ) : (
+                /* 다 풀었을 때: 저장하고 문제은행으로 복귀 (디자인: 저장하기 → setup) */
                 <button
                   type="button"
-                  onClick={() => onFinish(correct, seq.length)}
+                  onClick={onQuit}
                   className="rounded-[10px] bg-[#1C1C1A] px-[26px] py-[11px] text-[14px] font-semibold text-white"
                 >
-                  결과 보기
+                  저장하기
                 </button>
               )}
             </div>
