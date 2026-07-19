@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public enum QuestionErrorCode implements ErrorCode {
 
+    QUESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "QUESTION_NOT_FOUND", "문제를 찾을 수 없습니다."),
     CHOICE_NOT_FOUND(HttpStatus.NOT_FOUND, "CHOICE_NOT_FOUND", "선택지를 찾을 수 없습니다."),
     CHOICE_NOT_IN_QUESTION(HttpStatus.BAD_REQUEST, "CHOICE_NOT_IN_QUESTION", "선택지가 해당 문제에 속하지 않습니다.");
 
