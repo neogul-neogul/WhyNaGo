@@ -67,4 +67,8 @@ public class Question {
     ) {
         return new Question(title, content, type, difficulty, category, explanation);
     }
+
+    public boolean isEssay() {
+        return type == QuestionType.ESSAY;
+    }
 }

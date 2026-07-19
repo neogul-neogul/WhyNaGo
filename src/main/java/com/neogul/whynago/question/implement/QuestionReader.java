@@ -1,10 +1,12 @@
 package com.neogul.whynago.question.implement;
 
+import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
 import com.neogul.whynago.question.domain.QuestionType;
+import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
 import java.util.List;
@@ -27,6 +29,15 @@ public class QuestionReader {
             String keyword
     ) {
         return questionRepository.findRootMultipleChoices(type, difficulty, category, normalize(keyword));
+    }
+
+    public Question readEssayQuestion(Long questionId) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
+        if (!question.isEssay()) {
+            throw new BusinessException(QuestionErrorCode.QUESTION_NOT_ESSAY);
+        }
+        return question;
     }
 
     public Map<Long, List<String>> readTagNames(List<Long> questionIds) {
