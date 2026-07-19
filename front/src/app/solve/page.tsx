@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Problem } from "@/types";
-import { multipleChoiceQuestions, essayQuestions } from "@/mocks/questions";
+import type { QuestionResponse } from "@/types";
+import { essayQuestions } from "@/mocks/questions";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProblemBank from "@/components/solve/ProblemBank";
 import MultipleChoiceQuiz from "@/components/solve/MultipleChoiceQuiz";
@@ -13,13 +13,11 @@ type Stage = "setup" | "quiz" | "result";
 
 export default function SolvePage() {
   const [stage, setStage] = useState<Stage>("setup");
-  const [type, setType] = useState<Problem["type"]>("객관식");
-  const [qi, setQi] = useState(0);
+  const [question, setQuestion] = useState<QuestionResponse | null>(null);
   const [result, setResult] = useState({ correct: 0, total: 0 });
 
-  const startProblem = (p: Problem) => {
-    setType(p.type);
-    setQi(p.qi);
+  const startProblem = (q: QuestionResponse) => {
+    setQuestion(q);
     setStage("quiz");
   };
 
@@ -28,8 +26,7 @@ export default function SolvePage() {
     setStage("result");
   };
 
-  const multipleChoice = multipleChoiceQuestions[qi % multipleChoiceQuestions.length];
-  const essay = essayQuestions[qi % essayQuestions.length];
+  const isMultipleChoice = question?.type === "MULTIPLE_CHOICE";
 
   return (
     <main className="flex min-w-0 flex-1 flex-col">
@@ -41,24 +38,26 @@ export default function SolvePage() {
         {stage === "setup" && <ProblemBank onStart={startProblem} />}
 
         {stage === "quiz" &&
-          (type === "객관식" ? (
+          question &&
+          (isMultipleChoice ? (
             <MultipleChoiceQuiz
-              key={`mc-${qi}`}
-              question={multipleChoice}
+              key={`mc-${question.id}`}
+              question={question}
               onQuit={() => setStage("setup")}
               onFinish={finish}
             />
           ) : (
+            /* 서술형은 아직 백엔드 미구현 — 더미 데이터 화면 유지 */
             <EssayQuiz
-              key={`essay-${qi}`}
-              question={essay}
+              key={`essay-${question.id}`}
+              question={essayQuestions[0]}
               onQuit={() => setStage("setup")}
             />
           ))}
 
         {stage === "result" && (
           <QuizResult
-            type={type}
+            type={isMultipleChoice ? "객관식" : "서술형"}
             correct={result.correct}
             total={result.total}
             onRestart={() => setStage("setup")}
