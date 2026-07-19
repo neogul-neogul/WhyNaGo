@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { requestSignup } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
+import AuthCard from "@/components/auth/AuthCard";
+import Input from "@/components/ui/Input";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -38,73 +40,52 @@ export default function SignupPage() {
     }
   };
 
-  const inputClass =
-    "w-full rounded-[11px] border border-line-input bg-subtle px-[15px] py-[13px] text-sm text-ink outline-none placeholder:text-placeholder focus:border-ink";
-
   return (
-    <div className="flex flex-1 items-center justify-center p-6">
-      <form
-        onSubmit={handleSubmit}
-        className="flex w-full max-w-[400px] flex-col items-center gap-1.5 rounded-[20px] border border-line-card bg-white px-9 py-10 shadow-[0_20px_50px_rgba(0,0,0,0.08)]"
+    <AuthCard subtitle="몇 가지만 입력하면 시작할 수 있어요" onSubmit={handleSubmit}>
+      {/* 입력 */}
+      <Input
+        type="email"
+        placeholder="이메일"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="mb-[9px]"
+      />
+      <Input
+        type="password"
+        placeholder="비밀번호"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="mb-[9px]"
+      />
+      <Input
+        type="text"
+        placeholder="닉네임"
+        value={nickname}
+        onChange={(e) => setNickname(e.target.value)}
+        className={error ? "mb-[9px]" : "mb-[18px]"}
+      />
+
+      {/* 에러 메시지 */}
+      {error && (
+        <p className="mb-[9px] w-full text-[13px] text-danger">{error}</p>
+      )}
+
+      {/* 액션 */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full rounded-[11px] bg-ink py-[14px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {/* 로고 */}
-        <div className="mb-2 flex h-[52px] w-[52px] items-center justify-center rounded-[14px] bg-ink">
-          <span className="font-mono text-[23px] font-bold tracking-[-0.5px] text-white">
-            &lt;/&gt;
-          </span>
-        </div>
-        <span className="text-xl font-bold tracking-[-0.4px] text-ink">
-          WhyNaGo
-        </span>
-        <span className="mb-6 text-[13.5px] text-soft">
-          몇 가지만 입력하면 시작할 수 있어요
-        </span>
-
-        {/* 입력 */}
-        <input
-          type="email"
-          placeholder="이메일"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className={`${inputClass} mb-[9px]`}
-        />
-        <input
-          type="password"
-          placeholder="비밀번호"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={`${inputClass} mb-[9px]`}
-        />
-        <input
-          type="text"
-          placeholder="닉네임"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          className={`${inputClass} ${error ? "mb-[9px]" : "mb-[18px]"}`}
-        />
-
-        {/* 에러 메시지 */}
-        {error && (
-          <p className="mb-[9px] w-full text-[13px] text-danger">{error}</p>
-        )}
-
-        {/* 액션 */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-[11px] bg-ink py-[14px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? "가입 중..." : "가입하기"}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/login")}
-          className="mt-1.5 w-full rounded-[11px] py-3 text-[13.5px] font-medium text-secondary"
-        >
-          이미 계정이 있으신가요?{" "}
-          <span className="font-bold text-ink">로그인</span>
-        </button>
-      </form>
-    </div>
+        {loading ? "가입 중..." : "가입하기"}
+      </button>
+      <button
+        type="button"
+        onClick={() => router.push("/login")}
+        className="mt-1.5 w-full rounded-[11px] py-3 text-[13.5px] font-medium text-secondary"
+      >
+        이미 계정이 있으신가요?{" "}
+        <span className="font-bold text-ink">로그인</span>
+      </button>
+    </AuthCard>
   );
 }

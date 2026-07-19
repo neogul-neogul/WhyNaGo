@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { wrongData } from "@/mocks/wrong";
-import { diffColor } from "@/lib/badges";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import Chip from "@/components/ui/Chip";
-import Button from "@/components/ui/Button";
+import WrongNoteCard from "@/components/wrong/WrongNoteCard";
 import WrongDetail from "@/components/wrong/WrongDetail";
 
 const FILTERS = ["전체", "미복습", "북마크"];
@@ -46,63 +45,15 @@ export default function WrongPage() {
 
             <div className="flex flex-col gap-2.5">
               {list.map(({ w, i }) => (
-                <div
+                <WrongNoteCard
                   key={i}
-                  onClick={() => setDetailIdx(i)}
-                  className="flex cursor-pointer flex-col gap-3 rounded-[13px] border border-line-card bg-white px-5 py-[18px] transition-all hover:border-line-strong hover:shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex flex-1 items-start gap-2.5">
-                      <button
-                        type="button"
-                        title="북마크"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleBookmark(i);
-                        }}
-                        className={`flex flex-shrink-0 items-center justify-center p-0.5 ${
-                          bookmarked.includes(i) ? "text-accent" : "text-icon"
-                        }`}
-                      >
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill={bookmarked.includes(i) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                        </svg>
-                      </button>
-                      <div className="flex-1 text-[15px] font-semibold leading-[1.5] text-ink">{w.q}</div>
-                    </div>
-                    <button
-                      type="button"
-                      title="오답노트에서 삭제"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleted((d) => [...d, i]);
-                      }}
-                      className="flex flex-shrink-0 items-center justify-center rounded-[6px] p-1 text-axis transition-colors hover:bg-neutral hover:text-danger"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-[6px] bg-neutral px-[9px] py-[3px] text-xs font-medium text-secondary">{w.cat}</span>
-                      <span className="text-xs font-semibold" style={{ color: diffColor(w.diff) }}>난이도 {w.diff}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-medium text-placeholder">{w.solvedAt}</span>
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push("/solve");
-                        }}
-                      >
-                        재풀이
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                  note={w}
+                  bookmarked={bookmarked.includes(i)}
+                  onOpen={() => setDetailIdx(i)}
+                  onToggleBookmark={() => toggleBookmark(i)}
+                  onDelete={() => setDeleted((d) => [...d, i])}
+                  onResolve={() => router.push("/solve")}
+                />
               ))}
             </div>
           </div>

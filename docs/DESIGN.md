@@ -132,6 +132,7 @@ weight 규칙: 제목·수치 `bold(700)`, 버튼·배지·라벨 `semibold(600)
 - **글로벌 헤더** (`components/layout/Header.tsx`): sticky, `bg-neutral` + `border-b border-line`. 로고(잉크 박스 + `</>` 모노 글리프) · 중앙 내비(활성 = 흰 배경 + 그림자) · 우측 스트릭/프로필 드롭다운. `/login`·`/signup`에서는 렌더하지 않는다.
 - **페이지 헤더** (`components/layout/PageHeader.tsx`): 제목(21px bold) + 부제(13px muted) + 우측 오늘 날짜 박스. 모든 로그인 후 페이지 최상단에 사용.
 - **PageBody**: 본문 공통 래퍼. 새 페이지는 `<PageHeader/> + <PageBody>` 조합을 기본 골격으로 한다.
+- **페이지 구성 원칙**: 페이지(`page.tsx`)는 데이터(mock) 조합과 화면 흐름 상태만 갖고, 화면 섹션은 `components/<도메인>/` 컴포넌트로 분리한다(예: `today/TodayBanner`, `mock/MockResult`). 한 섹션 안에서만 쓰이는 상태는 그 컴포넌트 내부에 둔다.
 
 ## 6. 공용 UI 컴포넌트 (`components/ui/`)
 
@@ -167,6 +168,18 @@ weight 규칙: 제목·수치 `bold(700)`, 버튼·배지·라벨 `semibold(600)
 ### 6.4 Chip — `components/ui/Chip.tsx`
 
 필터/선택용 칩. 비활성: 흰 배경 + `line-input` 테두리 + `dim` 텍스트(500). 활성: 잉크 배경 + 흰 텍스트(600). 필터 UI는 반드시 이 컴포넌트를 재사용한다.
+
+### 6.5 StatCard — `components/ui/StatCard.tsx`
+
+라벨 + 수치 지표 카드. 라벨은 `12.5px medium muted`로 고정, 수치 영역은 children으로 구성한다(수치는 `font-mono bold`, 단위는 `placeholder`). 오늘 지표·진척도 지표·마이페이지 통계가 공용으로 사용한다.
+
+### 6.6 Input — `components/ui/Input.tsx`
+
+공통 텍스트 인풋(§7 입력 스펙 내장). 여백(`mb-*`) 등 비충돌 유틸리티만 className으로 추가한다. 폭을 줄일 때는 래퍼 div에 폭을 주고 Input은 `w-full`을 유지한다.
+
+### 6.7 Toggle — `components/ui/Toggle.tsx`
+
+온/오프 스위치 (`success`/`line-strong`). 아이콘 전용 컨트롤이므로 `label`(aria-label)이 필수다.
 
 ## 7. 컴포넌트 패턴 (비공용)
 
