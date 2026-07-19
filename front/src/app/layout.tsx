@@ -27,7 +27,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css"
         />
       </head>
-      <body className="flex min-h-full flex-col bg-[#F6F6F4] text-[#1C1C1A]">
+      <body className="flex min-h-full flex-col bg-page text-ink">
         <Header />
         {children}
       </body>

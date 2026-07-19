@@ -31,6 +31,9 @@
 - 재사용 컴포넌트: `src/components/`
   - 공통 UI 컴포넌트(버튼, 인풋 등): `src/components/ui/`
   - 레이아웃 컴포넌트(헤더 등): `src/components/layout/`
+  - 도메인 섹션 컴포넌트: `src/components/<도메인>/` (예: `today/`, `solve/`, `interview/`)
+    - 페이지(`page.tsx`)는 데이터(mock) 조합과 화면 흐름 상태만 갖고, 화면 섹션은 도메인 컴포넌트로 분리한다.
+    - 한 섹션 안에서만 쓰이는 상태(예: 잔디 선택, 차트 카테고리)는 해당 컴포넌트 내부에 둔다.
 - 더미 데이터: `src/mocks/`
 - 공용 타입 정의: `src/types/`
 

@@ -1,20 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f6f6f4;
-  --foreground: #1c1c1a;
+/*
+ * 디자인 토큰 (docs/DESIGN.md §2 참고)
+ * - 색상은 반드시 이 토큰을 통해 사용한다. 새 hex 값을 컴포넌트에 직접 쓰지 않는다.
+ * - JS(동적 스타일·mock 데이터)에서 색이 필요하면 src/lib/tokens.ts의 palette를 사용한다.
+ *   두 파일은 항상 같은 값으로 동기화한다.
+ */
+@theme {
+  /* 잉크 & 텍스트 위계 */
+  --color-ink: #1c1c1a;
+  --color-ink-hover: #333333;
+  --color-body: #3a3a34;
+  --color-dim: #5a5a52;
+  --color-secondary: #6b6b62;
+  --color-muted: #8a8a80;
+  --color-soft: #9a9a90;
+  --color-placeholder: #a8a8a0;
+  --color-axis: #b0b0a6;
+  --color-icon: #c8c8c0;
+
+  /* 뉴트럴 배경 */
+  --color-page: #f6f6f4;
+  --color-neutral: #f1f1ed;
+  --color-subtle: #fafaf7;
+  --color-paper: #fcfcfa;
+
+  /* 뉴트럴 보더 */
+  --color-line-strong: #dcdcd4;
+  --color-line-input: #e0e0da;
+  --color-line: #e6e6e0;
+  --color-line-card: #ecece8;
+  --color-line-soft: #f0f0ec;
+
+  /* 액센트 (인디고 — 객관식/선택) */
+  --color-accent: #4f46e5;
+  --color-accent-bg: #eef0ff;
+  --color-accent-faint: #f5f6ff;
+  --color-accent-line: #c7ccff;
+
+  /* AI (바이올렛 — AI/서술형) */
+  --color-ai: #6d28d9;
+  --color-ai-deep: #5b21b6;
+  --color-ai-bg: #f0edff;
+  --color-ai-line: #e0d8ff;
+
+  /* 정답/성공 */
+  --color-success: #16a34a;
+  --color-success-bg: #f2fbf5;
+  --color-success-pale: #e8f5ee;
+  --color-success-bright: #5ddc8a;
+  --color-success-glow: #34d36b;
+
+  /* 오답/위험 */
+  --color-danger: #dc2626;
+  --color-danger-bg: #fef2f2;
+
+  /* 난이도 중 (앰버) */
+  --color-warning: #d97706;
+  --color-warning-bg: #fef7e8;
+
+  /* 오답 분석/경고 (오렌지) */
+  --color-alert: #c2410c;
+  --color-alert-bg: #fef4f2;
+  --color-alert-tint: #fef2e8;
+  --color-alert-line: #f6dad3;
+  --color-alert-deep: #7a342a;
+
+  /* 스트릭 */
+  --color-streak: #ea580c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-page);
+  color: var(--color-ink);
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -30,9 +93,9 @@ body {
   height: 11px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d9d9d2;
+  background: var(--color-line-strong);
   border-radius: 8px;
-  border: 3px solid #f6f6f4;
+  border: 3px solid var(--color-page);
   background-clip: content-box;
 }
 ::-webkit-scrollbar-track {

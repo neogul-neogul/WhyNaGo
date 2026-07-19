@@ -1,5 +1,7 @@
 import { weekRange, weeklyDays, weeklyRate, weeklyCards } from "@/mocks/progress";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
+import WeeklySummaryBanner from "@/components/weekly/WeeklySummaryBanner";
+import WeeklyCards from "@/components/weekly/WeeklyCards";
 
 export default function WeeklyPage() {
   return (
@@ -7,44 +9,15 @@ export default function WeeklyPage() {
       <PageHeader title="주간 리포트" subtitle="이번 주 학습 결과 요약" />
       <PageBody>
         <div className="flex max-w-[900px] flex-col gap-[18px]">
-          {/* 요약 배너 */}
-          <div className="flex items-center justify-between gap-5 rounded-[16px] bg-[#1C1C1A] px-7 py-6 text-white">
-            <div className="flex flex-col gap-[5px]">
-              <span className="text-[12.5px] text-[#A8A8A0]">{weekRange}</span>
-              <span className="text-[20px] font-bold">이번 주 학습 요약</span>
-            </div>
-            <div className="flex gap-7">
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="font-mono text-[30px] font-bold">{weeklyDays}</span>
-                <span className="text-[11.5px] text-[#A8A8A0]">학습일 / 7</span>
-              </div>
-              <div className="w-px bg-white/[0.12]" />
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="font-mono text-[30px] font-bold text-[#5DDC8A]">{weeklyRate}%</span>
-                <span className="text-[11.5px] text-[#A8A8A0]">평균 정답률</span>
-              </div>
-            </div>
-          </div>
+          <WeeklySummaryBanner range={weekRange} days={weeklyDays} rate={weeklyRate} />
+          <WeeklyCards cards={weeklyCards} />
 
-          {/* 카드 */}
-          <div className="grid grid-cols-2 gap-[13px]">
-            {weeklyCards.map((w) => (
-              <div key={w.label} className="flex items-center justify-between gap-3 rounded-[13px] border border-[#ECECE8] bg-white px-5 py-[18px]">
-                <div className="flex flex-col gap-[5px]">
-                  <span className="text-[12.5px] font-medium text-[#8A8A80]">{w.label}</span>
-                  <span className="text-[17px] font-bold">{w.value}</span>
-                </div>
-                <span className="font-mono text-[13px] font-semibold" style={{ color: w.deltaColor }}>{w.delta}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-[13px] rounded-[13px] border border-[#ECECE8] bg-[#FAFAF7] px-[22px] py-[18px]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B62" strokeWidth="2" strokeLinecap="round">
+          <div className="flex items-center gap-[13px] rounded-[13px] border border-line-card bg-subtle px-[22px] py-[18px] text-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 16v-4M12 8h.01" />
             </svg>
-            <span className="text-[13px] leading-[1.6] text-[#6B6B62]">
+            <span className="text-[13px] leading-[1.6]">
               주간 리포트는 AI 없이 정해진 템플릿과 데이터 계산으로 생성됩니다. 매주 월요일 이메일로도 발송돼요.
             </span>
           </div>

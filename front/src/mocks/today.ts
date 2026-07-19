@@ -1,4 +1,5 @@
 import type { LearningMenuItem, TodayGoal, TodayMetric } from "@/types";
+import { palette } from "@/lib/tokens";
 
 // 오늘의 학습 목표 진행 상황 (더미)
 export const todayGoal: TodayGoal = {
@@ -22,8 +23,8 @@ export const learningMenu: LearningMenuItem[] = [
     description: "객관식 · 서술형 · 카테고리 · 난이도별",
     href: "/solve",
     icon: "solve",
-    accentBg: "#EEF0FF",
-    accentFg: "#4F46E5",
+    accentBg: palette.accentBg,
+    accentFg: palette.accent,
   },
   {
     key: "wrong",
@@ -31,8 +32,8 @@ export const learningMenu: LearningMenuItem[] = [
     description: "미복습 3문제 대기 중",
     href: "/wrong",
     icon: "wrong",
-    accentBg: "#FEF2E8",
-    accentFg: "#C2410C",
+    accentBg: palette.alertTint,
+    accentFg: palette.alert,
   },
   {
     key: "interview",
@@ -40,8 +41,8 @@ export const learningMenu: LearningMenuItem[] = [
     description: "오늘 면접 아직 진행 전",
     href: "/interview",
     icon: "interview",
-    accentBg: "#F0EDFF",
-    accentFg: "#6D28D9",
+    accentBg: palette.aiBg,
+    accentFg: palette.ai,
     badge: "AI",
   },
   {
@@ -50,7 +51,7 @@ export const learningMenu: LearningMenuItem[] = [
     description: "실력 등급 다시 확인하기",
     href: "/mock",
     icon: "mock",
-    accentBg: "#E8F5EE",
-    accentFg: "#16A34A",
+    accentBg: palette.successPale,
+    accentFg: palette.success,
   },
 ];
