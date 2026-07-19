@@ -1,10 +1,15 @@
 package com.neogul.whynago.question.infra.ai;
 
+import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.question.exception.QuestionErrorCode;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class GeminiEssayAiClient implements EssayAiClient {
 
@@ -29,10 +34,10 @@ public class GeminiEssayAiClient implements EssayAiClient {
                 답변: %s
                 """.formatted(renderThread(thread), target.question(), target.answer());
 
-        return chatClient.prompt()
+        return call(() -> chatClient.prompt()
                 .user(prompt)
                 .call()
-                .entity(GradedAnswer.class);
+                .entity(GradedAnswer.class));
     }
 
     @Override
@@ -45,10 +50,20 @@ public class GeminiEssayAiClient implements EssayAiClient {
                 %s
                 """.formatted(renderThread(thread));
 
-        return chatClient.prompt()
+        return call(() -> chatClient.prompt()
                 .user(prompt)
                 .call()
-                .entity(GeneratedFollowup.class);
+                .entity(GeneratedFollowup.class));
+    }
+
+    // 외부 AI 호출 실패는 기술 예외를 노출하지 않고 도메인 에러코드로 변환한다.
+    private <T> T call(Supplier<T> aiCall) {
+        try {
+            return aiCall.get();
+        } catch (RuntimeException e) {
+            log.warn("Gemini 호출 실패", e);
+            throw new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE);
+        }
     }
 
     private String renderThread(List<EssayTurn> thread) {
