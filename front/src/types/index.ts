@@ -105,6 +105,80 @@ export interface LearningMenuItem {
   badge?: string;
 }
 
+// ===== 문제 풀이 API (백엔드 question / solved-session 도메인) =====
+
+/** 문제 카테고리 (백엔드 Category enum) */
+export type QuestionCategory =
+  | "DB"
+  | "NETWORK"
+  | "ALGORITHM"
+  | "DATA_STRUCTURE"
+  | "OS"
+  | "DESIGN_PATTERN"
+  | "LANGUAGE";
+
+/** 문제 난이도 (백엔드 Difficulty enum) */
+export type QuestionDifficulty = "LOW" | "MEDIUM" | "HIGH";
+
+/** 문제 유형 (백엔드 QuestionType enum) */
+export type QuestionTypeCode = "MULTIPLE_CHOICE" | "ESSAY";
+
+/** 객관식 선택지 (정답 여부는 서버만 알고, 채점 API로만 확인) */
+export interface ChoiceResponse {
+  id: number;
+  content: string;
+  sequence: number;
+  /** 이 보기를 골랐을 때의 오답 해설 (정답 보기는 빈 값) */
+  explanation: string | null;
+  /** 이 보기 선택 시 이어질 꼬리질문 ID (없으면 세션 종료 지점) */
+  relatedQuestionId: number | null;
+}
+
+/** 문제 조회 응답 (본질문 목록·꼬리질문 공용) */
+export interface QuestionResponse {
+  id: number;
+  title: string;
+  content: string;
+  type: QuestionTypeCode;
+  difficulty: QuestionDifficulty;
+  category: QuestionCategory;
+  explanation: string | null;
+  choices: ChoiceResponse[];
+  tags: string[];
+}
+
+/** 보기 선택 결과(채점) 조회 응답 — GET /api/questions/{qid}/choices/{cid} */
+export interface ChoiceGradingResponse {
+  correct: boolean;
+  /** 정답 보기 ID (하이라이트용) */
+  correctChoiceId: number;
+  /** 문제 전체(정답) 해설 */
+  explanation: string | null;
+  /** 고른 보기의 오답 해설 (정답이면 null) */
+  choiceExplanation: string | null;
+  /** 고른 보기에 연결된 꼬리질문 (없으면 null → 풀이 종료) */
+  nextQuestion: QuestionResponse | null;
+}
+
+/** 세션 저장 요청의 문항 하나 */
+export interface SolvedQuestionRequest {
+  questionId: number;
+  choiceId: number;
+  /** 고른 보기의 relatedQuestionId (마지막 문항은 null) */
+  relationQuestionId: number | null;
+}
+
+/** 풀이 세션 저장 요청 — POST /api/solved-sessions */
+export interface CreateSolvedSessionRequest {
+  rootQuestion: SolvedQuestionRequest;
+  followupQuestions: SolvedQuestionRequest[];
+}
+
+/** 풀이 세션 저장 응답 */
+export interface CreateSolvedSessionResponse {
+  sessionId: number;
+}
+
 // ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
 
 /** 객관식 꼬리질문 */
