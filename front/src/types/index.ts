@@ -181,30 +181,6 @@ export interface CreateSolvedSessionResponse {
 
 // ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
 
-/** 객관식 꼬리질문 */
-export interface MultipleChoiceFollowup {
-  text: string;
-  options: string[];
-  /** 정답 보기 인덱스 */
-  answer: number;
-  explanation: string;
-  /** 보기별 오답 해설 (정답 보기는 빈 문자열) */
-  optExp?: string[];
-}
-
-/** 객관식 문제 (본 질문 + 꼬리질문) */
-export interface MultipleChoiceQuestion {
-  cat: string;
-  diff: string;
-  text: string;
-  options: string[];
-  answer: number;
-  explanation: string;
-  optExp: string[];
-  tags: string[];
-  followups: MultipleChoiceFollowup[];
-}
-
 /** 서술형 문제 (AI 면접식 꼬리질문) */
 export interface EssayQuestion {
   cat: string;
@@ -219,22 +195,6 @@ export interface EssayQuestion {
   feedbacks: string[];
   /** 꼬리질문별 모범답안 */
   followupModels: string[];
-}
-
-/** 문제은행 항목 */
-export interface Problem {
-  type: "객관식" | "서술형";
-  /** 객관식이면 multipleChoiceQuestions[], 서술형이면 essayQuestions[]의 인덱스 */
-  qi: number;
-  title: string;
-  cat: string;
-  keywords: string[];
-  diff: string;
-  /** 완료한 사람 수 */
-  solved: number;
-  /** 정답률(%) */
-  rate: number;
-  status: "완료" | "오답" | "안 푼 문제";
 }
 
 /** 오답노트 꼬리질문 */
