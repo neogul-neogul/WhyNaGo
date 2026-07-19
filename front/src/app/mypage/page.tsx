@@ -4,6 +4,9 @@ import { useState } from "react";
 import type { Profile } from "@/types";
 import { defaultProfile, mypageStats } from "@/mocks/mypage";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 
 export default function MypagePage() {
   const [profile, setProfile] = useState<Profile>(defaultProfile);
@@ -22,7 +25,7 @@ export default function MypagePage() {
     setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   const inputClass =
-    "w-full rounded-[11px] border border-[#E0E0DA] bg-[#FAFAF7] px-[15px] py-3 text-sm text-[#1C1C1A] outline-none";
+    "w-full rounded-[11px] border border-line-input bg-subtle px-[15px] py-3 text-sm text-ink outline-none";
 
   return (
     <main className="flex min-w-0 flex-1 flex-col">
@@ -30,36 +33,32 @@ export default function MypagePage() {
       <PageBody>
         <div className="flex max-w-[720px] flex-col gap-[18px]">
           {/* 프로필 카드 */}
-          <div className="rounded-[16px] border border-[#ECECE8] bg-white px-7 py-[26px]">
+          <Card className="px-7 py-[26px]">
             <div className="flex items-center gap-[18px]">
-              <div className="flex h-[66px] w-[66px] flex-shrink-0 items-center justify-center rounded-full bg-[#1C1C1A]">
+              <div className="flex h-[66px] w-[66px] flex-shrink-0 items-center justify-center rounded-full bg-ink">
                 <span className="text-[26px] font-bold text-white">{profile.nickname.slice(0, 1)}</span>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="text-[20px] font-bold tracking-[-0.3px]">{profile.nickname}</span>
-                <span className="text-[13.5px] text-[#9A9A90]">{profile.email}</span>
-                <span className="mt-[3px] w-fit rounded-[6px] bg-[#EEF0FF] px-2.5 py-[3px] text-[12.5px] font-semibold text-[#4F46E5]">{profile.job}</span>
+                <span className="text-[13.5px] text-soft">{profile.email}</span>
+                <Badge tone="accent" className="mt-[3px]">{profile.job}</Badge>
               </div>
               {!editing && (
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="flex-shrink-0 rounded-[10px] bg-[#1C1C1A] px-5 py-2.5 text-[13.5px] font-semibold text-white"
-                >
+                <Button size="md" onClick={startEdit} className="flex-shrink-0">
                   프로필 수정
-                </button>
+                </Button>
               )}
             </div>
-          </div>
+          </Card>
 
           {/* 통계 */}
           <div className="grid grid-cols-4 gap-3">
             {mypageStats.map((st) => (
-              <div key={st.label} className="flex flex-col gap-1.5 rounded-[14px] border border-[#ECECE8] bg-white px-5 py-[18px]">
-                <span className="text-xs font-semibold text-[#9A9A90]">{st.label}</span>
+              <div key={st.label} className="flex flex-col gap-1.5 rounded-[14px] border border-line-card bg-white px-5 py-[18px]">
+                <span className="text-xs font-semibold text-soft">{st.label}</span>
                 <span className="text-[24px] font-bold tracking-[-0.5px]">
                   {st.value}
-                  {st.unit && <span className="ml-0.5 text-[14px] font-semibold text-[#A8A8A0]">{st.unit}</span>}
+                  {st.unit && <span className="ml-0.5 text-[14px] font-semibold text-placeholder">{st.unit}</span>}
                 </span>
               </div>
             ))}
@@ -67,13 +66,13 @@ export default function MypagePage() {
 
           {/* 상세: 보기 모드 */}
           {!editing ? (
-            <div className="rounded-[16px] border border-[#ECECE8] bg-white px-[26px] py-2">
+            <Card className="px-[26px] py-2">
               <DetailRow label="닉네임" value={profile.nickname} border />
               <DetailRow label="이메일" value={profile.email} border />
               <DetailRow label="최소 학습 목표" value={`매일 최소 ${profile.goal || "0"}개`} />
-            </div>
+            </Card>
           ) : (
-            <div className="flex flex-col gap-4 rounded-[16px] border border-[#ECECE8] bg-white px-[26px] py-6">
+            <Card className="flex flex-col gap-4 px-[26px] py-6">
               <Field label="닉네임">
                 <input value={draft.nickname} onChange={setField("nickname")} className={inputClass} />
               </Field>
@@ -90,28 +89,20 @@ export default function MypagePage() {
                     min={1}
                     value={draft.goal}
                     onChange={setField("goal")}
-                    className="w-[120px] rounded-[11px] border border-[#E0E0DA] bg-[#FAFAF7] px-[15px] py-3 text-sm text-[#1C1C1A] outline-none"
+                    className="w-[120px] rounded-[11px] border border-line-input bg-subtle px-[15px] py-3 text-sm text-ink outline-none"
                   />
-                  <span className="text-[14px] text-[#6B6B62]">개 / 일</span>
+                  <span className="text-[14px] text-secondary">개 / 일</span>
                 </div>
               </Field>
               <div className="flex justify-end gap-2.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="rounded-[10px] border border-[#DCDCD4] bg-white px-[22px] py-[11px] text-[13.5px] font-semibold text-[#6B6B62]"
-                >
+                <Button variant="muted" size="md" onClick={() => setEditing(false)}>
                   취소
-                </button>
-                <button
-                  type="button"
-                  onClick={save}
-                  className="rounded-[10px] bg-[#1C1C1A] px-[22px] py-[11px] text-[13.5px] font-semibold text-white"
-                >
+                </Button>
+                <Button size="md" onClick={save}>
                   저장
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
         </div>
       </PageBody>
@@ -121,9 +112,9 @@ export default function MypagePage() {
 
 function DetailRow({ label, value, border }: { label: string; value: string; border?: boolean }) {
   return (
-    <div className={`flex flex-col gap-[3px] py-[18px] ${border ? "border-b border-[#F0F0EC]" : ""}`}>
-      <span className="text-[12.5px] font-semibold text-[#9A9A90]">{label}</span>
-      <span className="text-[14.5px] font-semibold text-[#1C1C1A]">{value}</span>
+    <div className={`flex flex-col gap-[3px] py-[18px] ${border ? "border-b border-line-soft" : ""}`}>
+      <span className="text-[12.5px] font-semibold text-soft">{label}</span>
+      <span className="text-[14.5px] font-semibold text-ink">{value}</span>
     </div>
   );
 }
@@ -131,7 +122,7 @@ function DetailRow({ label, value, border }: { label: string; value: string; bor
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-[7px]">
-      <span className="text-[12.5px] font-semibold text-[#8A8A80]">{label}</span>
+      <span className="text-[12.5px] font-semibold text-muted">{label}</span>
       {children}
     </div>
   );

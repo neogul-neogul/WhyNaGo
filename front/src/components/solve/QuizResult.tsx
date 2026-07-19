@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
 
 // 풀이 결과 요약
 export default function QuizResult({
@@ -20,40 +22,36 @@ export default function QuizResult({
 
   return (
     <div className="flex max-w-[620px] flex-col gap-5">
-      <div className="flex flex-col items-center gap-2 rounded-[16px] border border-[#ECECE8] bg-white p-[34px] text-center">
-        <div className="mb-1.5 flex h-14 w-14 items-center justify-center rounded-full bg-[#E8F5EE]">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <Card className="flex flex-col items-center gap-2 p-[34px] text-center">
+        <div className="mb-1.5 flex h-14 w-14 items-center justify-center rounded-full bg-success-pale text-success">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
-        <div className="text-[19px] font-bold text-[#1C1C1A]">풀이 완료 · 결과 저장됨</div>
-        <div className="text-[13.5px] text-[#9A9A90]">학습 기록과 진척도에 반영되었습니다</div>
-        <div className="mt-[18px] flex w-full overflow-hidden rounded-[14px] border border-[#ECECE8]">
-          <div className="flex flex-1 flex-col gap-1 border-r border-[#ECECE8] p-5">
-            <span className="font-mono text-[30px] font-bold text-[#1C1C1A]">{rate}%</span>
-            <span className="text-xs text-[#9A9A90]">{isMultipleChoice ? "정답률" : "이해율"}</span>
+        <div className="text-[19px] font-bold text-ink">풀이 완료 · 결과 저장됨</div>
+        <div className="text-[13.5px] text-soft">학습 기록과 진척도에 반영되었습니다</div>
+        <div className="mt-[18px] flex w-full overflow-hidden rounded-[14px] border border-line-card">
+          <div className="flex flex-1 flex-col gap-1 border-r border-line-card p-5">
+            <span className="font-mono text-[30px] font-bold text-ink">{rate}%</span>
+            <span className="text-xs text-soft">{isMultipleChoice ? "정답률" : "이해율"}</span>
           </div>
-          <div className="flex flex-1 flex-col gap-1 border-r border-[#ECECE8] p-5">
-            <span className="font-mono text-[30px] font-bold text-[#16A34A]">{correct}</span>
-            <span className="text-xs text-[#9A9A90]">{isMultipleChoice ? "정답" : "이해 완료"}</span>
+          <div className="flex flex-1 flex-col gap-1 border-r border-line-card p-5">
+            <span className="font-mono text-[30px] font-bold text-success">{correct}</span>
+            <span className="text-xs text-soft">{isMultipleChoice ? "정답" : "이해 완료"}</span>
           </div>
           <div className="flex flex-1 flex-col gap-1 p-5">
-            <span className="font-mono text-[30px] font-bold text-[#DC2626]">{wrong}</span>
-            <span className="text-xs text-[#9A9A90]">{isMultipleChoice ? "오답" : "복습 필요"}</span>
+            <span className="font-mono text-[30px] font-bold text-danger">{wrong}</span>
+            <span className="text-xs text-soft">{isMultipleChoice ? "오답" : "복습 필요"}</span>
           </div>
         </div>
-      </div>
+      </Card>
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={onRestart}
-          className="flex-1 rounded-[11px] border border-[#DCDCD4] bg-white p-[13px] text-[14.5px] font-semibold text-[#1C1C1A]"
-        >
+        <Button variant="secondary" size="xl" onClick={onRestart} className="flex-1">
           다시 풀기
-        </button>
+        </Button>
         <Link
           href="/wrong"
-          className="flex-1 rounded-[11px] bg-[#1C1C1A] p-[13px] text-center text-[14.5px] font-semibold text-white"
+          className="flex-1 rounded-[11px] bg-ink p-[13px] text-center text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
         >
           오답 복습하기
         </Link>

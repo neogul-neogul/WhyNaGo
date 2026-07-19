@@ -97,20 +97,20 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[#E6E6E0] bg-[#F1F1ED] py-[11px]">
+    <header className="sticky top-0 z-30 border-b border-line bg-neutral py-[11px]">
       <div className="mx-auto flex w-full max-w-[1180px] items-center gap-6 px-9">
         {/* 로고 */}
         <Link href="/" className="flex flex-shrink-0 items-center gap-2.5">
-          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] bg-[#1C1C1A]">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9px] bg-ink">
             <span className="font-mono text-[15px] font-bold tracking-[-0.5px] text-white">
               &lt;/&gt;
             </span>
           </div>
           <div className="flex flex-col leading-[1.15]">
-            <span className="text-[15px] font-bold tracking-[-0.3px] text-[#1C1C1A]">
+            <span className="text-[15px] font-bold tracking-[-0.3px] text-ink">
               WhyNaGo
             </span>
-            <span className="text-[11px] font-medium text-[#9A9A90]">
+            <span className="text-[11px] font-medium text-soft">
               개발자 학습 · 면접
             </span>
           </div>
@@ -126,13 +126,13 @@ export default function Header() {
                 href={item.href}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-[9px] px-[13px] py-2 text-sm transition-all ${
                   active
-                    ? "bg-white font-semibold text-[#1C1C1A] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                    : "font-medium text-[#6B6B62] hover:bg-black/[0.04]"
+                    ? "bg-white font-semibold text-ink shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                    : "font-medium text-secondary hover:bg-black/[0.04]"
                 }`}
               >
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="rounded-[5px] bg-[#F0EDFF] px-1.5 py-0.5 text-[10px] font-bold tracking-[0.03em] text-[#6D28D9]">
+                  <span className="rounded-[5px] bg-ai-bg px-1.5 py-0.5 text-[10px] font-bold tracking-[0.03em] text-ai">
                     {item.badge}
                   </span>
                 )}
@@ -145,7 +145,7 @@ export default function Header() {
         <div className="relative flex flex-shrink-0 items-center gap-[11px]">
           {!hydrated ? null : loggedIn && user ? (
             <>
-          <div className="flex items-center gap-1 font-mono text-xs font-semibold text-[#EA580C]">
+          <div className="flex items-center gap-1 font-mono text-xs font-semibold text-streak">
             🔥{learningStats.streakDays}
           </div>
 
@@ -154,25 +154,25 @@ export default function Header() {
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-[11px] rounded-[10px] px-2 py-[5px] transition-colors hover:bg-black/[0.04]"
           >
-            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-sm font-semibold text-white">
+            <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white">
               {user.nickname.charAt(0)}
             </div>
             <div className="flex flex-col text-left leading-[1.25]">
-              <span className="text-[13px] font-semibold text-[#1C1C1A]">
+              <span className="text-[13px] font-semibold text-ink">
                 {user.nickname}
               </span>
-              <span className="text-[11px] text-[#9A9A90]">{POSITION_LABEL[user.position]}</span>
+              <span className="text-[11px] text-soft">{POSITION_LABEL[user.position]}</span>
             </div>
             <svg
               width="15"
               height="15"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#9A9A90"
+              stroke="currentColor"
               strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`transition-transform ${profileOpen ? "rotate-180" : ""}`}
+              className={`text-soft transition-transform ${profileOpen ? "rotate-180" : ""}`}
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -188,23 +188,23 @@ export default function Header() {
                 className="fixed inset-0 z-40 cursor-default"
                 onClick={() => setProfileOpen(false)}
               />
-              <div className="absolute right-0 top-[calc(100%+8px)] z-50 flex w-[236px] flex-col gap-0.5 rounded-[14px] border border-[#ECECE8] bg-white p-2 shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
-                <div className="mb-1 flex items-center gap-[11px] border-b border-[#F2F2EE] px-3 pb-3 pt-2.5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#4F46E5] text-base font-semibold text-white">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 flex w-[236px] flex-col gap-0.5 rounded-[14px] border border-line-card bg-white p-2 shadow-[0_12px_32px_rgba(0,0,0,0.12)]">
+                <div className="mb-1 flex items-center gap-[11px] border-b border-line-soft px-3 pb-3 pt-2.5">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-accent text-base font-semibold text-white">
                     {user.nickname.charAt(0)}
                   </div>
                   <div className="flex min-w-0 flex-col leading-[1.3]">
-                    <span className="text-sm font-bold text-[#1C1C1A]">
+                    <span className="text-sm font-bold text-ink">
                       {user.nickname}
                     </span>
-                    <span className="truncate text-xs text-[#9A9A90]">
+                    <span className="truncate text-xs text-soft">
                       {user.email}
                     </span>
                   </div>
                 </div>
                 {profileMenu.map((m) => {
-                  const itemClass = `flex w-full items-center gap-2.5 rounded-[9px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAF7] ${
-                    m.danger ? "text-[#DC2626]" : "text-[#3A3A34]"
+                  const itemClass = `flex w-full items-center gap-2.5 rounded-[9px] px-3 py-2.5 text-left text-[13px] font-medium transition-colors hover:bg-subtle ${
+                    m.danger ? "text-danger" : "text-body"
                   }`;
 
                   if (m.action === "logout") {
@@ -240,7 +240,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="rounded-[10px] bg-[#1C1C1A] px-[18px] py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#333]"
+              className="rounded-[10px] bg-ink px-[18px] py-2 text-[13px] font-semibold text-white transition-colors hover:bg-ink-hover"
             >
               로그인
             </Link>

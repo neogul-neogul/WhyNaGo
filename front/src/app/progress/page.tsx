@@ -4,7 +4,9 @@ import { useState } from "react";
 import { progressMetrics } from "@/mocks/progress";
 import { growthData } from "@/mocks/diagnosis";
 import { gradeColor } from "@/lib/badges";
+import { palette } from "@/lib/tokens";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
+import Card from "@/components/ui/Card";
 
 const GRADE_VAL: Record<string, number> = { A: 4, B: 3, C: 2, D: 1 };
 const X_LABELS = ["1주", "2주", "3주", "4주", "5주", "6주", "7주", "8주"];
@@ -36,11 +38,11 @@ export default function ProgressPage() {
           {/* 지표 */}
           <div className="grid grid-cols-3 gap-[13px]">
             {progressMetrics.map((m) => (
-              <div key={m.label} className="flex flex-col gap-[7px] rounded-[13px] border border-[#ECECE8] bg-white px-5 py-[18px]">
-                <span className="text-[12.5px] font-medium text-[#8A8A80]">{m.label}</span>
+              <div key={m.label} className="flex flex-col gap-[7px] rounded-[13px] border border-line-card bg-white px-5 py-[18px]">
+                <span className="text-[12.5px] font-medium text-muted">{m.label}</span>
                 <div className="flex items-baseline gap-[5px]">
                   <span className="font-mono text-[26px] font-bold" style={{ color: m.color }}>{m.value}</span>
-                  <span className="text-[12.5px] text-[#A8A8A0]">{m.unit}</span>
+                  <span className="text-[12.5px] text-placeholder">{m.unit}</span>
                 </div>
               </div>
             ))}
@@ -48,19 +50,19 @@ export default function ProgressPage() {
 
           {/* 성장 곡선 */}
           <div>
-            <div className="mb-[13px] text-[13px] font-semibold text-[#8A8A80]">카테고리별 성장 곡선</div>
-            <div className="flex flex-col gap-[18px] rounded-[16px] border border-[#ECECE8] bg-white px-6 py-[22px]">
+            <div className="mb-[13px] text-[13px] font-semibold text-muted">카테고리별 성장 곡선</div>
+            <Card className="flex flex-col gap-[18px] px-6 py-[22px]">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[17px] font-bold tracking-[-0.2px]" style={{ color }}>{g.cat}</span>
-                <span className="font-mono text-[14px] font-bold text-[#6B6B62]">
+                <span className="font-mono text-[14px] font-bold text-secondary">
                   {g.grades[0]} → {g.grades[n - 1]}
                 </span>
               </div>
               <svg viewBox="0 0 700 210" className="h-auto w-full overflow-visible">
                 {gridlines.map((gl, i) => (
                   <g key={i}>
-                    <line x1="54" y1={gl.y} x2="656" y2={gl.y} stroke="#F0F0EC" strokeWidth="1" />
-                    <text x="34" y={gl.y} textAnchor="end" dominantBaseline="middle" fontSize="13" fontWeight="700" fill="#B0B0A6">{gl.label}</text>
+                    <line x1="54" y1={gl.y} x2="656" y2={gl.y} stroke={palette.lineSoft} strokeWidth="1" />
+                    <text x="34" y={gl.y} textAnchor="end" dominantBaseline="middle" fontSize="13" fontWeight="700" fill={palette.axis}>{gl.label}</text>
                   </g>
                 ))}
                 <polygon points={areaStr} fill={color} opacity="0.07" />
@@ -72,10 +74,10 @@ export default function ProgressPage() {
                   </g>
                 ))}
                 {pts.map((p, i) => (
-                  <text key={`x${i}`} x={p.x.toFixed(1)} y="206" textAnchor="middle" fontSize="12" fontWeight="500" fill="#A8A8A0">{X_LABELS[i] ?? ""}</text>
+                  <text key={`x${i}`} x={p.x.toFixed(1)} y="206" textAnchor="middle" fontSize="12" fontWeight="500" fill={palette.placeholder}>{X_LABELS[i] ?? ""}</text>
                 ))}
               </svg>
-              <div className="flex flex-wrap gap-2 border-t border-[#F2F2EE] pt-4">
+              <div className="flex flex-wrap gap-2 border-t border-line-soft pt-4">
                 {growthData.map((x) => {
                   const active = x.cat === cat;
                   return (
@@ -83,19 +85,18 @@ export default function ProgressPage() {
                       key={x.cat}
                       type="button"
                       onClick={() => setCat(x.cat)}
-                      className="rounded-[9px] px-4 py-2 text-[13px] font-semibold transition-all"
-                      style={{
-                        border: `1px solid ${active ? "#1C1C1A" : "#E0E0DA"}`,
-                        background: active ? "#1C1C1A" : "#fff",
-                        color: active ? "#fff" : "#6B6B62",
-                      }}
+                      className={`rounded-[9px] border px-4 py-2 text-[13px] font-semibold transition-all ${
+                        active
+                          ? "border-ink bg-ink text-white"
+                          : "border-line-input bg-white text-secondary"
+                      }`}
                     >
                       {x.cat}
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </PageBody>

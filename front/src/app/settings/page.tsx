@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import Chip from "@/components/ui/Chip";
+import Card from "@/components/ui/Card";
 
 type NotifKey = "daily" | "streak" | "wrong" | "interview" | "weekly";
 
@@ -32,24 +33,26 @@ export default function SettingsPage() {
       <PageBody>
         <div className="flex max-w-[720px] flex-col gap-[18px]">
           {/* 알림 토글 */}
-          <div className="rounded-[16px] border border-[#ECECE8] bg-white px-[26px] py-2">
+          <Card className="px-[26px] py-2">
             {NOTIF_DEFS.map((n, i) => {
               const on = notif[n.key];
               return (
                 <div
                   key={n.key}
-                  className="flex items-center justify-between gap-4 py-[18px]"
-                  style={{ borderBottom: i === NOTIF_DEFS.length - 1 ? "1px solid transparent" : "1px solid #F0F0EC" }}
+                  className={`flex items-center justify-between gap-4 py-[18px] ${
+                    i === NOTIF_DEFS.length - 1 ? "" : "border-b border-line-soft"
+                  }`}
                 >
                   <div className="flex flex-col gap-[3px]">
                     <span className="text-[14.5px] font-semibold">{n.label}</span>
-                    <span className="text-[12.5px] text-[#9A9A90]">{n.desc}</span>
+                    <span className="text-[12.5px] text-soft">{n.desc}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotif((s) => ({ ...s, [n.key]: !s[n.key] }))}
-                    className="relative h-[25px] w-11 flex-shrink-0 rounded-[20px] transition-colors"
-                    style={{ background: on ? "#16A34A" : "#D8D8D0" }}
+                    className={`relative h-[25px] w-11 flex-shrink-0 rounded-[20px] transition-colors ${
+                      on ? "bg-success" : "bg-line-strong"
+                    }`}
                   >
                     <span
                       className="absolute top-[3px] h-[19px] w-[19px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.2)] transition-all"
@@ -59,24 +62,24 @@ export default function SettingsPage() {
                 </div>
               );
             })}
-          </div>
+          </Card>
 
           {/* 알림 시간 */}
-          <div className="flex items-center justify-between gap-4 rounded-[16px] border border-[#ECECE8] bg-white px-[26px] py-[22px]">
+          <Card className="flex items-center justify-between gap-4 px-[26px] py-[22px]">
             <div className="flex flex-col gap-[3px]">
               <span className="text-[14.5px] font-semibold">알림 시간</span>
-              <span className="text-[12.5px] text-[#9A9A90]">매일 리마인드를 받을 시간을 설정합니다</span>
+              <span className="text-[12.5px] text-soft">매일 리마인드를 받을 시간을 설정합니다</span>
             </div>
             <div className="flex gap-2">
               {TIMES.map((t) => (
                 <Chip key={t} label={t} active={time === t} onClick={() => setTime(t)} />
               ))}
             </div>
-          </div>
+          </Card>
 
           {/* 발송 조건 */}
-          <div className="flex flex-col gap-[11px] rounded-[13px] border border-[#ECECE8] bg-[#FAFAF7] px-6 py-5">
-            <span className="text-[13px] font-semibold text-[#8A8A80]">발송 조건</span>
+          <div className="flex flex-col gap-[11px] rounded-[13px] border border-line-card bg-subtle px-6 py-5">
+            <span className="text-[13px] font-semibold text-muted">발송 조건</span>
             <div className="flex flex-col gap-2">
               {[
                 "오늘 학습 기록이 없으면 지정한 시간에 리마인드 발송",
@@ -84,8 +87,8 @@ export default function SettingsPage() {
                 "미복습 오답이 일정 개수 이상이면 복습 알림",
                 "매주 월요일에 주간 리포트 이메일 발송",
               ].map((c) => (
-                <div key={c} className="flex items-start gap-2.5 text-[13px] leading-[1.5] text-[#5A5A52]">
-                  <span className="text-[#C2410C]">•</span>
+                <div key={c} className="flex items-start gap-2.5 text-[13px] leading-[1.5] text-dim">
+                  <span className="text-alert">•</span>
                   {c}
                 </div>
               ))}

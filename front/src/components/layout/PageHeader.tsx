@@ -9,15 +9,15 @@ export default function PageHeader({
   subtitle: string;
 }) {
   return (
-    <div className="border-b border-[#E6E6E0] bg-[#F6F6F4]/85 py-[18px]">
+    <div className="border-b border-line bg-page/85 py-[18px]">
       <div className="mx-auto flex w-full max-w-[1180px] items-end justify-between px-9">
         <div className="flex flex-col gap-[3px]">
-          <h1 className="text-[21px] font-bold tracking-[-0.4px] text-[#1C1C1A]">
+          <h1 className="text-[21px] font-bold tracking-[-0.4px] text-ink">
             {title}
           </h1>
-          <p className="text-[13px] text-[#8A8A80]">{subtitle}</p>
+          <p className="text-[13px] text-muted">{subtitle}</p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-[9px] border border-[#ECECE8] bg-white px-3 py-[7px] text-[12.5px] font-medium text-[#6B6B62]">
+        <div className="flex items-center gap-1.5 rounded-[9px] border border-line-card bg-white px-3 py-[7px] text-[12.5px] font-medium text-secondary">
           <svg
             width="14"
             height="14"

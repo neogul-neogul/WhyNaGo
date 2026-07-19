@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import type { MultipleChoiceQuestion } from "@/types";
-import { diffBg, diffColor, lvBadge } from "@/lib/badges";
+import { diffTone, lvBadge } from "@/lib/badges";
+import { palette } from "@/lib/tokens";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card, { CardHeader } from "@/components/ui/Card";
 
 type Cell = { selected: number | null; checked: boolean };
 
@@ -61,7 +65,7 @@ export default function MultipleChoiceQuiz({
         <button
           type="button"
           onClick={onQuit}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-[#6B6B62]"
+          className="flex items-center gap-1.5 text-[13px] font-semibold text-secondary"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M11 18l-6-6 6-6" />
@@ -72,19 +76,12 @@ export default function MultipleChoiceQuiz({
 
       <div className="flex items-start gap-[18px]">
         {/* LEFT : 문제 설명 */}
-        <div className="min-w-0 flex-1 overflow-hidden rounded-[16px] border border-[#ECECE8] bg-white">
-          <div className="flex items-center gap-2.5 border-b border-[#ECECE8] bg-[#FAFAF7] px-[22px] py-[13px]">
-            <span className="rounded-[6px] bg-[#EEF0FF] px-2.5 py-[3px] text-xs font-bold text-[#4F46E5]">객관식</span>
-            <span
-              className="rounded-[6px] px-[9px] py-[3px] text-xs font-semibold"
-              style={{ color: diffColor(question.diff), background: diffBg(question.diff) }}
-            >
-              난이도 {lvBadge(question.diff)}
-            </span>
-            <span className="ml-auto rounded-[6px] bg-[#F1F1ED] px-2.5 py-[3px] text-xs font-semibold text-[#6B6B62]">
-              {question.cat}
-            </span>
-          </div>
+        <Card className="min-w-0 flex-1 overflow-hidden">
+          <CardHeader className="gap-2.5">
+            <Badge tone="accent">객관식</Badge>
+            <Badge tone={diffTone(question.diff)}>난이도 {lvBadge(question.diff)}</Badge>
+            <Badge tone="neutral" className="ml-auto">{question.cat}</Badge>
+          </CardHeader>
           <div className="flex flex-col gap-3.5 px-[22px] py-6">
             {seq.slice(0, revealed).map((qq, i) => {
               const active = i === mtab;
@@ -93,35 +90,31 @@ export default function MultipleChoiceQuiz({
                 <div
                   key={i}
                   onClick={() => goTab(i)}
-                  className="flex cursor-pointer flex-col gap-2 rounded-[12px] px-4 py-3.5"
-                  style={{
-                    border: `1px solid ${active ? "#C7CCFF" : "#ECECE8"}`,
-                    background: active ? "#F5F6FF" : "#fff",
-                  }}
+                  className={`flex cursor-pointer flex-col gap-2 rounded-[12px] border px-4 py-3.5 ${
+                    active ? "border-accent-line bg-accent-faint" : "border-line-card bg-white"
+                  }`}
                 >
                   <span
-                    className="inline-flex w-fit items-center rounded-[5px] px-[9px] py-0.5 text-[11px] font-bold"
-                    style={{
-                      color: done ? "#16A34A" : "#4F46E5",
-                      background: done ? "#EAF7EF" : "#EEF0FF",
-                    }}
+                    className={`inline-flex w-fit items-center rounded-[5px] px-[9px] py-0.5 text-[11px] font-bold ${
+                      done ? "bg-success-bg text-success" : "bg-accent-bg text-accent"
+                    }`}
                   >
                     {i === 0 ? "본 질문" : `꼬리질문 ${i}`}
                   </span>
-                  <div className="text-[15.5px] font-semibold leading-[1.55] text-[#1C1C1A]">
+                  <div className="text-[15.5px] font-semibold leading-[1.55] text-ink">
                     {qq.text}
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* RIGHT : 답안 */}
         <div className="flex min-w-0 flex-[1.15] flex-col gap-3.5">
-          <div className="overflow-hidden rounded-[16px] border border-[#ECECE8] bg-white">
+          <Card className="overflow-hidden">
             {/* 탭 */}
-            <div className="flex items-center gap-0 overflow-x-auto border-b border-[#ECECE8] bg-[#FAFAF7] px-2">
+            <div className="flex items-center gap-0 overflow-x-auto border-b border-line-card bg-subtle px-2">
               {seq.slice(0, revealed).map((qq, i) => {
                 const active = i === mtab;
                 const done = state[i]?.checked;
@@ -131,15 +124,14 @@ export default function MultipleChoiceQuiz({
                     key={i}
                     type="button"
                     onClick={() => goTab(i)}
-                    className="flex items-center gap-1.5 px-4 py-3 text-[13px] transition-all"
-                    style={{
-                      fontWeight: active ? 700 : 600,
-                      color: active ? "#1C1C1A" : "#9A9A90",
-                      borderBottom: `2px solid ${active ? "#1C1C1A" : "transparent"}`,
-                    }}
+                    className={`flex items-center gap-1.5 border-b-2 px-4 py-3 text-[13px] transition-all ${
+                      active
+                        ? "border-ink font-bold text-ink"
+                        : "border-transparent font-semibold text-soft"
+                    }`}
                   >
                     {i === 0 ? "본 질문" : `꼬리 ${i}`}
-                    <span style={{ fontWeight: 700, color: ok ? "#16A34A" : "#DC2626" }}>
+                    <span className={`font-bold ${ok ? "text-success" : "text-danger"}`}>
                       {done ? (ok ? "✓" : "✕") : ""}
                     </span>
                   </button>
@@ -148,10 +140,10 @@ export default function MultipleChoiceQuiz({
             </div>
 
             <div className="flex items-center gap-2 px-[22px] pb-1.5 pt-[18px]">
-              <span className="inline-flex items-center rounded-[5px] bg-[#EEF0FF] px-[9px] py-0.5 text-[11px] font-bold text-[#4F46E5]">
+              <Badge tone="accent" size="xs">
                 {mtab === 0 ? "본 질문" : `꼬리질문 ${mtab}`}
-              </span>
-              <span className="text-xs font-semibold text-[#9A9A90]">
+              </Badge>
+              <span className="text-xs font-semibold text-soft">
                 {mtab === 0
                   ? "개념을 묻는 본 질문입니다"
                   : `앞선 답변에서 파생된 꼬리질문 ${mtab}/${seq.length - 1}`}
@@ -163,11 +155,11 @@ export default function MultipleChoiceQuiz({
               {aq.options.map((opt, i) => {
                 const sel = cell.selected === i;
                 const isAns = i === aq.answer;
-                let border = "#E6E6E0", bg = "#fff", numBg = "#F1F1ED", numColor = "#8A8A80", mark = "", markColor = "transparent";
+                let border: string = palette.line, bg: string = "#fff", numBg: string = palette.neutral, numColor: string = palette.muted, mark = "", markColor: string = "transparent";
                 if (cell.checked) {
-                  if (isAns) { border = "#16A34A"; bg = "#F2FBF5"; numBg = "#16A34A"; numColor = "#fff"; mark = "정답"; markColor = "#16A34A"; }
-                  else if (sel) { border = "#DC2626"; bg = "#FEF2F2"; numBg = "#DC2626"; numColor = "#fff"; mark = "오답"; markColor = "#DC2626"; }
-                } else if (sel) { border = "#4F46E5"; bg = "#F5F5FF"; numBg = "#4F46E5"; numColor = "#fff"; }
+                  if (isAns) { border = palette.success; bg = palette.successBg; numBg = palette.success; numColor = "#fff"; mark = "정답"; markColor = palette.success; }
+                  else if (sel) { border = palette.danger; bg = palette.dangerBg; numBg = palette.danger; numColor = "#fff"; mark = "오답"; markColor = palette.danger; }
+                } else if (sel) { border = palette.accent; bg = palette.accentFaint; numBg = palette.accent; numColor = "#fff"; }
                 return (
                   <button
                     key={i}
@@ -189,20 +181,20 @@ export default function MultipleChoiceQuiz({
               })}
 
               {cell.checked && (
-                <div className="mt-1.5 flex flex-col gap-3 border-t border-dashed border-[#E6E6E0] pt-4">
-                  <div className="text-[15px] font-bold" style={{ color: ansOk ? "#16A34A" : "#DC2626" }}>
+                <div className="mt-1.5 flex flex-col gap-3 border-t border-dashed border-line pt-4">
+                  <div className={`text-[15px] font-bold ${ansOk ? "text-success" : "text-danger"}`}>
                     {ansOk ? "✓ 정답입니다" : "✕ 오답입니다 · 오답노트에 자동 저장됨"}
                   </div>
-                  <div className="rounded-[12px] bg-[#FAFAF7] px-[18px] py-4">
-                    <div className="mb-[7px] text-xs font-semibold text-[#8A8A80]">정답 해설</div>
-                    <div className="text-[14px] leading-[1.65] text-[#3A3A34]">{aq.explanation}</div>
+                  <div className="rounded-[12px] bg-subtle px-[18px] py-4">
+                    <div className="mb-[7px] text-xs font-semibold text-muted">정답 해설</div>
+                    <div className="text-[14px] leading-[1.65] text-body">{aq.explanation}</div>
                   </div>
                   {wrongPicked && aq.optExp?.[cell.selected as number] && (
-                    <div className="rounded-[12px] border border-[#F6DAD3] bg-[#FEF4F2] px-[18px] py-4">
-                      <div className="mb-[7px] text-xs font-semibold text-[#C2410C]">
+                    <div className="rounded-[12px] border border-alert-line bg-alert-bg px-[18px] py-4">
+                      <div className="mb-[7px] text-xs font-semibold text-alert">
                         내가 고른 답 — {(cell.selected as number) + 1}번 · 왜 틀렸나
                       </div>
-                      <div className="text-[14px] leading-[1.65] text-[#7A342A]">
+                      <div className="text-[14px] leading-[1.65] text-alert-deep">
                         {aq.optExp[cell.selected as number]}
                       </div>
                     </div>
@@ -212,47 +204,29 @@ export default function MultipleChoiceQuiz({
             </div>
 
             {/* 푸터 */}
-            <div className="flex justify-end gap-2 border-t border-[#ECECE8] px-[22px] py-3.5">
+            <div className="flex justify-end gap-2 border-t border-line-card px-[22px] py-3.5">
               {/* 모든 질문을 다 풀면 종료하기 버튼을 숨긴다 (디자인: showEndQuiz) */}
               {!allAnswered && (
-                <button
-                  type="button"
-                  onClick={() => onFinish(correct, seq.length)}
-                  className="rounded-[10px] border border-[#DCDCD4] bg-white px-[22px] py-[11px] text-[14px] font-semibold text-[#6B6B62]"
-                >
+                <Button variant="muted" size="lg" onClick={() => onFinish(correct, seq.length)}>
                   종료하기
-                </button>
+                </Button>
               )}
               {!cell.checked ? (
-                <button
-                  type="button"
-                  onClick={check}
-                  disabled={cell.selected === null}
-                  className="rounded-[10px] px-[26px] py-[11px] text-[14px] font-semibold text-white"
-                  style={{ background: cell.selected === null ? "#C8C8C0" : "#1C1C1A", cursor: cell.selected === null ? "not-allowed" : "pointer" }}
-                >
+                <Button size="lg" onClick={check} disabled={cell.selected === null}>
                   정답 확인
-                </button>
+                </Button>
               ) : !allAnswered ? (
-                <button
-                  type="button"
-                  onClick={nextUnanswered}
-                  className="rounded-[10px] bg-[#1C1C1A] px-[26px] py-[11px] text-[14px] font-semibold text-white"
-                >
+                <Button size="lg" onClick={nextUnanswered}>
                   다음 질문
-                </button>
+                </Button>
               ) : (
                 /* 다 풀었을 때: 저장하고 문제은행으로 복귀 (디자인: 저장하기 → setup) */
-                <button
-                  type="button"
-                  onClick={onQuit}
-                  className="rounded-[10px] bg-[#1C1C1A] px-[26px] py-[11px] text-[14px] font-semibold text-white"
-                >
+                <Button size="lg" onClick={onQuit}>
                   저장하기
-                </button>
+                </Button>
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
