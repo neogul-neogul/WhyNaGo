@@ -82,37 +82,33 @@ GET /api/questions/{questionId}/choices/{choiceId}
 ## Phase 2 — 프론트 (`front/`)
 
 ### 2-1. API 클라이언트 & 타입
-- [ ] `lib/` 또는 `src/api/`에 solve 관련 API 함수 추가 (`apiFetch` 사용):
+- [x] `lib/questions.ts`에 solve 관련 API 함수 추가 (`apiFetch` 사용):
   - `fetchQuestions(filters)` → `GET /api/questions`
   - `gradeQuestion(questionId, choiceId)` → `GET /api/questions/{questionId}/choices/{choiceId}`
   - `saveSolvedSession(payload)` → `POST /api/solved-sessions`
-- [ ] `types/index.ts`에 서버 응답 기준 타입 추가: `QuestionResponse`, `ChoiceResponse`, `ChoiceGradingResponse`, `CreateSolvedSessionRequest`. 기존 mock 타입(`MultipleChoiceQuestion.followups`, `options`, `answer` 인덱스)은 단계적으로 제거
+  - 난이도/카테고리/유형 enum ↔ 화면 라벨(하/중/상 등) 매핑 헬퍼 포함
+- [x] `types/index.ts`에 서버 응답 기준 타입 추가: `QuestionResponse`, `ChoiceResponse`, `ChoiceGradingResponse`, `CreateSolvedSessionRequest` 등. 기존 mock 타입(`MultipleChoiceQuestion`, `MultipleChoiceFollowup`, `Problem`) 제거
 
 ### 2-2. ProblemBank — 목록 API 연동 (시나리오 1)
-- [ ] `mocks/problemBank.ts` 대신 `GET /api/questions` 호출로 목록 렌더 (필터/검색 파라미터 매핑)
-- [ ] 문제 선택 시 `qi` 인덱스가 아니라 선택한 `QuestionResponse` 객체를 quiz 단계로 전달
+- [x] `mocks/problemBank.ts` 대신 `GET /api/questions` 호출로 목록 렌더 (필터/검색 파라미터 매핑, 검색어 300ms 디바운스, 로딩/에러/빈 목록 상태)
+- [x] 문제 선택 시 `qi` 인덱스가 아니라 선택한 `QuestionResponse` 객체를 quiz 단계로 전달
+- [x] 집계 컬럼(상태/완료한 사람/정답률)은 조회 API가 아직 없어(범위 제외) 표에서 제거 — 집계 API 추가 시 복원
 
 ### 2-3. MultipleChoiceQuiz — 보기별 분기로 재설계 (시나리오 2–4)
-- [ ] 상태 모델 교체: `seq = [question, ...followups]` 고정 배열 → **채점 응답으로 자라나는 체인**
-  ```
-  solvedItems: { question, selectedChoiceId, gradeResult }[]   // 채점 완료된 문항들
-  currentQuestion: QuestionResponse                            // 현재 풀이 중 문항
-  ```
-- [ ] "정답 확인" = `gradeQuestion()` 호출 → 응답으로 정답 표시·해설(`explanation`, 오답 시 `choiceExplanation`) 렌더 → `nextQuestion`을 다음 문항으로 세팅
-- [ ] `nextQuestion: null`이면 진행 종료 → 저장하기 버튼 노출 (기존 revealed/탭 UI는 solvedItems 기반으로 유지)
-- [ ] 채점 후 선택 변경 불가(1문항 1회 응답) 정책 유지
-- [ ] 채점 API 실패 시 에러 표시(선택 상태 유지, 재시도 가능)
+- [x] 상태 모델 교체: `seq = [question, ...followups]` 고정 배열 → **채점 응답으로 자라나는 체인** (`solvedItems` + `current`)
+- [x] "정답 확인" = `gradeQuestion()` 호출 → 응답으로 정답 표시·해설(`explanation`, 오답 시 `choiceExplanation`) 렌더 → `nextQuestion`을 다음 문항으로 세팅
+- [x] `nextQuestion: null`이면 진행 종료 → 저장하기 버튼 노출 (탭 UI는 solvedItems 기반으로 유지)
+- [x] 채점 후 선택 변경 불가(1문항 1회 응답) 정책 유지
+- [x] 채점 API 실패 시 에러 표시(선택 상태 유지, 재시도 가능)
 
 ### 2-4. 저장하기 (시나리오 5)
-- [ ] "저장하기" 클릭 시 solvedItems 체인으로 `CreateSolvedSessionRequest` 구성:
-  - `rootQuestion` = 첫 문항, `followupQuestions` = 이후 문항들
-  - 각 항목 `{ questionId, choiceId, relationQuestionId: 고른 보기의 relatedQuestionId }`
-- [ ] `POST /api/solved-sessions` 성공 후 result 화면 이동 (정답/오답 수는 gradeResult 집계로 표시)
-- [ ] 저장 실패 시 재시도 가능하게 (풀이 상태 유지), 중복 클릭 방지
-- [ ] "종료하기"(중도 이탈)는 저장하지 않고 복귀 — 도메인 정책 그대로
+- [x] "저장하기" 클릭 시 solvedItems 체인으로 `CreateSolvedSessionRequest` 구성 (`relationQuestionId` = 채점 응답 `nextQuestion.id`)
+- [x] `POST /api/solved-sessions` 성공 후 result 화면 이동 (정답/오답 수는 채점 결과 집계로 표시) — 저장 성공 시에만 결과 화면 진입
+- [x] 저장 실패 시 재시도 가능(풀이 상태 유지), 저장 중 중복 클릭 방지
+- [x] "종료하기"(중도 이탈)는 저장하지 않고 문제은행으로 복귀 — 도메인 정책 그대로 (기존의 "종료 시 결과 화면" 동작 제거)
 
 ### 2-5. 정리
-- [ ] `mocks/questions.ts`·`mocks/problemBank.ts`의 객관식 데이터 및 관련 mock 타입 제거 (서술형 mock은 유지)
+- [x] `mocks/problemBank.ts` 삭제, `mocks/questions.ts`의 객관식 데이터 및 관련 mock 타입 제거 (서술형 mock은 유지 — EssayQuiz는 더미 유지)
 
 ## Phase 3 — 검증
 - [ ] `./gradlew test` 전체 통과
