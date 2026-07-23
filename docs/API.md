@@ -106,6 +106,7 @@ POST /api/questions/{questionId}/essay/answers
 | 400 | `INVALID_INPUT` | 필수값 누락, `thread`가 비었거나 항목 수가 허용 범위를 벗어남. |
 | 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
 | 400 | `QUESTION_NOT_ESSAY` | `questionId` 문제가 서술형(`ESSAY`)이 아님. |
+| 503 | `ESSAY_AI_UNAVAILABLE` | AI 채점·꼬리질문 생성 호출이 실패함(LLM 장애 등). |
 
 ---
 
