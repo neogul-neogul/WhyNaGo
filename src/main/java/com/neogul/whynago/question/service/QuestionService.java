@@ -4,6 +4,7 @@ import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.implement.AnswerChoiceReader;
 import com.neogul.whynago.question.implement.QuestionReader;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
+import com.neogul.whynago.question.service.dto.EssayQuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
 import java.util.List;
@@ -40,5 +41,13 @@ public class QuestionService {
                         tagsByQuestionId.getOrDefault(question.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    public EssayQuestionResult findEssayQuestion(Long questionId) {
+        Question question = questionReader.readEssayQuestion(questionId);
+        List<String> tags = questionReader.readTagNames(List.of(question.getId()))
+                .getOrDefault(question.getId(), List.of());
+
+        return EssayQuestionResult.from(question, tags);
     }
 }

@@ -6,6 +6,7 @@ import com.neogul.whynago.auth.presentation.AuthController;
 import com.neogul.whynago.auth.presentation.interceptor.TokenExtractor;
 import com.neogul.whynago.auth.service.AuthService;
 import com.neogul.whynago.question.presentation.QuestionController;
+import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
@@ -36,6 +37,9 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected QuestionService questionService;
+
+    @MockitoBean
+    protected EssayAnswerService essayAnswerService;
 
     @MockitoBean
     protected SolvedSessionService solvedSessionService;
