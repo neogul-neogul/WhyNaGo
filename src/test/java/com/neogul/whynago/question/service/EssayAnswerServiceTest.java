@@ -2,9 +2,10 @@ package com.neogul.whynago.question.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.neogul.whynago.common.exception.BusinessException;
@@ -14,8 +15,7 @@ import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.implement.dto.EssayQnA;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
-import com.neogul.whynago.question.infra.ai.GeneratedFollowup;
-import com.neogul.whynago.question.infra.ai.GradedAnswer;
+import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
 import com.neogul.whynago.question.service.dto.EvaluateEssayAnswerCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
@@ -41,8 +41,8 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     void evaluate() {
         // given
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
-        given(essayAiClient.grade(anyList())).willReturn(new GradedAnswer("피드백", "모범답안"));
-        given(essayAiClient.generateFollowup(anyList())).willReturn(new GeneratedFollowup("꼬리질문1"));
+        given(essayAiClient.gradeAndGenerateFollowup(anyList(), anyBoolean()))
+                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", "꼬리질문1"));
         EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand(
                 List.of(new EssayQnA(essay.getContent(), "제 답변입니다."))
         );
@@ -61,7 +61,8 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     void evaluate_lastTurnHasNoFollowup() {
         // given
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
-        given(essayAiClient.grade(anyList())).willReturn(new GradedAnswer("피드백", "모범답안"));
+        given(essayAiClient.gradeAndGenerateFollowup(anyList(), anyBoolean()))
+                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", null));
         EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand(List.of(
                 new EssayQnA("본질문", "답변1"),
                 new EssayQnA("꼬리질문1", "답변2"),
@@ -73,7 +74,7 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
 
         // then
         assertThat(result.nextFollowup()).isNull();
-        verify(essayAiClient, never()).generateFollowup(anyList());
+        verify(essayAiClient).gradeAndGenerateFollowup(anyList(), eq(false));
     }
 
     @Test

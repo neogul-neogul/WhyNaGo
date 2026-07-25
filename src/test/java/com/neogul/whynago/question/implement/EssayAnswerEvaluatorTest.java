@@ -2,6 +2,7 @@ package com.neogul.whynago.question.implement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -20,9 +21,9 @@ class EssayAnswerEvaluatorTest {
     private final EssayAnswerEvaluator essayAnswerEvaluator = new EssayAnswerEvaluator(essayAiClient);
 
     @Test
-    @DisplayName("AI 호출이 실패하면 CompletionException을 벗겨 도메인 예외를 전파한다.")
+    @DisplayName("AI 호출이 실패하면 도메인 예외를 그대로 전파한다.")
     void evaluate_aiFailure() {
-        given(essayAiClient.grade(anyList()))
+        given(essayAiClient.gradeAndGenerateFollowup(anyList(), anyBoolean()))
                 .willThrow(new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));
 
         assertThatThrownBy(() -> essayAnswerEvaluator.evaluate(List.of(new EssayQnA("질문", "답변"))))

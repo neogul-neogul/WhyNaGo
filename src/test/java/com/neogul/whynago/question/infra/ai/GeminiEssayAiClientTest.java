@@ -22,12 +22,12 @@ class GeminiEssayAiClientTest {
         ChatClient chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
         ChatClient.Builder builder = mock(ChatClient.Builder.class);
         given(builder.build()).willReturn(chatClient);
-        given(chatClient.prompt().user(anyString()).call().entity(GradedAnswer.class))
+        given(chatClient.prompt().user(anyString()).call().entity(GradeAndFollowupResult.class))
                 .willThrow(new RuntimeException("LLM down"));
 
         GeminiEssayAiClient client = new GeminiEssayAiClient(builder);
 
-        assertThatThrownBy(() -> client.grade(List.of(new EssayTurn("질문", "답변"))))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(List.of(new EssayTurn("질문", "답변")), true))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));

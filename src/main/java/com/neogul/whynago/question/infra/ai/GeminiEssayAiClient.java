@@ -20,11 +20,18 @@ public class GeminiEssayAiClient implements EssayAiClient {
     }
 
     @Override
-    public GradedAnswer grade(List<EssayTurn> thread) {
+    public GradeAndFollowupResult gradeAndGenerateFollowup(List<EssayTurn> thread, boolean generateFollowup) {
         EssayTurn target = thread.get(thread.size() - 1);
+        String followupInstruction = generateFollowup
+                ? """
+                또한 이 문답 흐름에 이어서 지원자의 이해도를 더 깊이 확인할 꼬리질문 한 개를 한국어로 생성하라.
+                새로운 주제로 벗어나지 말고 직전 답변을 파고들어 followupQuestion에 담아라."""
+                : "이번 턴에서는 꼬리질문을 생성하지 말고 followupQuestion은 null로 두어라.";
+
         String prompt = """
                 너는 개발자 채용 기술 면접관이다. 아래 면접 문답에서 '채점 대상' 답변을 평가하라.
-                한국어로 작성하고, 정답을 단정하기보다 보완할 점 중심으로 피드백하라.
+                한국어로 작성하고, 정답을 단정하기보다 보완할 점 중심으로 feedback과 modelAnswer를 채워라.
+                %s
 
                 [지금까지의 문답]
                 %s
@@ -32,28 +39,12 @@ public class GeminiEssayAiClient implements EssayAiClient {
                 [채점 대상]
                 질문: %s
                 답변: %s
-                """.formatted(renderThread(thread), target.question(), target.answer());
+                """.formatted(followupInstruction, renderThread(thread), target.question(), target.answer());
 
         return call(() -> chatClient.prompt()
                 .user(prompt)
                 .call()
-                .entity(GradedAnswer.class));
-    }
-
-    @Override
-    public GeneratedFollowup generateFollowup(List<EssayTurn> thread) {
-        String prompt = """
-                너는 개발자 채용 기술 면접관이다. 아래 문답 흐름에 이어서 지원자의 이해도를 더 깊이 확인할
-                꼬리질문 한 개를 한국어로 생성하라. 새로운 주제로 벗어나지 말고 직전 답변을 파고들어라.
-
-                [지금까지의 문답]
-                %s
-                """.formatted(renderThread(thread));
-
-        return call(() -> chatClient.prompt()
-                .user(prompt)
-                .call()
-                .entity(GeneratedFollowup.class));
+                .entity(GradeAndFollowupResult.class));
     }
 
     // 외부 AI 호출 실패는 기술 예외를 노출하지 않고 도메인 에러코드로 변환한다.
