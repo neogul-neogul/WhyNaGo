@@ -16,6 +16,18 @@ spring:
   h2:
     console:
       enabled: true
+
+  ai:
+    model:
+      embedding: none
+    openai:
+      api-key: ${API_KEY}
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: gemini-3.5-flash
+          temperature: 0.7
 jwt:
   secret: ${JWT_SECRET}
   access:
