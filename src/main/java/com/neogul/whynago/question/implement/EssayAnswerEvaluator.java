@@ -1,11 +1,8 @@
 package com.neogul.whynago.question.implement;
 
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
-import com.neogul.whynago.question.implement.dto.EssayQnA;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
-import com.neogul.whynago.question.infra.ai.EssayTurn;
 import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -14,16 +11,25 @@ import org.springframework.stereotype.Component;
 public class EssayAnswerEvaluator {
 
     private static final int MAX_TURNS = 3;
+    private static final int PASS_THRESHOLD = 7;
 
     private final EssayAiClient essayAiClient;
 
-    public EssayEvaluation evaluate(List<EssayQnA> thread) {
-        List<EssayTurn> aiThread = thread.stream()
-                .map(qna -> new EssayTurn(qna.question(), qna.answer()))
-                .toList();
+    public EssayEvaluation evaluate(String conversationId, String question, String answer) {
+        boolean lastTurn = essayAiClient.completedTurns(conversationId) >= MAX_TURNS - 1;
 
-        boolean generateFollowup = thread.size() < MAX_TURNS;
-        GradeAndFollowupResult result = essayAiClient.gradeAndGenerateFollowup(aiThread, generateFollowup);
-        return EssayEvaluation.from(result);
+        GradeAndFollowupResult result =
+                essayAiClient.gradeAndGenerateFollowup(conversationId, question, answer, !lastTurn);
+
+        if (lastTurn) {
+            essayAiClient.clearSession(conversationId);
+        }
+
+        return new EssayEvaluation(
+                result.feedback(),
+                result.modelAnswer(),
+                result.score() >= PASS_THRESHOLD,
+                result.followupQuestion()
+        );
     }
 }

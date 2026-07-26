@@ -12,6 +12,7 @@ import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
+import com.neogul.whynago.question.service.dto.EssaySessionResult;
 import com.neogul.whynago.question.service.dto.GradingResult;
 import com.neogul.whynago.question.service.dto.NextFollowupResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
@@ -118,11 +119,25 @@ class QuestionControllerTest extends ControllerTestSupport {
     }
 
     @Test
-    @DisplayName("서술형 답변을 채점하면 피드백·모범답안과 다음 꼬리질문을 응답한다.")
+    @DisplayName("서술형 세션을 시작하면 대화 식별자를 응답한다.")
+    void startEssaySession() {
+        given(essayAnswerService.startSession(3L)).willReturn(new EssaySessionResult("conv-abc"));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .when()
+                .post("/api/questions/{questionId}/essay/sessions", 3L)
+                .then()
+                .statusCode(201)
+                .body("conversationId", Matchers.equalTo("conv-abc"));
+    }
+
+    @Test
+    @DisplayName("서술형 답변을 채점하면 피드백·모범답안·통과 여부와 다음 꼬리질문을 응답한다.")
     void evaluateEssayAnswer() {
         given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
                 new EssayAnswerResult(
-                        new GradingResult("피드백", "모범답안"),
+                        new GradingResult("피드백", "모범답안", true),
                         new NextFollowupResult("다음 꼬리질문")
                 )
         );
@@ -130,13 +145,14 @@ class QuestionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .contentType(ContentType.JSON)
-                .body("{\"thread\":[{\"question\":\"본질문\",\"answer\":\"답변1\"}]}")
+                .body("{\"conversationId\":\"conv-1\",\"question\":\"본질문\",\"answer\":\"답변1\"}")
                 .when()
                 .post("/api/questions/{questionId}/essay/answers", 3L)
                 .then()
                 .statusCode(200)
                 .body("grading.feedback", Matchers.equalTo("피드백"))
                 .body("grading.modelAnswer", Matchers.equalTo("모범답안"))
+                .body("grading.isCorrect", Matchers.equalTo(true))
                 .body("nextFollowup.question", Matchers.equalTo("다음 꼬리질문"));
     }
 
@@ -144,28 +160,29 @@ class QuestionControllerTest extends ControllerTestSupport {
     @DisplayName("마지막 문항 답변은 꼬리질문 없이 채점 결과만 응답한다.")
     void evaluateEssayAnswer_lastTurn() {
         given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
-                new EssayAnswerResult(new GradingResult("피드백", "모범답안"), null)
+                new EssayAnswerResult(new GradingResult("피드백", "모범답안", false), null)
         );
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .contentType(ContentType.JSON)
-                .body("{\"thread\":[{\"question\":\"본질문\",\"answer\":\"1\"},{\"question\":\"꼬리1\",\"answer\":\"2\"},{\"question\":\"꼬리2\",\"answer\":\"3\"}]}")
+                .body("{\"conversationId\":\"conv-1\",\"question\":\"꼬리질문2\",\"answer\":\"답변3\"}")
                 .when()
                 .post("/api/questions/{questionId}/essay/answers", 3L)
                 .then()
                 .statusCode(200)
                 .body("grading.feedback", Matchers.equalTo("피드백"))
+                .body("grading.isCorrect", Matchers.equalTo(false))
                 .body("nextFollowup", Matchers.nullValue());
     }
 
     @Test
-    @DisplayName("thread가 비어 있으면 400을 응답한다.")
-    void evaluateEssayAnswer_emptyThread() {
+    @DisplayName("conversationId가 비어 있으면 400을 응답한다.")
+    void evaluateEssayAnswer_blankConversationId() {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .contentType(ContentType.JSON)
-                .body("{\"thread\":[]}")
+                .body("{\"conversationId\":\" \",\"question\":\"본질문\",\"answer\":\"답변1\"}")
                 .when()
                 .post("/api/questions/{questionId}/essay/answers", 3L)
                 .then()
@@ -182,7 +199,7 @@ class QuestionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .contentType(ContentType.JSON)
-                .body("{\"thread\":[{\"question\":\"q\",\"answer\":\"a\"}]}")
+                .body("{\"conversationId\":\"conv-1\",\"question\":\"q\",\"answer\":\"a\"}")
                 .when()
                 .post("/api/questions/{questionId}/essay/answers", 1L)
                 .then()
@@ -199,7 +216,7 @@ class QuestionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
                 .contentType(ContentType.JSON)
-                .body("{\"thread\":[{\"question\":\"본질문\",\"answer\":\"답변1\"}]}")
+                .body("{\"conversationId\":\"conv-1\",\"question\":\"본질문\",\"answer\":\"답변1\"}")
                 .when()
                 .post("/api/questions/{questionId}/essay/answers", 3L)
                 .then()

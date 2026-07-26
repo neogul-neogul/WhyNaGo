@@ -1,8 +1,15 @@
 package com.neogul.whynago.question.infra.ai;
 
-import java.util.List;
-
 public interface EssayAiClient {
 
-    GradeAndFollowupResult gradeAndGenerateFollowup(List<EssayTurn> thread, boolean generateFollowup);
+    GradeAndFollowupResult gradeAndGenerateFollowup(
+            String conversationId,
+            String question,
+            String answer,
+            boolean generateFollowup
+    );
+
+    int completedTurns(String conversationId);
+
+    void clearSession(String conversationId);
 }
