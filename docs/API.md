@@ -185,3 +185,84 @@ POST /api/solved-sessions
 | 400 | `SOLVED_SESSION_BROKEN_CHAIN` | 꼬리질문 연결이 맞지 않음(`relationQuestionId`가 고른 선택지의 실제 연결 또는 다음 항목과 불일치). |
 | 400 | `CHOICE_NOT_IN_QUESTION` | `choiceId` 선택지가 해당 문제에 속하지 않음. |
 | 404 | `CHOICE_NOT_FOUND` | `choiceId` 선택지가 없거나, 문제의 정답 선택지를 찾을 수 없음. |
+
+## **서술형 세션 저장**
+
+사용자가 서술형 본질문부터 꼬리질문2까지(총 3문항)를 이어 푼 뒤 "저장하기"를 누르면, 전체 문답과 채점 결과를 하나의 세션으로 저장한다. 서술형 꼬리질문·채점은 풀이 중 AI가 생성하므로 재사용 가능한 `Question`이 없어, 발문·답변·피드백·모범답안을 **스냅샷**으로 함께 저장한다(→ `docs/DOMAIN.md` 서술형 풀이 흐름 정책). 저장 시 재채점하지 않으며, 각 문항의 통과 여부(`isCorrect`)는 채점 API가 산출한 값을 클라이언트가 그대로 전달한다.
+
+### **Endpoint**
+
+```
+POST /api/solved-sessions/essay
+```
+
+- 성공 시 `201 Created`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "rootQuestion": {
+    "questionId": 1,
+    "questionText": "트랜잭션 격리 수준을 설명하시오.",
+    "userAnswer": "격리 수준은 4단계로...",
+    "feedback": "이상 현상 설명을 보완하면 좋습니다.",
+    "modelAnswer": "READ UNCOMMITTED부터 SERIALIZABLE까지...",
+    "isCorrect": true
+  },
+  "followupQuestions": [
+    {
+      "questionId": null,
+      "questionText": "팬텀 리드는 어떤 격리 수준에서 막히나요?",
+      "userAnswer": "SERIALIZABLE에서 막힙니다.",
+      "feedback": "정확합니다.",
+      "modelAnswer": "SERIALIZABLE는 팬텀 리드까지 방지합니다.",
+      "isCorrect": true
+    },
+    {
+      "questionId": null,
+      "questionText": "MVCC는 격리 수준과 어떤 관계인가요?",
+      "userAnswer": "스냅샷으로 읽기 일관성을 제공합니다.",
+      "feedback": "핵심은 맞으나 언두 로그 언급이 없습니다.",
+      "modelAnswer": "MVCC는 언두 로그 기반 스냅샷으로...",
+      "isCorrect": false
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `rootQuestion` | Object | O | 본질문 문답 스냅샷. |
+| `followupQuestions` | Array | O | 꼬리질문 문답 스냅샷 목록. **정확히 2개**(본질문 1 + 꼬리질문 2 = 3문항 고정). |
+| `*.questionId` | Long | △ | 본질문만 값. 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로 `null`. |
+| `*.questionText` | String | O | 문항 발문 스냅샷. |
+| `*.userAnswer` | String | O | 사용자가 작성한 답변. |
+| `*.feedback` | String | O | AI 피드백. 채점 API 응답의 `grading.feedback`을 그대로 담는다. |
+| `*.modelAnswer` | String | O | 모범답안. 채점 API 응답의 `grading.modelAnswer`를 그대로 담는다. |
+| `*.isCorrect` | boolean | O | 통과 여부. 채점 API가 산출한 값(서버 산출, 클라이언트 relay). 세션 `correctCount` 집계에 사용한다. |
+
+**제약**:
+
+- `followupQuestions`는 정확히 2개여야 한다. 벗어나면 `INVALID_INPUT`이다.
+- `questionText`·`userAnswer`·`feedback`·`modelAnswer`는 공백일 수 없다.
+
+### **Response Body**
+
+```json
+{
+  "sessionId": 42
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `sessionId` | Long | 저장된 세션 ID. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | 필수값 누락, 꼬리질문 수가 2개가 아님, 필수 문자열이 공백 등 요청 형식 검증 실패. |
+| 404 | `QUESTION_NOT_FOUND` | `rootQuestion.questionId` 문제가 존재하지 않음. |
+| 400 | `QUESTION_NOT_ESSAY` | `rootQuestion.questionId` 문제가 서술형(`ESSAY`)이 아님. |
