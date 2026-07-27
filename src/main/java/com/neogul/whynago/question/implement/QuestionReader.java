@@ -36,6 +36,15 @@ public class QuestionReader {
         return questionRepository.findRootMultipleChoices(type, difficulty, category, normalize(keyword));
     }
 
+    public Question readEssayQuestion(Long questionId) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
+        if (!question.isEssay()) {
+            throw new BusinessException(QuestionErrorCode.QUESTION_NOT_ESSAY);
+        }
+        return question;
+    }
+
     public Map<Long, List<String>> readTagNames(List<Long> questionIds) {
         if (questionIds.isEmpty()) {
             return Map.of();
