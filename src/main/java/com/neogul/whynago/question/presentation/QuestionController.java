@@ -5,6 +5,7 @@ import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.presentation.dto.ChoiceGradingResponse;
 import com.neogul.whynago.question.presentation.dto.EssayQuestionResponse;
+import com.neogul.whynago.question.presentation.dto.EssaySessionResponse;
 import com.neogul.whynago.question.presentation.dto.EvaluateEssayAnswerRequest;
 import com.neogul.whynago.question.presentation.dto.EvaluateEssayAnswerResponse;
 import com.neogul.whynago.question.presentation.dto.QuestionResponse;
@@ -15,6 +16,7 @@ import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,6 +59,13 @@ public class QuestionController {
     public ResponseEntity<EssayQuestionResponse> findEssayQuestion(@PathVariable Long questionId) {
         EssayQuestionResponse response = EssayQuestionResponse.from(questionService.findEssayQuestion(questionId));
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{questionId}/essay/sessions")
+    public ResponseEntity<EssaySessionResponse> startEssaySession(@PathVariable Long questionId) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(EssaySessionResponse.from(essayAnswerService.startSession(questionId)));
     }
 
     @PostMapping("/{questionId}/essay/answers")

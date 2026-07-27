@@ -32,11 +32,45 @@ API는 `docs/ARCHITECTURE.md`의 레이어 규칙을 따른다. 요청/응답 DT
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
+## **서술형 세션 시작**
+
+서술형 풀이를 시작할 때 **대화 식별자(`conversationId`)**를 발급한다. 이후 답변 채점 요청은 이 식별자로 묶이며, 서버는 대화 이력(ChatMemory)에 이전 문답을 보관해 꼬리질문 생성의 맥락으로 사용한다. 따라서 클라이언트는 매 요청에 전체 문답을 다시 보낼 필요가 없다.
+
+### **Endpoint**
+
+```
+POST /api/questions/{questionId}/essay/sessions
+```
+
+- `questionId`는 서술형 본 질문 ID다.
+- 성공 시 `201 Created`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "conversationId": "3f1c8a2e-9b7d-4c2a-8f0e-1a2b3c4d5e6f"
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `conversationId` | String | 서버가 발급한 대화 식별자. 이후 답변 채점 요청에 담아 보낸다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
+| 400 | `QUESTION_NOT_ESSAY` | `questionId` 문제가 서술형(`ESSAY`)이 아님. |
+
+---
+
 ## **서술형 답변 채점·꼬리질문 생성**
 
-서술형 풀이 한 턴을 처리한다. 사용자가 제출한 답변을 LLM으로 채점해 결과(피드백·모범답안)를 반환하고, 이어질 꼬리질문을 AI로 생성해 함께 반환한다. 서술형 세션은 완료 시점에만 저장하므로(→ `docs/DOMAIN.md` 세션 집계 정책) 이 API는 아무것도 저장하지 않으며, 클라이언트가 지금까지의 문답을 매 요청에 실어 보낸다.
+서술형 풀이 한 턴을 처리한다. 사용자가 제출한 답변을 LLM으로 채점해 결과(피드백·모범답안·통과 여부)를 반환하고, 이어질 꼬리질문을 AI로 생성해 함께 반환한다. 서술형 세션은 완료 시점에만 저장하므로(→ `docs/DOMAIN.md` 세션 집계 정책) 이 API는 아무것도 저장하지 않는다.
 
-본 질문 + 꼬리질문 2개(총 3문항)로 진행되며, 채점과 생성은 하나의 요청에서 함께 처리한다. 마지막 문항(3번째)을 채점하면 더 생성할 꼬리질문이 없어 `nextFollowup`이 `null`로 내려간다. 꼬리질문1·2는 포함하는 문답 범위만 다를 뿐 같은 엔드포인트로 처리한다(요청의 `thread` 항목 수로 구분).
+**이전 문답 맥락은 서버의 대화 이력(ChatMemory)이 보관**하므로, 클라이언트는 전체 문답이 아니라 **이번 턴의 질문·답변만** `conversationId`와 함께 보낸다. 본 질문 + 꼬리질문 2개(총 3문항)로 진행되며, 서버는 대화 이력의 턴 수로 진행 단계를 판단한다. 마지막 문항(3번째)을 채점하면 더 생성할 꼬리질문이 없어 `nextFollowup`이 `null`로 내려가고, 서버는 해당 대화 이력을 정리한다.
 
 ### **Endpoint**
 
@@ -51,29 +85,22 @@ POST /api/questions/{questionId}/essay/answers
 
 ```json
 {
-  "thread": [
-    {
-      "question": "TCP의 흐름 제어와 혼잡 제어의 차이를 설명하시오.",
-      "answer": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하고..."
-    },
-    {
-      "question": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
-      "answer": "수신자가 광고한 윈도우 크기만큼만 데이터를 보내..."
-    }
-  ]
+  "conversationId": "3f1c8a2e-9b7d-4c2a-8f0e-1a2b3c4d5e6f",
+  "question": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
+  "answer": "수신자가 광고한 윈도우 크기만큼만 데이터를 보내..."
 }
 ```
 
 | **필드** | **타입** | **필수** | **설명** |
 | --- | --- | --- | --- |
-| `thread` | Array | O | 지금까지의 문답을 순서대로 담은 목록. 첫 항목은 본 질문, 이후 항목은 꼬리질문이다. **마지막 항목이 이번에 채점할 문항**이며, 앞 항목들은 꼬리질문 생성의 맥락으로 쓰인다. |
-| `thread[].question` | String | O | 문항 발문. 본 질문은 조회 API로 받은 텍스트, 꼬리질문은 직전 응답의 `nextFollowup.question` 텍스트를 그대로 담는다. |
-| `thread[].answer` | String | O | 해당 문항에 사용자가 작성한 답변. |
+| `conversationId` | String | O | 세션 시작 API로 발급받은 대화 식별자. |
+| `question` | String | O | 이번에 채점할 문항 발문. 본 질문은 조회 API로 받은 텍스트, 꼬리질문은 직전 응답의 `nextFollowup.question` 텍스트를 담는다. |
+| `answer` | String | O | 이번 문항에 사용자가 작성한 답변. |
 
 **제약**:
 
-- `thread` 항목 수는 1 이상 3 이하다(본 질문 1 + 꼬리질문 최대 2). 범위를 벗어나면 `INVALID_INPUT`이다.
-- 꼬리질문 생성 여부는 서버가 `thread` 항목 수로 판단한다. 1개면 꼬리질문1, 2개면 꼬리질문2를 생성하고, 3개면 생성하지 않는다.
+- `conversationId`·`question`·`answer`는 공백일 수 없다. 위반 시 `INVALID_INPUT`이다.
+- 꼬리질문 생성 여부와 진행 단계는 서버가 대화 이력의 턴 수로 판단한다(1·2턴째는 꼬리질문 생성, 3턴째는 생성하지 않고 대화 정리).
 
 ### **Response Body**
 
@@ -81,7 +108,8 @@ POST /api/questions/{questionId}/essay/answers
 {
   "grading": {
     "feedback": "흐름 제어와 혼잡 제어의 목적 차이(수신자 보호 vs 네트워크 보호)를 명확히 구분하면 더 좋습니다.",
-    "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 하여 수신 버퍼가 넘치지 않게 조절합니다."
+    "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 하여 수신 버퍼가 넘치지 않게 조절합니다.",
+    "isCorrect": true
   },
   "nextFollowup": {
     "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
@@ -91,19 +119,18 @@ POST /api/questions/{questionId}/essay/answers
 
 | **필드** | **타입** | **설명** |
 | --- | --- | --- |
-| `grading` | Object | `thread`의 마지막 문항 답변에 대한 채점 결과. |
+| `grading` | Object | 이번 문항 답변에 대한 채점 결과. |
 | `grading.feedback` | String | AI 피드백. |
 | `grading.modelAnswer` | String | 해당 문항의 모범답안·해설. |
-| `nextFollowup` | Object | 생성된 다음 꼬리질문. 마지막 문항(`thread` 항목 3개)이면 `null`(면접 종료). |
+| `grading.isCorrect` | boolean | 통과 여부. LLM이 매긴 0~10 점수를 서버가 임계값(7 이상 통과)으로 환산한 값(→ `docs/DOMAIN.md` 서술형 정답 판정 기준). |
+| `nextFollowup` | Object | 생성된 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`(면접 종료). |
 | `nextFollowup.question` | String | 생성된 꼬리질문 발문. |
-
-> 정답/통과 판정 값(점수 등)은 `docs/DOMAIN.md`에서 보류 상태이므로 현재 응답에 포함하지 않는다. 확정 시 `grading`에 필드를 추가한다.
 
 ### **에러**
 
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
-| 400 | `INVALID_INPUT` | 필수값 누락, `thread`가 비었거나 항목 수가 허용 범위를 벗어남. |
+| 400 | `INVALID_INPUT` | 필수값 누락 또는 공백. |
 | 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
 | 400 | `QUESTION_NOT_ESSAY` | `questionId` 문제가 서술형(`ESSAY`)이 아님. |
 | 503 | `ESSAY_AI_UNAVAILABLE` | AI 채점·꼬리질문 생성 호출이 실패함(LLM 장애 등). |
@@ -185,3 +212,84 @@ POST /api/solved-sessions
 | 400 | `SOLVED_SESSION_BROKEN_CHAIN` | 꼬리질문 연결이 맞지 않음(`relationQuestionId`가 고른 선택지의 실제 연결 또는 다음 항목과 불일치). |
 | 400 | `CHOICE_NOT_IN_QUESTION` | `choiceId` 선택지가 해당 문제에 속하지 않음. |
 | 404 | `CHOICE_NOT_FOUND` | `choiceId` 선택지가 없거나, 문제의 정답 선택지를 찾을 수 없음. |
+
+## **서술형 세션 저장**
+
+사용자가 서술형 본질문부터 꼬리질문2까지(총 3문항)를 이어 푼 뒤 "저장하기"를 누르면, 전체 문답과 채점 결과를 하나의 세션으로 저장한다. 서술형 꼬리질문·채점은 풀이 중 AI가 생성하므로 재사용 가능한 `Question`이 없어, 발문·답변·피드백·모범답안을 **스냅샷**으로 함께 저장한다(→ `docs/DOMAIN.md` 서술형 풀이 흐름 정책). 저장 시 재채점하지 않으며, 각 문항의 통과 여부(`isCorrect`)는 채점 API가 산출한 값을 클라이언트가 그대로 전달한다.
+
+### **Endpoint**
+
+```
+POST /api/solved-sessions/essay
+```
+
+- 성공 시 `201 Created`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "rootQuestion": {
+    "questionId": 1,
+    "questionText": "트랜잭션 격리 수준을 설명하시오.",
+    "userAnswer": "격리 수준은 4단계로...",
+    "feedback": "이상 현상 설명을 보완하면 좋습니다.",
+    "modelAnswer": "READ UNCOMMITTED부터 SERIALIZABLE까지...",
+    "isCorrect": true
+  },
+  "followupQuestions": [
+    {
+      "questionId": null,
+      "questionText": "팬텀 리드는 어떤 격리 수준에서 막히나요?",
+      "userAnswer": "SERIALIZABLE에서 막힙니다.",
+      "feedback": "정확합니다.",
+      "modelAnswer": "SERIALIZABLE는 팬텀 리드까지 방지합니다.",
+      "isCorrect": true
+    },
+    {
+      "questionId": null,
+      "questionText": "MVCC는 격리 수준과 어떤 관계인가요?",
+      "userAnswer": "스냅샷으로 읽기 일관성을 제공합니다.",
+      "feedback": "핵심은 맞으나 언두 로그 언급이 없습니다.",
+      "modelAnswer": "MVCC는 언두 로그 기반 스냅샷으로...",
+      "isCorrect": false
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `rootQuestion` | Object | O | 본질문 문답 스냅샷. |
+| `followupQuestions` | Array | O | 꼬리질문 문답 스냅샷 목록. **정확히 2개**(본질문 1 + 꼬리질문 2 = 3문항 고정). |
+| `*.questionId` | Long | △ | 본질문만 값. 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로 `null`. |
+| `*.questionText` | String | O | 문항 발문 스냅샷. |
+| `*.userAnswer` | String | O | 사용자가 작성한 답변. |
+| `*.feedback` | String | O | AI 피드백. 채점 API 응답의 `grading.feedback`을 그대로 담는다. |
+| `*.modelAnswer` | String | O | 모범답안. 채점 API 응답의 `grading.modelAnswer`를 그대로 담는다. |
+| `*.isCorrect` | boolean | O | 통과 여부. 채점 API가 산출한 값(서버 산출, 클라이언트 relay). 세션 `correctCount` 집계에 사용한다. |
+
+**제약**:
+
+- `followupQuestions`는 정확히 2개여야 한다. 벗어나면 `INVALID_INPUT`이다.
+- `questionText`·`userAnswer`·`feedback`·`modelAnswer`는 공백일 수 없다.
+
+### **Response Body**
+
+```json
+{
+  "sessionId": 42
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `sessionId` | Long | 저장된 세션 ID. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | 필수값 누락, 꼬리질문 수가 2개가 아님, 필수 문자열이 공백 등 요청 형식 검증 실패. |
+| 404 | `QUESTION_NOT_FOUND` | `rootQuestion.questionId` 문제가 존재하지 않음. |
+| 400 | `QUESTION_NOT_ESSAY` | `rootQuestion.questionId` 문제가 서술형(`ESSAY`)이 아님. |
