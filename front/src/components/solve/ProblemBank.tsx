@@ -1,46 +1,79 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { Problem } from "@/types";
-import { problemBank } from "@/mocks/problemBank";
+import { useEffect, useState } from "react";
+import type { QuestionResponse } from "@/types";
+import { ApiError } from "@/lib/api";
+import {
+  CATEGORY_LABELS,
+  DIFFICULTY_LABELS,
+  TYPE_LABELS,
+  categoryFromLabel,
+  difficultyFromLabel,
+  fetchQuestions,
+  typeFromLabel,
+} from "@/lib/questions";
 import { CATEGORIES, diffColor, lvBadge } from "@/lib/badges";
 import Chip from "@/components/ui/Chip";
 import Badge, { type BadgeTone } from "@/components/ui/Badge";
 
-const statusTone: Record<Problem["status"], BadgeTone> = {
-  완료: "success",
-  오답: "danger",
-  "안 푼 문제": "neutral",
-};
-
-const typeTone: Record<Problem["type"], BadgeTone> = {
+const typeTone: Record<string, BadgeTone> = {
   객관식: "accent",
   서술형: "ai",
 };
 
-// 문제은행 목록 (검색 + 필터 + 표)
+// 문제은행 목록 (검색 + 필터 + 표) — GET /api/questions
 export default function ProblemBank({
   onStart,
 }: {
-  onStart: (p: Problem) => void;
+  onStart: (question: QuestionResponse) => void;
 }) {
   const [type, setType] = useState("전체");
   const [diff, setDiff] = useState("전체");
   const [cat, setCat] = useState("전체");
   const [search, setSearch] = useState("");
+  const [keyword, setKeyword] = useState("");
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return problemBank.filter(
-      (p) =>
-        (type === "전체" || p.type === type) &&
-        (diff === "전체" || p.diff === diff) &&
-        (cat === "전체" || p.cat === cat) &&
-        (!q ||
-          p.title.toLowerCase().includes(q) ||
-          p.cat.toLowerCase().includes(q)),
-    );
-  }, [type, diff, cat, search]);
+  // 현재 필터 조합의 조회 결과. key가 현재 필터와 다르면 아직 로딩 중
+  const filtersKey = `${type}|${diff}|${cat}|${keyword}`;
+  const [result, setResult] = useState<{
+    key: string;
+    list?: QuestionResponse[];
+    error?: string;
+  } | null>(null);
+
+  // 검색어는 잠시 멈췄을 때만 서버에 반영
+  useEffect(() => {
+    const timer = setTimeout(() => setKeyword(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchQuestions({
+      type: typeFromLabel(type),
+      difficulty: difficultyFromLabel(diff),
+      category: categoryFromLabel(cat),
+      keyword: keyword || undefined,
+    })
+      .then((list) => {
+        if (!cancelled) setResult({ key: filtersKey, list });
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setResult({
+            key: filtersKey,
+            error: e instanceof ApiError ? e.message : "문제 목록을 불러오지 못했습니다.",
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [type, diff, cat, keyword, filtersKey]);
+
+  const loading = result?.key !== filtersKey;
+  const questions = (!loading && result?.list) || [];
+  const error = !loading ? (result?.error ?? null) : null;
 
   return (
     <div className="flex max-w-[1000px] flex-col gap-4">
@@ -82,7 +115,7 @@ export default function ProblemBank({
       {/* 개수 + 정렬 */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[14px] font-semibold text-ink">
-          <span className="font-mono">{filtered.length}</span>개 문제
+          <span className="font-mono">{questions.length}</span>개 문제
         </span>
         <span className="flex items-center gap-1.5 text-[13px] font-medium text-soft">
           최신순
@@ -95,52 +128,69 @@ export default function ProblemBank({
       {/* 표 */}
       <div className="overflow-hidden rounded-[16px] border border-line-card bg-white">
         <div className="flex items-center gap-4 border-b border-line-card bg-subtle px-[22px] py-[13px] text-xs font-semibold text-placeholder">
-          <span className="w-[84px] flex-shrink-0">상태</span>
           <span className="min-w-0 flex-1">제목</span>
           <span className="w-[70px] flex-shrink-0 text-center">유형</span>
+          <span className="w-[80px] flex-shrink-0 text-center">카테고리</span>
           <span className="w-[60px] flex-shrink-0 text-center">난이도</span>
-          <span className="w-[92px] flex-shrink-0 text-right">완료한 사람</span>
-          <span className="w-[60px] flex-shrink-0 text-right">정답률</span>
         </div>
-        {filtered.map((p, i) => (
-          <button
-            key={`${p.type}-${p.qi}-${i}`}
-            type="button"
-            onClick={() => onStart(p)}
-            className="flex w-full items-center gap-4 border-b border-line-soft bg-white px-[22px] py-[15px] text-left transition-colors hover:bg-subtle"
-          >
-            <span className="w-[84px] flex-shrink-0">
-              <Badge tone={statusTone[p.status]}>{p.status}</Badge>
-            </span>
-            <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-              <span className="truncate text-[14.5px] font-semibold text-ink">
-                {p.title}
-              </span>
-              <span className="flex flex-wrap gap-1.5">
-                {p.keywords.map((kw) => (
-                  <span key={kw} className="whitespace-nowrap rounded-[5px] bg-white px-1 py-0.5 text-[10px] font-medium text-secondary">
-                    {kw}
+
+        {loading && (
+          <div className="px-[22px] py-10 text-center text-[13.5px] text-soft">
+            문제 목록을 불러오는 중…
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="px-[22px] py-10 text-center text-[13.5px] text-danger">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && questions.length === 0 && (
+          <div className="px-[22px] py-10 text-center text-[13.5px] text-soft">
+            조건에 맞는 문제가 없습니다
+          </div>
+        )}
+
+        {!loading &&
+          !error &&
+          questions.map((q) => {
+            const diffLabel = DIFFICULTY_LABELS[q.difficulty];
+            const typeLabel = TYPE_LABELS[q.type];
+            return (
+              <button
+                key={q.id}
+                type="button"
+                onClick={() => onStart(q)}
+                className="flex w-full items-center gap-4 border-b border-line-soft bg-white px-[22px] py-[15px] text-left transition-colors hover:bg-subtle"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                  <span className="truncate text-[14.5px] font-semibold text-ink">
+                    {q.title}
                   </span>
-                ))}
-              </span>
-            </span>
-            <span className="flex w-[70px] flex-shrink-0 justify-center">
-              <Badge tone={typeTone[p.type]}>{p.type}</Badge>
-            </span>
-            <span
-              className="w-[60px] flex-shrink-0 text-center text-[12.5px] font-bold"
-              style={{ color: diffColor(p.diff) }}
-            >
-              {lvBadge(p.diff)}
-            </span>
-            <span className="w-[92px] flex-shrink-0 text-right font-mono text-[13px] text-secondary">
-              {p.solved.toLocaleString()}명
-            </span>
-            <span className="w-[60px] flex-shrink-0 text-right font-mono text-[13px] font-semibold text-secondary">
-              {p.rate}%
-            </span>
-          </button>
-        ))}
+                  <span className="flex flex-wrap gap-1.5">
+                    {q.tags.map((tag) => (
+                      <span key={tag} className="whitespace-nowrap rounded-[5px] bg-white px-1 py-0.5 text-[10px] font-medium text-secondary">
+                        {tag}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+                <span className="flex w-[70px] flex-shrink-0 justify-center">
+                  <Badge tone={typeTone[typeLabel] ?? "neutral"}>{typeLabel}</Badge>
+                </span>
+                <span className="w-[80px] flex-shrink-0 text-center text-[12.5px] font-medium text-secondary">
+                  {CATEGORY_LABELS[q.category]}
+                </span>
+                <span
+                  className="w-[60px] flex-shrink-0 text-center text-[12.5px] font-bold"
+                  style={{ color: diffColor(diffLabel) }}
+                >
+                  {lvBadge(diffLabel)}
+                </span>
+              </button>
+            );
+          })}
       </div>
     </div>
   );
