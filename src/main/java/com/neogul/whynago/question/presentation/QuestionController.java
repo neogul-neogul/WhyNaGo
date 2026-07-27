@@ -3,6 +3,7 @@ package com.neogul.whynago.question.presentation;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
+import com.neogul.whynago.question.presentation.dto.ChoiceGradingResponse;
 import com.neogul.whynago.question.presentation.dto.EssayQuestionResponse;
 import com.neogul.whynago.question.presentation.dto.EvaluateEssayAnswerRequest;
 import com.neogul.whynago.question.presentation.dto.EvaluateEssayAnswerResponse;
@@ -42,6 +43,14 @@ public class QuestionController {
                 .map(QuestionResponse::from)
                 .toList();
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{questionId}/choices/{choiceId}")
+    public ResponseEntity<ChoiceGradingResponse> getChoiceGrading(
+            @PathVariable Long questionId,
+            @PathVariable Long choiceId
+    ) {
+        return ResponseEntity.ok(ChoiceGradingResponse.from(questionService.getChoiceGrading(questionId, choiceId)));
     }
 
     @GetMapping("/{questionId}/essay")

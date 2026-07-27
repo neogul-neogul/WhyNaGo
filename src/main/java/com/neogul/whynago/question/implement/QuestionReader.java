@@ -22,6 +22,11 @@ public class QuestionReader {
     private final QuestionRepository questionRepository;
     private final QuestionTagRepository questionTagRepository;
 
+    public Question read(Long questionId) {
+        return questionRepository.findById(questionId)
+                .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
+    }
+
     public List<Question> readRootMultipleChoices(
             QuestionType type,
             Difficulty difficulty,

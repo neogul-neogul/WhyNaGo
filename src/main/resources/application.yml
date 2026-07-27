@@ -17,6 +17,10 @@ spring:
     console:
       enabled: true
 
+  sql:
+    init:
+      mode: never
+
   ai:
     model:
       embedding: none

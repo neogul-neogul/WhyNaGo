@@ -23,7 +23,6 @@ class SolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "rootQuestion": {"questionId": 1, "choiceId": 3, "relationQuestionId": 5},
@@ -46,7 +45,6 @@ class SolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "followupQuestions": []

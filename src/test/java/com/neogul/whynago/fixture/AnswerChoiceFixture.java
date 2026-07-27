@@ -19,13 +19,17 @@ public final class AnswerChoiceFixture {
     }
 
     public static AnswerChoice wrong(Long questionId, int sequence) {
+        return wrong(questionId, sequence, null);
+    }
+
+    public static AnswerChoice wrong(Long questionId, int sequence, Long relatedQuestionId) {
         return AnswerChoice.create(
                 questionId,
                 "오답 선택지 " + sequence,
                 sequence,
                 false,
                 "오답 사유",
-                null
+                relatedQuestionId
         );
     }
 }
