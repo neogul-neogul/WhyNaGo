@@ -1,63 +1,112 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { MultipleChoiceQuestion } from "@/types";
+import { useState } from "react";
+import type { ChoiceGradingResponse, QuestionResponse } from "@/types";
+import { ApiError } from "@/lib/api";
+import { CATEGORY_LABELS, DIFFICULTY_LABELS, gradeQuestion, saveSolvedSession } from "@/lib/questions";
 import { diffTone, lvBadge } from "@/lib/badges";
 import { palette } from "@/lib/tokens";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
 
-type Cell = { selected: number | null; checked: boolean };
+/** 채점이 끝난 문항 (본질문/꼬리질문 각 1개) */
+interface SolvedItem {
+  question: QuestionResponse;
+  selectedChoiceId: number;
+  grading: ChoiceGradingResponse;
+}
 
 // 객관식 풀이 (프로그래머스식 좌우 분할 + 꼬리질문 탭)
+// 꼬리질문은 고른 보기의 채점 응답(nextQuestion)으로 이어진다 — 보기별 분기
 export default function MultipleChoiceQuiz({
   question,
   onQuit,
   onFinish,
 }: {
-  question: MultipleChoiceQuestion;
+  question: QuestionResponse;
   onQuit: () => void;
   onFinish: (correct: number, total: number) => void;
 }) {
-  // 본 질문 + 꼬리질문 시퀀스
-  const seq = useMemo(
-    () => [question, ...question.followups],
-    [question],
-  );
-  const [state, setState] = useState<Cell[]>(() => seq.map(() => ({ selected: null, checked: false })));
-  const [revealed, setRevealed] = useState(1);
+  const [solvedItems, setSolvedItems] = useState<SolvedItem[]>([]);
+  // 풀이 중인 문항. null이면 체인 종료(모두 채점됨)
+  const [current, setCurrent] = useState<QuestionResponse | null>(question);
+  const [selectedChoiceId, setSelectedChoiceId] = useState<number | null>(null);
   const [tab, setTab] = useState(0);
-  const [correct, setCorrect] = useState(0);
+  const [grading, setGrading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // 화면에 노출되는 문항 시퀀스 = 채점 완료된 문항들 + 풀이 중 문항
+  const seq: QuestionResponse[] = [
+    ...solvedItems.map((item) => item.question),
+    ...(current ? [current] : []),
+  ];
   const mtab = Math.min(tab, seq.length - 1);
-  const cell = state[mtab];
-  const aq = seq[mtab];
-  const allAnswered = revealed >= seq.length && state.every((x) => x.checked);
+  const viewedQuestion = seq[mtab];
+  const viewedItem = mtab < solvedItems.length ? solvedItems[mtab] : null;
+  const allAnswered = current === null;
+  const correctCount = solvedItems.filter((item) => item.grading.correct).length;
 
-  const select = (i: number) => {
-    if (cell.checked) return;
-    setState((st) => st.map((x, idx) => (idx === mtab ? { ...x, selected: i } : x)));
+  const select = (choiceId: number) => {
+    // 채점 완료 문항은 선택 변경 불가 (1문항 1회 응답)
+    if (viewedItem || grading) return;
+    setSelectedChoiceId(choiceId);
   };
 
-  const check = () => {
-    if (cell.selected === null || cell.checked) return;
-    const ok = cell.selected === aq.answer;
-    setState((st) => st.map((x, idx) => (idx === mtab ? { ...x, checked: true } : x)));
-    if (mtab === revealed - 1 && revealed < seq.length) setRevealed((r) => r + 1);
-    if (ok) setCorrect((c) => c + 1);
+  const check = async () => {
+    if (!current || selectedChoiceId === null || grading) return;
+    setGrading(true);
+    setError(null);
+    try {
+      const result = await gradeQuestion(current.id, selectedChoiceId);
+      setSolvedItems((items) => [
+        ...items,
+        { question: current, selectedChoiceId, grading: result },
+      ]);
+      setCurrent(result.nextQuestion);
+      setSelectedChoiceId(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "채점에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setGrading(false);
+    }
+  };
+
+  const save = async () => {
+    if (saving || solvedItems.length === 0) return;
+    setSaving(true);
+    setError(null);
+    const toRequest = (item: SolvedItem) => ({
+      questionId: item.question.id,
+      choiceId: item.selectedChoiceId,
+      relationQuestionId: item.grading.nextQuestion?.id ?? null,
+    });
+    try {
+      await saveSolvedSession({
+        rootQuestion: toRequest(solvedItems[0]),
+        followupQuestions: solvedItems.slice(1).map(toRequest),
+      });
+      onFinish(correctCount, solvedItems.length);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const goTab = (i: number) => {
-    if (i < revealed) setTab(i);
+    if (i < seq.length) setTab(i);
   };
-  const nextUnanswered = () => {
-    const next = state.findIndex((x, idx) => idx < revealed && !x.checked);
-    if (next >= 0) setTab(next);
+  const goNext = () => {
+    setTab(solvedItems.length);
   };
 
-  const ansOk = cell.checked && cell.selected === aq.answer;
-  const wrongPicked = cell.checked && cell.selected !== null && cell.selected !== aq.answer;
+  const answeredOk = viewedItem?.grading.correct ?? false;
+  const wrongPicked = viewedItem !== null && !viewedItem.grading.correct;
+  const selectedChoice = viewedItem
+    ? viewedItem.question.choices.find((c) => c.id === viewedItem.selectedChoiceId)
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,16 +128,20 @@ export default function MultipleChoiceQuiz({
         <Card className="min-w-0 flex-1 overflow-hidden">
           <CardHeader className="gap-2.5">
             <Badge tone="accent">객관식</Badge>
-            <Badge tone={diffTone(question.diff)}>난이도 {lvBadge(question.diff)}</Badge>
-            <Badge tone="neutral" className="ml-auto">{question.cat}</Badge>
+            <Badge tone={diffTone(DIFFICULTY_LABELS[question.difficulty])}>
+              난이도 {lvBadge(DIFFICULTY_LABELS[question.difficulty])}
+            </Badge>
+            <Badge tone="neutral" className="ml-auto">
+              {CATEGORY_LABELS[question.category]}
+            </Badge>
           </CardHeader>
           <div className="flex flex-col gap-3.5 px-[22px] py-6">
-            {seq.slice(0, revealed).map((qq, i) => {
+            {seq.map((qq, i) => {
               const active = i === mtab;
-              const done = state[i]?.checked;
+              const done = i < solvedItems.length;
               return (
                 <div
-                  key={i}
+                  key={qq.id}
                   onClick={() => goTab(i)}
                   className={`flex cursor-pointer flex-col gap-2 rounded-[12px] border px-4 py-3.5 ${
                     active ? "border-accent-line bg-accent-faint" : "border-line-card bg-white"
@@ -102,7 +155,7 @@ export default function MultipleChoiceQuiz({
                     {i === 0 ? "본 질문" : `꼬리질문 ${i}`}
                   </span>
                   <div className="text-[15.5px] font-semibold leading-[1.55] text-ink">
-                    {qq.text}
+                    {qq.content}
                   </div>
                 </div>
               );
@@ -115,13 +168,12 @@ export default function MultipleChoiceQuiz({
           <Card className="overflow-hidden">
             {/* 탭 */}
             <div className="flex items-center gap-0 overflow-x-auto border-b border-line-card bg-subtle px-2">
-              {seq.slice(0, revealed).map((qq, i) => {
+              {seq.map((qq, i) => {
                 const active = i === mtab;
-                const done = state[i]?.checked;
-                const ok = done && state[i].selected === qq.answer;
+                const item = solvedItems[i];
                 return (
                   <button
-                    key={i}
+                    key={qq.id}
                     type="button"
                     onClick={() => goTab(i)}
                     className={`flex items-center gap-1.5 border-b-2 px-4 py-3 text-[13px] transition-all ${
@@ -131,8 +183,8 @@ export default function MultipleChoiceQuiz({
                     }`}
                   >
                     {i === 0 ? "본 질문" : `꼬리 ${i}`}
-                    <span className={`font-bold ${ok ? "text-success" : "text-danger"}`}>
-                      {done ? (ok ? "✓" : "✕") : ""}
+                    <span className={`font-bold ${item?.grading.correct ? "text-success" : "text-danger"}`}>
+                      {item ? (item.grading.correct ? "✓" : "✕") : ""}
                     </span>
                   </button>
                 );
@@ -146,56 +198,60 @@ export default function MultipleChoiceQuiz({
               <span className="text-xs font-semibold text-soft">
                 {mtab === 0
                   ? "개념을 묻는 본 질문입니다"
-                  : `앞선 답변에서 파생된 꼬리질문 ${mtab}/${seq.length - 1}`}
+                  : "앞선 답변에서 파생된 꼬리질문입니다"}
               </span>
             </div>
 
             {/* 선택지 */}
             <div className="flex flex-col gap-2.5 px-[22px] pb-5 pt-3.5">
-              {aq.options.map((opt, i) => {
-                const sel = cell.selected === i;
-                const isAns = i === aq.answer;
+              {viewedQuestion.choices.map((choice) => {
+                const sel = viewedItem
+                  ? choice.id === viewedItem.selectedChoiceId
+                  : choice.id === selectedChoiceId;
+                const isAns = viewedItem !== null && choice.id === viewedItem.grading.correctChoiceId;
                 let border: string = palette.line, bg: string = "#fff", numBg: string = palette.neutral, numColor: string = palette.muted, mark = "", markColor: string = "transparent";
-                if (cell.checked) {
+                if (viewedItem) {
                   if (isAns) { border = palette.success; bg = palette.successBg; numBg = palette.success; numColor = "#fff"; mark = "정답"; markColor = palette.success; }
                   else if (sel) { border = palette.danger; bg = palette.dangerBg; numBg = palette.danger; numColor = "#fff"; mark = "오답"; markColor = palette.danger; }
                 } else if (sel) { border = palette.accent; bg = palette.accentFaint; numBg = palette.accent; numColor = "#fff"; }
                 return (
                   <button
-                    key={i}
+                    key={choice.id}
                     type="button"
-                    onClick={() => select(i)}
+                    onClick={() => select(choice.id)}
                     className="flex w-full items-center gap-[13px] rounded-[12px] px-[17px] py-[15px] text-left transition-all"
-                    style={{ border: `1.5px solid ${border}`, background: bg, cursor: cell.checked ? "default" : "pointer" }}
+                    style={{ border: `1.5px solid ${border}`, background: bg, cursor: viewedItem ? "default" : "pointer" }}
                   >
                     <span
                       className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12.5px] font-bold"
                       style={{ background: numBg, color: numColor }}
                     >
-                      {i + 1}
+                      {choice.sequence}
                     </span>
-                    <span className="flex-1 text-[14.5px] leading-[1.5]">{opt}</span>
+                    <span className="flex-1 text-[14.5px] leading-[1.5]">{choice.content}</span>
                     <span className="text-[13px] font-bold" style={{ color: markColor }}>{mark}</span>
                   </button>
                 );
               })}
 
-              {cell.checked && (
+              {viewedItem && (
                 <div className="mt-1.5 flex flex-col gap-3 border-t border-dashed border-line pt-4">
-                  <div className={`text-[15px] font-bold ${ansOk ? "text-success" : "text-danger"}`}>
-                    {ansOk ? "✓ 정답입니다" : "✕ 오답입니다 · 오답노트에 자동 저장됨"}
+                  <div className={`text-[15px] font-bold ${answeredOk ? "text-success" : "text-danger"}`}>
+                    {answeredOk ? "✓ 정답입니다" : "✕ 오답입니다 · 오답노트에 자동 저장됨"}
                   </div>
                   <div className="rounded-[12px] bg-subtle px-[18px] py-4">
                     <div className="mb-[7px] text-xs font-semibold text-muted">정답 해설</div>
-                    <div className="text-[14px] leading-[1.65] text-body">{aq.explanation}</div>
+                    <div className="text-[14px] leading-[1.65] text-body">
+                      {viewedItem.grading.explanation}
+                    </div>
                   </div>
-                  {wrongPicked && aq.optExp?.[cell.selected as number] && (
+                  {wrongPicked && viewedItem.grading.choiceExplanation && (
                     <div className="rounded-[12px] border border-alert-line bg-alert-bg px-[18px] py-4">
                       <div className="mb-[7px] text-xs font-semibold text-alert">
-                        내가 고른 답 — {(cell.selected as number) + 1}번 · 왜 틀렸나
+                        내가 고른 답 — {selectedChoice?.sequence}번 · 왜 틀렸나
                       </div>
                       <div className="text-[14px] leading-[1.65] text-alert-deep">
-                        {aq.optExp[cell.selected as number]}
+                        {viewedItem.grading.choiceExplanation}
                       </div>
                     </div>
                   )}
@@ -204,25 +260,28 @@ export default function MultipleChoiceQuiz({
             </div>
 
             {/* 푸터 */}
-            <div className="flex justify-end gap-2 border-t border-line-card px-[22px] py-3.5">
-              {/* 모든 질문을 다 풀면 종료하기 버튼을 숨긴다 (디자인: showEndQuiz) */}
+            <div className="flex items-center justify-end gap-2 border-t border-line-card px-[22px] py-3.5">
+              {error && (
+                <span className="mr-auto text-[13px] font-semibold text-danger">{error}</span>
+              )}
+              {/* 중도 이탈: 저장하지 않고 문제은행으로 복귀 */}
               {!allAnswered && (
-                <Button variant="muted" size="lg" onClick={() => onFinish(correct, seq.length)}>
+                <Button variant="muted" size="lg" onClick={onQuit}>
                   종료하기
                 </Button>
               )}
-              {!cell.checked ? (
-                <Button size="lg" onClick={check} disabled={cell.selected === null}>
-                  정답 확인
+              {!viewedItem && !allAnswered ? (
+                <Button size="lg" onClick={check} disabled={selectedChoiceId === null || grading}>
+                  {grading ? "채점 중…" : "정답 확인"}
                 </Button>
               ) : !allAnswered ? (
-                <Button size="lg" onClick={nextUnanswered}>
+                <Button size="lg" onClick={goNext}>
                   다음 질문
                 </Button>
               ) : (
-                /* 다 풀었을 때: 저장하고 문제은행으로 복귀 (디자인: 저장하기 → setup) */
-                <Button size="lg" onClick={onQuit}>
-                  저장하기
+                /* 마지막 문항까지 답했을 때만 세션 저장 */
+                <Button size="lg" onClick={save} disabled={saving}>
+                  {saving ? "저장 중…" : "저장하기"}
                 </Button>
               )}
             </div>
