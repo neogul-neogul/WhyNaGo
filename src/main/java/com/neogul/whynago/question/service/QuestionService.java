@@ -26,7 +26,7 @@ public class QuestionService {
     private final AnswerChoiceValidator answerChoiceValidator;
 
     public List<QuestionResult> findQuestions(QuestionSearchCommand command) {
-        List<Question> questions = questionReader.readRootMultipleChoices(
+        List<Question> questions = questionReader.readMultipleChoices(
                 command.type(),
                 command.difficulty(),
                 command.category(),

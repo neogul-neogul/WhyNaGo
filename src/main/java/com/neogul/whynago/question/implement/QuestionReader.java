@@ -27,13 +27,13 @@ public class QuestionReader {
                 .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
     }
 
-    public List<Question> readRootMultipleChoices(
+    public List<Question> readMultipleChoices(
             QuestionType type,
             Difficulty difficulty,
             Category category,
             String keyword
     ) {
-        return questionRepository.findRootMultipleChoices(type, difficulty, category, normalize(keyword));
+        return questionRepository.findMultipleChoices(type, difficulty, category, normalize(keyword));
     }
 
     public Question readEssayQuestion(Long questionId) {

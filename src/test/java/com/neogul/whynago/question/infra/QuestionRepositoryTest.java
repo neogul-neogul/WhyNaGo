@@ -28,23 +28,23 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
     private QuestionTagRepository questionTagRepository;
 
     @Test
-    @DisplayName("객관식 루트 문제를 필터링해 조회한다.")
-    void findRootMultipleChoices() {
+    @DisplayName("객관식 문제를 필터링해 조회한다.")
+    void findMultipleChoices() {
         Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
         Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
         questionRepository.save(QuestionFixture.essayRoot());
-        // followup은 root 선택지의 꼬리질문으로 참조되므로 진입 문제가 아니다.
+        // followup은 root 선택지의 꼬리질문으로도 참조되지만, 그 자체로 독립된 문항이라 조회 대상에서 제외되지 않는다.
         answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
         questionTagRepository.save(QuestionTag.create(root.getId(), "NETWORK"));
 
-        List<Question> result = questionRepository.findRootMultipleChoices(
+        List<Question> result = questionRepository.findMultipleChoices(
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
                 "UDP"
         );
 
-        assertThat(result).extracting(Question::getId).containsExactly(root.getId());
+        assertThat(result).extracting(Question::getId).containsExactly(followup.getId(), root.getId());
         assertThat(questionTagRepository.findByQuestionIdIn(List.of(root.getId())))
                 .extracting(QuestionTag::getName)
                 .containsExactly("NETWORK");

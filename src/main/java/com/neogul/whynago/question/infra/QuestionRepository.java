@@ -15,11 +15,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             select q
             from Question q
             where q.type = com.neogul.whynago.question.domain.QuestionType.MULTIPLE_CHOICE
-              and q.id not in (
-                  select ac.relatedQuestionId
-                  from AnswerChoice ac
-                  where ac.relatedQuestionId is not null
-              )
               and (:type is null or q.type = :type)
               and (:difficulty is null or q.difficulty = :difficulty)
               and (:category is null or q.category = :category)
@@ -27,7 +22,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                    or lower(q.content) like lower(concat('%', :keyword, '%')))
             order by q.id desc
             """)
-    List<Question> findRootMultipleChoices(
+    List<Question> findMultipleChoices(
             @Param("type") QuestionType type,
             @Param("difficulty") Difficulty difficulty,
             @Param("category") Category category,
