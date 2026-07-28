@@ -236,22 +236,6 @@ export interface CreateEssaySolvedSessionRequest {
 
 // ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
 
-/** 서술형 문제 (AI 면접식 꼬리질문) */
-export interface EssayQuestion {
-  cat: string;
-  diff: string;
-  text: string;
-  /** 모범답안 */
-  model: string;
-  keywords: string[];
-  /** 꼬리질문 목록 */
-  followups: string[];
-  /** 본 질문 + 꼬리질문별 피드백 */
-  feedbacks: string[];
-  /** 꼬리질문별 모범답안 */
-  followupModels: string[];
-}
-
 /** 오답노트 꼬리질문 */
 export interface WrongFollowup {
   text: string;
