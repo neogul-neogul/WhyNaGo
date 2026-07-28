@@ -180,30 +180,31 @@
 
 `front/CLAUDE.md` 준수(서버 스펙 그대로 `types/index.ts`, 도메인 API는 `lib/questions.ts`, `apiFetch` 경유).
 
-- [ ] `types/index.ts` — 서술형 API 타입 추가: 세션 시작 응답(`conversationId`), 채점 요청(`conversationId`·`question`·`answer`), 채점 응답(`grading{feedback, modelAnswer, isCorrect}`·`nextFollowup{question} | null`), 저장 요청 문항(`questionId | null`·`questionText`·`userAnswer`·`feedback`·`modelAnswer`·`isCorrect`), 저장 요청/응답
-- [ ] `lib/questions.ts` — `startEssaySession(questionId)`, `evaluateEssayAnswer(questionId, request)`, `saveEssaySolvedSession(request)` 추가
-- [ ] `lib/questions.ts` — `fetchQuestions` 주석의 "루트 객관식 문제만 반환됨" 정정 *(트랙 A로 서술형 포함됨)*
+- [x] `types/index.ts` — 서술형 API 타입 추가: 세션 시작 응답(`conversationId`), 채점 요청(`conversationId`·`question`·`answer`), 채점 응답(`grading{feedback, modelAnswer, isCorrect}`·`nextFollowup{question} | null`), 저장 요청 문항(`questionId | null`·`questionText`·`userAnswer`·`feedback`·`modelAnswer`·`isCorrect`), 저장 요청
+  - 저장 **응답**은 객관식과 스키마가 같아(`{sessionId}`) `CreateSolvedSessionResponse`를 재사용하고 주석만 "객관식·서술형 공용"으로 정정했다. 동일 스키마를 이름만 바꿔 복제하지 않는다.
+- [x] `lib/questions.ts` — `startEssaySession(questionId)`, `evaluateEssayAnswer(questionId, request)`, `saveEssaySolvedSession(request)` 추가
+- [x] `lib/questions.ts` — `fetchQuestions` 주석의 "루트 객관식 문제만 반환됨" 정정 *(트랙 A로 서술형 포함됨)*
 
 ## Phase F2 — EssayQuiz 실서버 전환 (F2, F5, F6)
 
-- [ ] 프롭 타입을 `QuestionResponse`로 변경, 라벨은 `CATEGORY_LABELS`·`DIFFICULTY_LABELS`로 매핑 *(DF1; 현재 목 타입은 `cat: "네트워크"`처럼 한글 라벨을 직접 들고 있음)*
-- [ ] 진입 시 세션 시작 호출 → `conversationId` 보관, 실패 시 입력 차단 + 재시도 *(DF3)*
-- [ ] 답변 제출 → 채점 API 호출 → `{questionText, userAnswer, feedback, modelAnswer, isCorrect}` 누적, `nextFollowup`이 있으면 다음 문항으로 추가 *(DF2·DF4)*
-- [ ] `nextFollowup === null`이면 면접 완료 상태로 전환 *(3문항 고정은 서버가 판단 — 화면은 응답만 따른다)*
-- [ ] 문항별 통과/미통과 표시 + 하드코딩된 `"정답입니다"` 제거 *(DF6)*
-- [ ] "저장하기" → 저장 API 호출 → 성공 시 `onFinish(correctCount, 총 문항 수)` *(DF5)*
-- [ ] 채점·저장 중 버튼 비활성화 + 인라인 에러 *(DF9; `MultipleChoiceQuiz`의 `grading`/`saving`/`error` 패턴 재사용)*
+- [x] 프롭 타입을 `QuestionResponse`로 변경, 라벨은 `CATEGORY_LABELS`·`DIFFICULTY_LABELS`로 매핑 *(DF1; 현재 목 타입은 `cat: "네트워크"`처럼 한글 라벨을 직접 들고 있음)*
+- [x] 진입 시 세션 시작 호출 → `conversationId` 보관, 실패 시 입력 차단 + 재시도 *(DF3; StrictMode 이펙트 이중 실행으로 대화가 두 개 발급되지 않도록 `startedRef` 가드)*
+- [x] 답변 제출 → 채점 API 호출 → `{questionText, userAnswer, feedback, modelAnswer, isCorrect}` 누적, `nextFollowup`이 있으면 다음 문항으로 추가 *(DF2·DF4)*
+- [x] `nextFollowup === null`이면 면접 완료 상태로 전환 *(3문항 고정은 서버가 판단 — 화면은 응답만 따른다. 제출 버튼 문구도 "마지막 답변 제출"로 분기하지 않고 "답변 제출" 고정)*
+- [x] 문항별 통과/미통과 표시 + 하드코딩된 `"정답입니다"` 제거 *(DF6; 답변 카드 헤더에 `✓ 통과`/`✕ 미통과`, 완료 배너에 오답노트 자동 저장 안내, 푸터에 `통과 n / m`)*
+- [x] "저장하기" → 저장 API 호출 → 성공 시 `onFinish(correctCount, 총 문항 수)` *(DF5)*
+- [x] 채점·저장 중 버튼 비활성화 + 인라인 에러 *(DF9; `MultipleChoiceQuiz`의 `grading`/`saving`/`error` 패턴 재사용. 채점 실패 시 `draft`를 지우지 않아 같은 답변으로 재시도 가능)*
 
 ## Phase F3 — 페이지·목데이터 정리 (F1, F7)
 
-- [ ] `app/solve/page.tsx` — `essayQuestions` import·하드코딩 제거, 선택한 `question` 전달, `onFinish={finish}` 연결, "백엔드 미구현" 주석 제거 *(F1·F5)*
-- [ ] `mocks/questions.ts` 삭제 + `types/index.ts`의 `EssayQuestion` 제거 *(DF7)*
+- [x] `app/solve/page.tsx` — `essayQuestions` import·하드코딩 제거, 선택한 `question` 전달, `onFinish={finish}` 연결, "백엔드 미구현" 주석 제거 *(F1·F5)*
+- [x] `mocks/questions.ts` 삭제 + `types/index.ts`의 `EssayQuestion` 제거 *(DF7)*
 
 ## Phase F4 — 문서 & 수동 QA (F8)
 
-- [ ] `front/CLAUDE.md` — "현재 연동된 기능"에 서술형 풀이 추가, 더미 유지 목록에서 제거
-- [ ] `npm run lint`, `npm run build` 그린 확인
-- [ ] 수동 QA (백엔드 `./gradlew bootRun` + `NEXT_PUBLIC_API_BASE_URL` 설정):
+- [x] `front/CLAUDE.md` — "현재 연동된 기능"에 서술형 풀이 추가, 더미 유지 목록에서 제거
+- [x] `npm run lint`, `npm run build` 그린 확인 — 경고 0, 15개 라우트 정적 생성 성공
+- [ ] 수동 QA (백엔드 `./gradlew bootRun` + `NEXT_PUBLIC_API_BASE_URL` 설정): **미실행 — 앱 실행·브라우저 조작이 필요해 사용자 확인 몫으로 남긴다**
   - [ ] 목록 유형 칩 `서술형` → 시드 문항(101~104)이 보이고, 클릭하면 **그 문항**으로 진입
   - [ ] 3턴 진행: 매 턴 피드백·모범답안·통과 여부 표시, 꼬리질문이 응답에서 이어짐, 3턴째 꼬리질문 없음
   - [ ] "저장하기" → 결과 화면의 정답 수/총 문항 수가 채점 결과와 일치
