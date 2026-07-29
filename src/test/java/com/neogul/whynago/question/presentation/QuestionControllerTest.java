@@ -62,6 +62,36 @@ class QuestionControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    @DisplayName("서술형 문제 목록을 조회하면 선택지 없이 응답한다.")
+    void findQuestions_essay() {
+        given(questionService.findQuestions(any())).willReturn(List.of(
+                new QuestionResult(
+                        101L,
+                        "TCP 흐름 제어 vs 혼잡 제어",
+                        "TCP의 흐름 제어와 혼잡 제어의 차이를 설명하시오.",
+                        QuestionType.ESSAY,
+                        Difficulty.MEDIUM,
+                        Category.NETWORK,
+                        "해설",
+                        List.of(),
+                        List.of("흐름 제어")
+                )
+        ));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .queryParam("type", "ESSAY")
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200)
+                .body("[0].id", Matchers.equalTo(101))
+                .body("[0].type", Matchers.equalTo("ESSAY"))
+                .body("[0].choices", Matchers.empty())
+                .body("[0].tags[0]", Matchers.equalTo("흐름 제어"));
+    }
+
+    @Test
     @DisplayName("보기 선택 결과를 조회하면 채점 결과와 꼬리질문을 반환한다.")
     void getChoiceGrading() {
         given(questionService.getChoiceGrading(1L, 2L)).willReturn(new ChoiceGradingResult(
