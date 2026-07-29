@@ -197,31 +197,69 @@ export interface EssayQuestion {
   followupModels: string[];
 }
 
-/** 오답노트 꼬리질문 */
-export interface WrongFollowup {
-  text: string;
-  options: string[];
-  answer: number;
-  myAnswer: number;
-  explanation: string;
-  wrongExp: string;
+// ===== 오답노트 API (백엔드 wrongnote 도메인) =====
+// 오답노트는 상태·반복 횟수·출처를 두지 않는다 (docs/DOMAIN.md 결정 사항) — 목록 필터는 북마크 여부뿐.
+
+/** 오답노트 목록 항목 — GET /api/wrong-notes */
+export interface WrongNoteSummaryResponse {
+  id: number;
+  type: QuestionTypeCode;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  /** 본 질문 제목 */
+  title: string;
+  isBookmarked: boolean;
+  solvedAt: string;
 }
 
-/** 오답노트 항목 */
-export interface WrongNote {
-  q: string;
-  cat: string;
-  diff: string;
-  status: "미복습" | "복습 중" | "반복 오답" | "해결 완료";
-  repeat: number;
-  source: string;
-  solvedAt: string;
-  options: string[];
-  myAnswer: number;
-  correctAnswer: number;
+/** 오답노트 상세의 객관식 보기 */
+export interface WrongNoteChoiceResponse {
+  id: number;
+  content: string;
+  sequence: number;
+  isCorrect: boolean;
+}
+
+/** 오답노트 상세의 객관식 문항 (본질문/꼬리질문 각 1개) */
+export interface WrongNoteMultipleChoiceItemResponse {
+  sequence: number;
+  questionId: number;
+  title: string;
+  content: string;
+  choices: WrongNoteChoiceResponse[];
+  userChoiceId: number;
+  correctChoiceId: number;
+  isCorrect: boolean;
   explanation: string;
-  wrongExp: string;
-  followups: WrongFollowup[];
+  /** 내가 고른 보기의 오답 해설. 정답이면 null */
+  choiceExplanation: string | null;
+}
+
+/** 오답노트 상세의 서술형 문항 (본질문/꼬리질문 각 1개) */
+export interface WrongNoteEssayItemResponse {
+  sequence: number;
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  isCorrect: boolean;
+}
+
+/** 오답노트 상세 — GET /api/wrong-notes/{id}. 유형에 따라 둘 중 하나만 채워진다 */
+export interface WrongNoteDetailResponse {
+  id: number;
+  type: QuestionTypeCode;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  isBookmarked: boolean;
+  solvedAt: string;
+  multipleChoiceItems: WrongNoteMultipleChoiceItemResponse[] | null;
+  essayItems: WrongNoteEssayItemResponse[] | null;
+}
+
+/** 오답노트 북마크 변경 응답 — PATCH /api/wrong-notes/{id}/bookmark */
+export interface WrongNoteBookmarkResponse {
+  isBookmarked: boolean;
 }
 
 /** 1일 1면접 문항 (카테고리별) */
