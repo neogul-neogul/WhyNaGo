@@ -32,6 +32,96 @@ API는 `docs/ARCHITECTURE.md`의 레이어 규칙을 따른다. 요청/응답 DT
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
+## **문제 목록 조회**
+
+문제은행 화면의 목록을 조회한다. 사용자가 바로 시작할 수 있는 **진입 문제**만 반환한다. 다른 문제의 선택지에서 이어지는 객관식 꼬리질문은 목록에서 제외된다. 서술형 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책), 서술형 문제는 모두 진입 문제로 조회된다.
+
+객관식과 서술형이 한 목록에 함께 내려간다. 유형을 구분해야 하면 `type` 필터를 쓰거나 응답의 `type` 필드로 분기한다.
+
+### **Endpoint**
+
+```
+GET /api/questions
+```
+
+- 성공 시 `200 OK`와 문제 배열을 반환한다.
+- 정렬은 문제 ID 내림차순(최신순) 고정이다. 페이징은 없다.
+
+### **Query Parameters**
+
+모두 선택이며, 생략하면 해당 조건을 적용하지 않는다. 여러 개를 함께 주면 모두 만족하는 문제만 조회된다.
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `type` | String | 문제 유형. `MULTIPLE_CHOICE` \| `ESSAY` |
+| `difficulty` | String | 난이도. `LOW` \| `MEDIUM` \| `HIGH` |
+| `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
+| `q` | String | 제목·지문 키워드. 부분 일치이며 대소문자를 구분하지 않는다. |
+
+### **Response Body**
+
+```json
+[
+  {
+    "id": 101,
+    "title": "TCP 흐름 제어 vs 혼잡 제어",
+    "content": "TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하시오.",
+    "type": "ESSAY",
+    "difficulty": "MEDIUM",
+    "category": "NETWORK",
+    "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
+    "choices": [],
+    "tags": ["흐름 제어", "혼잡 제어"]
+  },
+  {
+    "id": 1,
+    "title": "TCP와 UDP의 핵심 차이",
+    "content": "TCP와 UDP의 가장 핵심적인 차이로 옳은 것은?",
+    "type": "MULTIPLE_CHOICE",
+    "difficulty": "MEDIUM",
+    "category": "NETWORK",
+    "explanation": "TCP는 3-way handshake로 연결을 수립하고 순서 보장·재전송·흐름 제어를 제공한다...",
+    "choices": [
+      {
+        "id": 1,
+        "content": "TCP는 연결 지향형으로 신뢰성을 보장하고, UDP는 비연결형으로 속도를 우선한다.",
+        "sequence": 1,
+        "explanation": "",
+        "relatedQuestionId": 2
+      }
+    ],
+    "tags": ["NETWORK"]
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제 ID. 서술형 풀이·세션 저장에 이 값을 사용한다. |
+| `title` | String | 문제 제목. |
+| `content` | String | 문제 발문. |
+| `type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `difficulty` | String | 난이도. |
+| `category` | String | 카테고리. |
+| `explanation` | String | 정답 해설. |
+| `choices` | Array | 선택지 목록. **서술형은 항상 빈 배열**이다. |
+| `choices[].id` | Long | 선택지 ID. 채점 조회에 사용한다. |
+| `choices[].content` | String | 선택지 내용. |
+| `choices[].sequence` | int | 선택지 표시 순서. |
+| `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값이다. |
+| `choices[].relatedQuestionId` | Long | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`(그 지점에서 종료). |
+| `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+
+> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다.
+
+### **에러**
+
+조건에 맞는 문제가 없으면 에러가 아니라 빈 배열(`[]`)과 `200 OK`를 반환한다.
+
+> **알려진 문제**: 필터에 enum에 없는 값을 보내면(예: `?type=FOO`) 요청 형식 오류이므로 `400 INVALID_INPUT`이어야 하는데, 현재는 `500 SERVER_ERROR`로 응답한다. 요청 바인딩 예외(`MethodArgumentTypeMismatchException`)가 `GlobalExceptionHandler`에 등록되지 않아서다. 별도 이슈로 처리한다.
+
+---
+
 ## **서술형 세션 시작**
 
 서술형 풀이를 시작할 때 **대화 식별자(`conversationId`)**를 발급한다. 이후 답변 채점 요청은 이 식별자로 묶이며, 서버는 대화 이력(ChatMemory)에 이전 문답을 보관해 꼬리질문 생성의 맥락으로 사용한다. 따라서 클라이언트는 매 요청에 전체 문답을 다시 보낼 필요가 없다.
