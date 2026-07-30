@@ -56,8 +56,7 @@ public class GeminiEssayAiClient implements EssayAiClient {
                 %s
                 """.formatted(question, answer, followupInstruction);
 
-        String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
-        return call(operation, conversationId, () -> chatClient.prompt()
+        return call(generateFollowup, conversationId, () -> chatClient.prompt()
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(userText)
                 .call()
@@ -78,7 +77,8 @@ public class GeminiEssayAiClient implements EssayAiClient {
 
     // 외부 AI 호출 실패는 기술 예외를 노출하지 않고 도메인 에러코드로 변환한다.
     // LLM 왕복은 수 초가 걸려 화면 대기 시간을 좌우하므로, 성공·실패 모두 소요 시간을 남긴다.
-    private <T> T call(String operation, String conversationId, Supplier<T> aiCall) {
+    private <T> T call(boolean generateFollowup, String conversationId, Supplier<T> aiCall) {
+        String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
         long startedAt = System.nanoTime();
         try {
             T result = aiCall.get();
