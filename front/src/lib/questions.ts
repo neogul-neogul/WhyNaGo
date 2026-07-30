@@ -66,7 +66,7 @@ export interface QuestionFilters {
   keyword?: string;
 }
 
-/** 문제은행 목록 조회 (객관식·서술형 루트 문제. 꼬리질문은 제외되고, 서술형은 choices가 빈 배열) */
+/** 문제은행 목록 조회 (본질문·꼬리질문 구분 없이 조건에 맞는 모든 문제. 서술형은 choices가 빈 배열) */
 export function fetchQuestions(filters: QuestionFilters = {}): Promise<QuestionResponse[]> {
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);

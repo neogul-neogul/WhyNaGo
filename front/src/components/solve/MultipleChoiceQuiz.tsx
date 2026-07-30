@@ -17,6 +17,10 @@ interface SolvedItem {
   grading: ChoiceGradingResponse;
 }
 
+/** 세션 내 최대 문항 수 (본질문 + 꼬리질문 2개). 이 개수에 도달하면 relatedQuestionId가
+ * 있어도 더 진행하지 않고 세션을 종료해 저장 단계로 넘어간다. */
+const MAX_QUESTIONS = 3;
+
 // 객관식 풀이 (프로그래머스식 좌우 분할 + 꼬리질문 탭)
 // 꼬리질문은 고른 보기의 채점 응답(nextQuestion)으로 이어진다 — 보기별 분기
 export default function MultipleChoiceQuiz({
@@ -60,11 +64,9 @@ export default function MultipleChoiceQuiz({
     setError(null);
     try {
       const result = await gradeQuestion(current.id, selectedChoiceId);
-      setSolvedItems((items) => [
-        ...items,
-        { question: current, selectedChoiceId, grading: result },
-      ]);
-      setCurrent(result.nextQuestion);
+      const nextItems = [...solvedItems, { question: current, selectedChoiceId, grading: result }];
+      setSolvedItems(nextItems);
+      setCurrent(nextItems.length >= MAX_QUESTIONS ? null : result.nextQuestion);
       setSelectedChoiceId(null);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "채점에 실패했습니다. 다시 시도해주세요.");
