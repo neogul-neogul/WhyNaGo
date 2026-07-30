@@ -26,7 +26,7 @@ public class QuestionService {
     private final AnswerChoiceValidator answerChoiceValidator;
 
     public List<QuestionResult> findQuestions(QuestionSearchCommand command) {
-        List<Question> questions = questionReader.readMultipleChoices(
+        List<Question> questions = questionReader.readQuestions(
                 command.type(),
                 command.difficulty(),
                 command.category(),
@@ -39,11 +39,19 @@ public class QuestionService {
         return questions.stream()
                 .map(question -> QuestionResult.from(
                         question,
-                        answerChoiceReader.readChoices(question.getId()).stream()
-                                .map(ChoiceResult::from)
-                                .toList(),
+                        readChoices(question),
                         tagsByQuestionId.getOrDefault(question.getId(), List.of())
                 ))
+                .toList();
+    }
+
+    // 서술형은 선택지가 없으므로 조회하지 않는다.
+    private List<ChoiceResult> readChoices(Question question) {
+        if (question.isEssay()) {
+            return List.of();
+        }
+        return answerChoiceReader.readChoices(question.getId()).stream()
+                .map(ChoiceResult::from)
                 .toList();
     }
 

@@ -29,7 +29,7 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
 
     @Test
     @DisplayName("객관식 문제를 필터링해 조회한다.")
-    void findMultipleChoices() {
+    void findQuestions() {
         Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
         Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
         questionRepository.save(QuestionFixture.essayRoot());
@@ -37,7 +37,7 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
         questionTagRepository.save(QuestionTag.create(root.getId(), "NETWORK"));
 
-        List<Question> result = questionRepository.findMultipleChoices(
+        List<Question> result = questionRepository.findQuestions(
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
@@ -48,6 +48,39 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         assertThat(questionTagRepository.findByQuestionIdIn(List.of(root.getId())))
                 .extracting(QuestionTag::getName)
                 .containsExactly("NETWORK");
+    }
+
+    @Test
+    @DisplayName("유형을 지정하지 않으면 객관식 문제(꼬리질문 포함)와 서술형 문제를 함께 조회한다.")
+    void findQuestions_withoutType() {
+        // given
+        Question multipleChoiceRoot = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+        answerChoiceRepository.save(AnswerChoiceFixture.correct(multipleChoiceRoot.getId(), 1, followup.getId()));
+
+        // when
+        List<Question> result = questionRepository.findQuestions(null, null, null, null);
+
+        // then
+        // 꼬리질문으로 참조되는 문항도 그 자체로 독립된 문항이라 목록에서 제외되지 않는다.
+        assertThat(result).extracting(Question::getId)
+                .containsExactlyInAnyOrder(multipleChoiceRoot.getId(), followup.getId(), essay.getId());
+    }
+
+    @Test
+    @DisplayName("유형을 서술형으로 지정하면 서술형 문제만 조회한다.")
+    void findQuestions_essayType() {
+        // given
+        questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+
+        // when
+        List<Question> result = questionRepository.findQuestions(QuestionType.ESSAY, null, null, null);
+
+        // then
+        assertThat(result).extracting(Question::getId).containsExactly(essay.getId());
+        assertThat(result).extracting(Question::getType).containsOnly(QuestionType.ESSAY);
     }
 
     @Test

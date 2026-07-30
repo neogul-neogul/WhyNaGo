@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { QuestionResponse } from "@/types";
-import { essayQuestions } from "@/mocks/questions";
 import { ApiError } from "@/lib/api";
 import { fetchQuestions } from "@/lib/questions";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
@@ -14,7 +13,7 @@ import QuizResult from "@/components/solve/QuizResult";
 type Stage = "quiz" | "result";
 
 // 문제 상세(풀이) 페이지 — GET /api/questions는 id 단건 조회가 없어
-// 목록을 조회한 뒤 해당 id의 문항을 찾는다(목록은 루트 문제만 반환됨)
+// 목록을 조회한 뒤 해당 id의 문항을 찾는다
 export default function SolveDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
@@ -94,11 +93,11 @@ export default function SolveDetailPage() {
               onFinish={finish}
             />
           ) : (
-            /* 서술형은 아직 백엔드 미구현 — 더미 데이터 화면 유지 */
             <EssayQuiz
               key={`essay-${question.id}`}
-              question={essayQuestions[0]}
+              question={question}
               onQuit={backToList}
+              onFinish={finish}
             />
           )
         )}

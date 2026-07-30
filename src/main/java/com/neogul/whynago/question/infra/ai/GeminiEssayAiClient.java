@@ -2,6 +2,7 @@ package com.neogul.whynago.question.infra.ai;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
+import java.time.Duration;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -55,7 +56,7 @@ public class GeminiEssayAiClient implements EssayAiClient {
                 %s
                 """.formatted(question, answer, followupInstruction);
 
-        return call(() -> chatClient.prompt()
+        return call(generateFollowup, conversationId, () -> chatClient.prompt()
                 .advisors(advisor -> advisor.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .user(userText)
                 .call()
@@ -75,12 +76,23 @@ public class GeminiEssayAiClient implements EssayAiClient {
     }
 
     // 외부 AI 호출 실패는 기술 예외를 노출하지 않고 도메인 에러코드로 변환한다.
-    private <T> T call(Supplier<T> aiCall) {
+    // LLM 왕복은 수 초가 걸려 화면 대기 시간을 좌우하므로, 성공·실패 모두 소요 시간을 남긴다.
+    private <T> T call(boolean generateFollowup, String conversationId, Supplier<T> aiCall) {
+        String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
+        long startedAt = System.nanoTime();
         try {
-            return aiCall.get();
+            T result = aiCall.get();
+            log.info("Gemini {} 완료 - conversationId={}, {}ms",
+                    operation, conversationId, elapsedMillis(startedAt));
+            return result;
         } catch (RuntimeException e) {
-            log.warn("Gemini 호출 실패", e);
+            log.warn("Gemini {} 실패 - conversationId={}, {}ms",
+                    operation, conversationId, elapsedMillis(startedAt), e);
             throw new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE);
         }
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return Duration.ofNanos(System.nanoTime() - startedAt).toMillis();
     }
 }

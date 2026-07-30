@@ -28,7 +28,7 @@
 ### "본질문 / 꼬리질문" 구분이 없다 (가장 중요한 개념)
 - 객관식 `Question`에는 `isRoot` 같은 플래그가 **없다**. 생성되는 **모든 `question` 행은 동등한 독립 문항**이며, 전부 문제은행 목록에 노출·검색·직접 선택된다.
 - "본질문"·"꼬리질문"은 **한 풀이 세션 안에서 문항이 등장하는 순서**를 가리키는 표현일 뿐이다. `answer_choice.related_question_id`는 "이 보기를 고르면 이어서 등장하는 다음 문항"으로의 링크이고, 그 대상 문항 역시 다른 문항과 동등한 독립 문제다.
-- 따라서 목록 조회 시 참조 여부로 문항을 걸러내지 않는다. (백엔드 `QuestionRepository.findMultipleChoices`가 `MULTIPLE_CHOICE` 전부를 반환한다. 과거 `findRootMultipleChoices`가 "참조된 문항 제외" 조건을 갖고 있었으나 제거됨.)
+- 따라서 목록 조회 시 참조 여부로 문항을 걸러내지 않는다. (백엔드 `QuestionRepository.findQuestions`가 조건에 맞는 모든 Question을 유형·본질문/꼬리질문 구분 없이 반환한다. 과거 `findRootMultipleChoices`가 "참조된 문항 제외" 조건을 갖고 있었으나 제거됨.)
 
 ### 풀이 세션 깊이 (프런트 정책 — 시드 구조와 직접 관련은 없지만 맥락)
 - 한 풀이 세션은 **최대 3문항(본질문 + 꼬리질문 2개)**까지만 진행한다. 프런트(`MultipleChoiceQuiz.tsx`, `MAX_QUESTIONS = 3`)가 3문항째 채점 후 `nextQuestion`이 있어도 무시하고 세션을 종료 → `POST /api/solved-sessions` 저장 단계로 넘어간다.
@@ -87,7 +87,7 @@ Hibernate가 엔티티로 만든 실제 스키마(H2 MySQL 호환모드)에 SQL�
    - 문항당 정답 개수 MAX·MIN 모두 **1**
    - 끊어진 FK 0 (`NOT EXISTS (SELECT 1 FROM question q WHERE q.id = ac.related_question_id)`)
    - 정답 `sequence` 분포가 1~4에 고르게 (각 최소치 이상)
-   - `questionRepository.findMultipleChoices(MULTIPLE_CHOICE, null, 카테고리, null)`이 카테고리별 25개 전부 반환
+   - `questionRepository.findQuestions(MULTIPLE_CHOICE, null, 카테고리, null)`이 카테고리별 25개 전부 반환
    - 테스트 유저 비밀번호 매칭: `passwordEncoder.matches("test", 저장된해시)` → true
 3. 통과하면 **임시 테스트 클래스와 scratch 리소스를 삭제**한다(커밋 대상 아님).
 
@@ -116,7 +116,7 @@ class SeedValidationTest extends IntegrationTestSupport {
 
 ## 5. 관련 백엔드 사실 & 로컬 실행
 
-- **목록 조회**: `GET /api/questions?type=&difficulty=&category=&q=` → `QuestionRepository.findMultipleChoices` (MULTIPLE_CHOICE 전부, 참조 여부로 제외하지 않음).
+- **목록 조회**: `GET /api/questions?type=&difficulty=&category=&q=` → `QuestionRepository.findQuestions` (조건에 맞는 모든 Question, 유형·본질문/꼬리질문 구분 없이 전부 반환, 참조 여부로 제외하지 않음).
 - **채점**: `GET /api/questions/{questionId}/choices/{choiceId}` → `ChoiceGradingResponse{correct, correctChoiceId, explanation, choiceExplanation, nextQuestion}`. `nextQuestion`은 고른 보기의 `related_question_id`가 가리키는 문항의 전체 `QuestionResponse`(보기 포함), 없으면 null.
 - **세션 저장**: `POST /api/solved-sessions`.
 - **로컬 서버 실행**:

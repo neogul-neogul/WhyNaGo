@@ -23,7 +23,6 @@ class EssaySolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "rootQuestion": {"questionId": 1, "questionText": "본질문", "userAnswer": "답변1", "feedback": "f1", "modelAnswer": "m1", "isCorrect": true},
@@ -46,7 +45,6 @@ class EssaySolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "followupQuestions": [
@@ -68,7 +66,6 @@ class EssaySolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "rootQuestion": {"questionId": 1, "questionText": "본질문", "userAnswer": "답변1", "feedback": "f1", "modelAnswer": "m1", "isCorrect": true},
@@ -90,7 +87,6 @@ class EssaySolvedSessionControllerTest extends ControllerTestSupport {
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
                 .contentType(ContentType.JSON)
-                .queryParam("userId", 10L)
                 .body("""
                         {
                           "rootQuestion": {"questionId": 1, "questionText": " ", "userAnswer": "답변1", "feedback": "f1", "modelAnswer": "m1", "isCorrect": true},

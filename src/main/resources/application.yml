@@ -32,6 +32,7 @@ spring:
         options:
           model: gemini-3.5-flash
           temperature: 0.7
+          reasoning-effort: low
 jwt:
   secret: ${JWT_SECRET}
   access:
