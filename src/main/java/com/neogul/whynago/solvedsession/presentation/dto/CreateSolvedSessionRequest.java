@@ -3,11 +3,13 @@ package com.neogul.whynago.solvedsession.presentation.dto;
 import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionCommand;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record CreateSolvedSessionRequest(
         @NotNull @Valid SolvedQuestionRequest rootQuestion,
-        @NotNull List<@Valid SolvedQuestionRequest> followupQuestions
+        @NotNull List<@Valid SolvedQuestionRequest> followupQuestions,
+        @NotNull LocalDateTime startedAt
 ) {
 
     public CreateSolvedSessionCommand toCommand() {
@@ -15,7 +17,8 @@ public record CreateSolvedSessionRequest(
                 rootQuestion.toCommand(),
                 followupQuestions.stream()
                         .map(SolvedQuestionRequest::toCommand)
-                        .toList()
+                        .toList(),
+                startedAt
         );
     }
 }

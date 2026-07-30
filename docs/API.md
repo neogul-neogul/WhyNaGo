@@ -263,7 +263,8 @@ POST /api/solved-sessions
       "choiceId": 20,
       "relationQuestionId": null
     }
-  ]
+  ],
+  "startedAt": "2026-06-25T09:58:00"
 }
 ```
 
@@ -274,6 +275,7 @@ POST /api/solved-sessions
 | `*.questionId` | Long | O | 푼 문제 ID. |
 | `*.choiceId` | Long | O | 사용자가 고른 선택지 ID. 해당 문제에 속한 선택지여야 한다. 정답 여부는 서버가 판정한다. |
 | `*.relationQuestionId` | Long | X | 고른 선택지가 이어지는 다음 문제 ID. 마지막 항목은 `null`(체인 종료). |
+| `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간(`solvedAt - startedAt`) 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 
@@ -344,7 +346,8 @@ POST /api/solved-sessions/essay
       "modelAnswer": "MVCC는 언두 로그 기반 스냅샷으로...",
       "isCorrect": false
     }
-  ]
+  ],
+  "startedAt": "2026-06-24T09:20:00"
 }
 ```
 
@@ -358,6 +361,7 @@ POST /api/solved-sessions/essay
 | `*.feedback` | String | O | AI 피드백. 채점 API 응답의 `grading.feedback`을 그대로 담는다. |
 | `*.modelAnswer` | String | O | 모범답안. 채점 API 응답의 `grading.modelAnswer`를 그대로 담는다. |
 | `*.isCorrect` | boolean | O | 통과 여부. 채점 API가 산출한 값(서버 산출, 클라이언트 relay). 세션 `correctCount` 집계에 사용한다. |
+| `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
 
 **제약**:
 

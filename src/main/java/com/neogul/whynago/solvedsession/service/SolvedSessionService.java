@@ -38,6 +38,7 @@ public class SolvedSessionService {
                 userId,
                 scoredQuestions.totalCount(),
                 scoredQuestions.correctCount(),
+                command.startedAt(),
                 solvedAt
         );
         solvedMultipleChoiceAppender.appendAll(userId, savedSession.getId(), scoredQuestions.items(), solvedAt);

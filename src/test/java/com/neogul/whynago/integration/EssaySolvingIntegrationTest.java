@@ -17,6 +17,7 @@ import com.neogul.whynago.solvedsession.service.dto.CreateEssaySolvedSessionResu
 import com.neogul.whynago.solvedsession.service.dto.EssaySolvedQuestionCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,8 @@ class EssaySolvingIntegrationTest extends IntegrationTestSupport {
                 List.of(
                         new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", false),
                         new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true)
-                )
+                ),
+                LocalDateTime.now().minusMinutes(5)
         );
 
         CreateEssaySolvedSessionResult result = essaySolvedSessionService.create(99L, command);

@@ -33,6 +33,8 @@ public class SolvedSession {
 
     private int correctCount;
 
+    private LocalDateTime startedAt;
+
     private LocalDateTime solvedAt;
 
     private LocalDateTime createdAt;
@@ -43,6 +45,7 @@ public class SolvedSession {
             SessionStatus status,
             int totalCount,
             int correctCount,
+            LocalDateTime startedAt,
             LocalDateTime solvedAt,
             LocalDateTime createdAt
     ) {
@@ -51,6 +54,7 @@ public class SolvedSession {
         this.status = status;
         this.totalCount = totalCount;
         this.correctCount = correctCount;
+        this.startedAt = startedAt;
         this.solvedAt = solvedAt;
         this.createdAt = createdAt;
     }
@@ -60,6 +64,7 @@ public class SolvedSession {
             QuestionType type,
             int totalCount,
             int correctCount,
+            LocalDateTime startedAt,
             LocalDateTime solvedAt
     ) {
         return new SolvedSession(
@@ -68,6 +73,7 @@ public class SolvedSession {
                 SessionStatus.COMPLETED,
                 totalCount,
                 correctCount,
+                startedAt,
                 solvedAt,
                 LocalDateTime.now()
         );

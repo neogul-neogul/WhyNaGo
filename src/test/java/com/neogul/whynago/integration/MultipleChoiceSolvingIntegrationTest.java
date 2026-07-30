@@ -21,6 +21,7 @@ import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
 import com.neogul.whynago.solvedsession.service.dto.SolvedQuestionCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,8 @@ class MultipleChoiceSolvingIntegrationTest extends IntegrationTestSupport {
                 List.of(
                         new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
                         new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
-                )
+                ),
+                LocalDateTime.now().minusMinutes(5)
         );
 
         CreateSolvedSessionResult result = solvedSessionService.create(99L, command);
@@ -112,7 +114,8 @@ class MultipleChoiceSolvingIntegrationTest extends IntegrationTestSupport {
                 List.of(
                         new SolvedQuestionCommand(wrongBranch.getId(), wrongBranchCorrect.getId(), last.getId()),
                         new SolvedQuestionCommand(last.getId(), lastCorrect.getId(), null)
-                )
+                ),
+                LocalDateTime.now().minusMinutes(5)
         );
 
         CreateSolvedSessionResult result = solvedSessionService.create(99L, command);

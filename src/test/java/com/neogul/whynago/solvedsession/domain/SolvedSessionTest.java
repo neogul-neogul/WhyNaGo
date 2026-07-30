@@ -12,6 +12,7 @@ class SolvedSessionTest {
     @Test
     @DisplayName("완료 세션을 생성한다.")
     void completed() {
+        LocalDateTime startedAt = LocalDateTime.now().minusMinutes(5);
         LocalDateTime solvedAt = LocalDateTime.now();
 
         SolvedSession solvedSession = SolvedSession.completed(
@@ -19,12 +20,14 @@ class SolvedSessionTest {
                 QuestionType.MULTIPLE_CHOICE,
                 2,
                 1,
+                startedAt,
                 solvedAt
         );
 
         assertThat(solvedSession.getStatus()).isEqualTo(SessionStatus.COMPLETED);
         assertThat(solvedSession.getTotalCount()).isEqualTo(2);
         assertThat(solvedSession.getCorrectCount()).isEqualTo(1);
+        assertThat(solvedSession.getStartedAt()).isEqualTo(startedAt);
         assertThat(solvedSession.getSolvedAt()).isEqualTo(solvedAt);
         assertThat(solvedSession.getCreatedAt()).isNotNull();
     }
