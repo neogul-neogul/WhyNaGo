@@ -39,4 +39,8 @@ public class WrongNote {
     public static WrongNote create(Long userId, Long solvedSessionId) {
         return new WrongNote(userId, solvedSessionId, false);
     }
+
+    public void updateBookmark(boolean bookmarked) {
+        this.isBookmarked = bookmarked;
+    }
 }
