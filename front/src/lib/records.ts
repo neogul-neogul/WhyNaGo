@@ -33,6 +33,11 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/** 오늘 날짜의 "yyyy-MM-dd" (로컬 기준) */
+export function todayDateKey(): string {
+  return toDateKey(new Date());
+}
+
 /** 잔디 그리드와 동일한 범위(오늘로부터 53주 전 ~ 오늘)로 daily-counts를 조회하기 위한 from/to */
 export function defaultGrassRange(): { from: string; to: string } {
   const to = new Date();
