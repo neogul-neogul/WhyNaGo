@@ -590,3 +590,131 @@ DELETE /api/wrong-notes/{wrongNoteId}
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
 | 404 | `WRONG_NOTE_NOT_FOUND` | `wrongNoteId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+# **LearningRecord API**
+
+학습 기록(잔디·최근 기록·연속/누적 학습일) 조회를 담당한다. 관련 도메인은 `learningrecord`다.
+
+별도 저장 테이블 없이 `SolvedSession`을 조회 시점에 집계해 응답한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). 아래 항목은 이번 구현 범위에서 **제외**했다(→ `docs/DOMAIN.md` 보류):
+
+- 최근 기록의 진입 경로(method: 문제 풀이·1일 1면접·오답 복습·모의 진단·카테고리별) 구분 — 대신 세션 유형(`type`)만 내려준다.
+- 잔디 등급(0~4단계)·"학습량 점수" — 대신 일자별 세션 수·문항 수 원본 집계값만 내려준다.
+
+모든 엔드포인트는 인증된 사용자 **본인의 기록만** 조회한다.
+
+## **최근 기록 목록 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/recent
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `size` | int | X | 조회할 최근 세션 개수. 생략하면 `20`. |
+
+정렬은 `solvedAt` 내림차순(최신순)으로 고정한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "sessionId": 42,
+    "type": "MULTIPLE_CHOICE",
+    "category": "NETWORK",
+    "totalCount": 3,
+    "correctCount": 2,
+    "wrongCount": 1,
+    "startedAt": "2026-06-25T09:58:00",
+    "solvedAt": "2026-06-25T10:16:00"
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `sessionId` | Long | 풀이 세션 ID(`SolvedSession.id`). |
+| `type` | String | 세션 유형. `MULTIPLE_CHOICE` \| `ESSAY`. |
+| `category` | String | 본질문의 카테고리(`Category`). |
+| `totalCount` | int | 전체 문항 수. |
+| `correctCount` | int | 정답 수. |
+| `wrongCount` | int | 오답 수(`totalCount - correctCount`). |
+| `startedAt` | LocalDateTime | 세션 시작 시각. |
+| `solvedAt` | LocalDateTime | 세션 완료 시각. |
+
+### **에러**
+
+없음. 기록이 없으면 빈 배열을 반환한다.
+
+---
+
+## **연속·누적 학습일 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/streak
+```
+
+`SolvedSession.solvedAt`의 distinct 날짜를 기준으로 계산한다. "하루"의 경계는 KST(Asia/Seoul) 자정이다. 오늘 아직 풀지 않았어도 어제까지 이어진 연속 학습일은 자정이 지나기 전까지는 끊긴 것으로 보지 않는다.
+
+### **Response Body**
+
+```json
+{
+  "streakDays": 7,
+  "cumulativeDays": 42
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `streakDays` | int | 연속 학습일. |
+| `cumulativeDays` | int | 누적 학습일(학습한 날의 총 수, distinct). |
+
+### **에러**
+
+없음.
+
+---
+
+## **일자별 학습량(잔디) 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/daily-counts
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `from` | LocalDate (`yyyy-MM-dd`) | X | 조회 시작일(포함). 생략하면 `to`로부터 364일 전. |
+| `to` | LocalDate (`yyyy-MM-dd`) | X | 조회 종료일(포함). 생략하면 오늘(KST). |
+
+학습이 없었던 날짜는 응답에 포함되지 않는다(0으로 간주). `from`이 `to`보다 늦으면 빈 배열을 반환한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "date": "2026-06-25",
+    "sessionCount": 2,
+    "questionCount": 5
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `date` | LocalDate | 날짜. |
+| `sessionCount` | int | 그 날짜에 완료한 풀이 세션 수. |
+| `questionCount` | int | 그 날짜에 푼 전체 문항 수(세션별 `totalCount`의 합). |
+
+### **에러**
+
+없음. 범위 내 기록이 없으면 빈 배열을 반환한다.
