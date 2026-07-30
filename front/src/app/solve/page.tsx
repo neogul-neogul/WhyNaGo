@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { QuestionResponse } from "@/types";
-import { essayQuestions } from "@/mocks/questions";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProblemBank from "@/components/solve/ProblemBank";
 import MultipleChoiceQuiz from "@/components/solve/MultipleChoiceQuiz";
@@ -47,11 +46,11 @@ export default function SolvePage() {
               onFinish={finish}
             />
           ) : (
-            /* 서술형은 아직 백엔드 미구현 — 더미 데이터 화면 유지 */
             <EssayQuiz
               key={`essay-${question.id}`}
-              question={essayQuestions[0]}
+              question={question}
               onQuit={() => setStage("setup")}
+              onFinish={finish}
             />
           ))}
 

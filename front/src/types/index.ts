@@ -174,28 +174,67 @@ export interface CreateSolvedSessionRequest {
   followupQuestions: SolvedQuestionRequest[];
 }
 
-/** 풀이 세션 저장 응답 */
+/** 풀이 세션 저장 응답 (객관식·서술형 공용) */
 export interface CreateSolvedSessionResponse {
   sessionId: number;
 }
 
-// ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
+// ===== 서술형 풀이 API (백엔드 question / solvedsession 도메인) =====
 
-/** 서술형 문제 (AI 면접식 꼬리질문) */
-export interface EssayQuestion {
-  cat: string;
-  diff: string;
-  text: string;
-  /** 모범답안 */
-  model: string;
-  keywords: string[];
-  /** 꼬리질문 목록 */
-  followups: string[];
-  /** 본 질문 + 꼬리질문별 피드백 */
-  feedbacks: string[];
-  /** 꼬리질문별 모범답안 */
-  followupModels: string[];
+/** 서술형 세션 시작 응답 — POST /api/questions/{qid}/essay/sessions */
+export interface EssaySessionResponse {
+  /** 서버가 발급한 대화 식별자. 이후 채점 요청에 담아 보낸다 */
+  conversationId: string;
 }
+
+/** 서술형 답변 채점 요청 — POST /api/questions/{qid}/essay/answers */
+export interface EssayAnswerRequest {
+  conversationId: string;
+  /** 이번에 채점할 문항 발문 (본질문 지문 또는 직전 응답의 nextFollowup.question) */
+  question: string;
+  answer: string;
+}
+
+/** 서술형 한 문항 채점 결과 */
+export interface EssayGradingResponse {
+  feedback: string;
+  modelAnswer: string;
+  /** 통과 여부 (LLM 점수를 서버가 임계값으로 환산한 값) */
+  isCorrect: boolean;
+}
+
+/** AI가 생성한 다음 꼬리질문 */
+export interface EssayFollowupResponse {
+  question: string;
+}
+
+/** 서술형 답변 채점 응답 */
+export interface EssayAnswerResponse {
+  grading: EssayGradingResponse;
+  /** 마지막 문항(3턴째)이면 null → 면접 종료 */
+  nextFollowup: EssayFollowupResponse | null;
+}
+
+/** 서술형 세션 저장 요청의 문항 하나 (문답 스냅샷) */
+export interface EssaySolvedQuestionRequest {
+  /** 본질문만 값. 꼬리질문은 재사용 가능한 Question이 없어 null */
+  questionId: number | null;
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  /** 채점 API가 산출한 통과 여부를 그대로 전달 (저장 시 재채점하지 않음) */
+  isCorrect: boolean;
+}
+
+/** 서술형 풀이 세션 저장 요청 — POST /api/solved-sessions/essay */
+export interface CreateEssaySolvedSessionRequest {
+  rootQuestion: EssaySolvedQuestionRequest;
+  /** 꼬리질문 스냅샷 목록. 정확히 2개 (본질문 1 + 꼬리질문 2 = 3문항 고정) */
+  followupQuestions: EssaySolvedQuestionRequest[];
+}
+
+// ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
 
 /** 오답노트 꼬리질문 */
 export interface WrongFollowup {
