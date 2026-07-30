@@ -172,6 +172,8 @@ export interface SolvedQuestionRequest {
 export interface CreateSolvedSessionRequest {
   rootQuestion: SolvedQuestionRequest;
   followupQuestions: SolvedQuestionRequest[];
+  /** 본질문을 처음 받은 시각(세션 시작 시각). 학습 기록의 소요시간 계산에 쓰인다 */
+  startedAt: string;
 }
 
 /** 풀이 세션 저장 응답 (객관식·서술형 공용) */
@@ -232,6 +234,8 @@ export interface CreateEssaySolvedSessionRequest {
   rootQuestion: EssaySolvedQuestionRequest;
   /** 꼬리질문 스냅샷 목록. 정확히 2개 (본질문 1 + 꼬리질문 2 = 3문항 고정) */
   followupQuestions: EssaySolvedQuestionRequest[];
+  /** 본질문을 처음 받은 시각(세션 시작 시각). 학습 기록의 소요시간 계산에 쓰인다 */
+  startedAt: string;
 }
 
 // ===== 오답노트 API (백엔드 wrongnote 도메인) =====
@@ -324,23 +328,41 @@ export interface GrowthDatum {
   grades: string[];
 }
 
-/** 학습 기록 항목 */
-export interface RecordItem {
-  date: string;
-  time: string;
-  method: string;
-  cats: string[];
-  solved: number;
-  correct: number;
-  wrong: number;
-  score: number;
-}
-
-/** 잔디 한 칸 */
+/** 잔디 한 칸 (날짜별 등급은 프런트에서 daily-counts를 변환해 만든다) */
 export interface GrassDay {
+  date: string;
   level: number;
   color: string;
   count: number;
+}
+
+// ===== 학습 기록 API (백엔드 learningrecord 도메인) =====
+// method(진입 경로)·잔디 등급(0~4단계)·"학습량 점수"는 백엔드에 없다 (docs/DOMAIN.md 보류) — lib/records.ts에서 프런트가 계산한다.
+
+/** 최근 학습 기록 항목 — GET /api/learning-records/recent */
+export interface RecentRecordResponse {
+  sessionId: number;
+  type: QuestionTypeCode;
+  /** 본질문의 카테고리 */
+  category: QuestionCategory;
+  totalCount: number;
+  correctCount: number;
+  wrongCount: number;
+  startedAt: string;
+  solvedAt: string;
+}
+
+/** 연속·누적 학습일 — GET /api/learning-records/streak (KST 자정 기준) */
+export interface StreakResponse {
+  streakDays: number;
+  cumulativeDays: number;
+}
+
+/** 일자별 학습량 — GET /api/learning-records/daily-counts. 학습이 없었던 날짜는 응답에 없다 */
+export interface DailyRecordCountResponse {
+  date: string;
+  sessionCount: number;
+  questionCount: number;
 }
 
 /** 진척도 지표 카드 */

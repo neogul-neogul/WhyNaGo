@@ -7,6 +7,7 @@ import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
   evaluateEssayAnswer,
+  nowAsLocalDateTime,
   saveEssaySolvedSession,
   startEssaySession,
 } from "@/lib/questions";
@@ -39,6 +40,8 @@ export default function EssayQuiz({
   onFinish: (correct: number, total: number) => void;
 }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // 본질문을 처음 받은 시각(세션 시작 시각). 부모가 문항마다 key로 컴포넌트를 새로 마운트하므로 1회만 계산된다
+  const [startedAt] = useState(() => nowAsLocalDateTime());
   const [startError, setStartError] = useState<string | null>(null);
   const [items, setItems] = useState<GradedItem[]>([]);
   // 답변 중인 문항 발문. null이면 면접 종료(서버가 nextFollowup을 주지 않음)
@@ -125,6 +128,7 @@ export default function EssayQuiz({
       await saveEssaySolvedSession({
         rootQuestion: toRequest(items[0], 0),
         followupQuestions: items.slice(1).map((item, i) => toRequest(item, i + 1)),
+        startedAt,
       });
       onFinish(correctCount, items.length);
     } catch (e) {
