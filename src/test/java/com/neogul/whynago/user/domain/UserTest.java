@@ -23,6 +23,20 @@ class UserTest {
         assertThat(user.getEmail().getValue()).isEqualTo("test@example.com");
         assertThat(user.getNickname()).isEqualTo("tester");
         assertThat(user.getPosition()).isEqualTo(Position.BACKEND);
+        assertThat(user.getDailyGoal()).isEqualTo(10);
+    }
+
+    @DisplayName("최소 학습 목표를 변경한다.")
+    @Test
+    void updateDailyGoal() {
+        // given
+        User user = User.create("test@example.com", "hashedPassword", "tester");
+
+        // when
+        user.updateDailyGoal(20);
+
+        // then
+        assertThat(user.getDailyGoal()).isEqualTo(20);
     }
 
     @DisplayName("닉네임 형식이 올바르지 않으면 예외가 발생한다.")

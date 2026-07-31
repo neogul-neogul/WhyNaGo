@@ -14,6 +14,8 @@ import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionControlle
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
+import com.neogul.whynago.user.presentation.UserController;
+import com.neogul.whynago.user.service.UserService;
 import com.neogul.whynago.wrongnote.presentation.WrongNoteController;
 import com.neogul.whynago.wrongnote.service.WrongNoteService;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
@@ -30,7 +32,8 @@ import org.springframework.test.web.servlet.MockMvc;
         SolvedSessionController.class,
         EssaySolvedSessionController.class,
         WrongNoteController.class,
-        LearningRecordController.class
+        LearningRecordController.class,
+        UserController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -61,6 +64,9 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected LearningRecordService learningRecordService;
+
+    @MockitoBean
+    protected UserService userService;
 
     @BeforeEach
     void setUpMockMvc() {
