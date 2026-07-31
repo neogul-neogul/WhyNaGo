@@ -7,3 +7,11 @@ import type { UserProfileResponse } from "@/types";
 export function fetchMyProfile(): Promise<UserProfileResponse> {
   return apiFetch<UserProfileResponse>("/api/users/me");
 }
+
+/** 최소 학습 목표 수정 */
+export function updateDailyGoal(dailyGoal: number): Promise<UserProfileResponse> {
+  return apiFetch<UserProfileResponse>("/api/users/me", {
+    method: "PATCH",
+    body: { dailyGoal },
+  });
+}

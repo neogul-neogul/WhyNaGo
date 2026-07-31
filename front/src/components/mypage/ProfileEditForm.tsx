@@ -11,11 +11,13 @@ export default function ProfileEditForm({
   onChange,
   onCancel,
   onSave,
+  saving,
 }: {
   draft: Profile;
   onChange: (key: keyof Profile, value: string) => void;
   onCancel: () => void;
   onSave: () => void;
+  saving?: boolean;
 }) {
   return (
     <Card className="flex flex-col gap-4 px-[26px] py-6">
@@ -42,11 +44,11 @@ export default function ProfileEditForm({
         </div>
       </Field>
       <div className="flex justify-end gap-2.5 pt-0.5">
-        <Button variant="muted" size="md" onClick={onCancel}>
+        <Button variant="muted" size="md" onClick={onCancel} disabled={saving}>
           취소
         </Button>
-        <Button size="md" onClick={onSave}>
-          저장
+        <Button size="md" onClick={onSave} disabled={saving}>
+          {saving ? "저장 중…" : "저장"}
         </Button>
       </div>
     </Card>
