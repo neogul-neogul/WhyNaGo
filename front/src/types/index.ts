@@ -24,8 +24,21 @@ export interface SignUpResponse {
 
 /** 내 프로필 조회 응답 — GET /api/users/me */
 export interface UserProfileResponse {
+  nickname: string;
+  email: string;
+  position: Position;
   /** 최소 학습 목표(하루 최소 풀이 세션 수) */
   dailyGoal: number;
+  bio: string;
+}
+
+/** 프로필 수정 요청 — PATCH /api/users/me (부분 수정이 아니라 전체 필드를 보낸다) */
+export interface UpdateProfileRequest {
+  nickname: string;
+  email: string;
+  position: Position;
+  dailyGoal: number;
+  bio: string;
 }
 
 /** 상단 공통 헤더의 내비게이션 항목 */

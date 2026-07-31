@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Profile } from "@/types";
+import type { Profile, UserProfileResponse } from "@/types";
 import { ApiError } from "@/lib/api";
-import { fetchMyProfile, updateDailyGoal } from "@/lib/user";
+import { POSITION_LABELS, fetchMyProfile, positionFromLabel, updateMyProfile } from "@/lib/user";
 import { defaultProfile, mypageStats } from "@/mocks/mypage";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProfileCard from "@/components/mypage/ProfileCard";
 import ProfileStats from "@/components/mypage/ProfileStats";
 import ProfileDetail from "@/components/mypage/ProfileDetail";
 import ProfileEditForm from "@/components/mypage/ProfileEditForm";
+
+function toProfile(response: UserProfileResponse): Profile {
+  return {
+    nickname: response.nickname,
+    email: response.email,
+    job: POSITION_LABELS[response.position],
+    goal: String(response.dailyGoal),
+    bio: response.bio,
+  };
+}
 
 export default function MypagePage() {
   const [profile, setProfile] = useState<Profile>(defaultProfile);
@@ -18,12 +28,11 @@ export default function MypagePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 닉네임·이메일·직무·소개는 아직 백엔드에 없어 더미를 유지하고, 최소 학습 목표만 실제 값으로 채운다
   useEffect(() => {
     let cancelled = false;
     fetchMyProfile()
       .then((result) => {
-        if (!cancelled) setProfile((p) => ({ ...p, goal: String(result.dailyGoal) }));
+        if (!cancelled) setProfile(toProfile(result));
       })
       .catch(() => {
         // 조회 실패 시 더미 기본값을 그대로 보여준다
@@ -41,11 +50,19 @@ export default function MypagePage() {
 
   const save = async () => {
     if (saving) return;
+    const position = positionFromLabel(draft.job);
+    if (!position) return;
     setSaving(true);
     setError(null);
     try {
-      const result = await updateDailyGoal(Number(draft.goal));
-      setProfile({ ...draft, goal: String(result.dailyGoal) });
+      const result = await updateMyProfile({
+        nickname: draft.nickname,
+        email: draft.email,
+        position,
+        dailyGoal: Number(draft.goal),
+        bio: draft.bio,
+      });
+      setProfile(toProfile(result));
       setEditing(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해주세요.");

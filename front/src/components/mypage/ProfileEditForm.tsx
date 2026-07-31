@@ -1,9 +1,14 @@
 "use client";
 
 import type { Profile } from "@/types";
+import { POSITION_LABELS } from "@/lib/user";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
+
+const POSITION_OPTIONS = Object.values(POSITION_LABELS);
+const FIELD_CLASS =
+  "w-full rounded-[11px] border border-line-input bg-subtle px-[15px] py-[13px] text-sm text-ink outline-none focus:border-ink";
 
 // 프로필 수정 폼
 export default function ProfileEditForm({
@@ -28,7 +33,17 @@ export default function ProfileEditForm({
         <Input value={draft.email} onChange={(e) => onChange("email", e.target.value)} />
       </Field>
       <Field label="직무">
-        <Input value={draft.job} onChange={(e) => onChange("job", e.target.value)} />
+        <select
+          value={draft.job}
+          onChange={(e) => onChange("job", e.target.value)}
+          className={FIELD_CLASS}
+        >
+          {POSITION_OPTIONS.map((label) => (
+            <option key={label} value={label}>
+              {label}
+            </option>
+          ))}
+        </select>
       </Field>
       <Field label="최소 학습 목표 문제 개수">
         <div className="flex items-center gap-2.5">
@@ -42,6 +57,14 @@ export default function ProfileEditForm({
           </div>
           <span className="text-[14px] text-secondary">개 / 일</span>
         </div>
+      </Field>
+      <Field label="자기소개">
+        <textarea
+          value={draft.bio}
+          onChange={(e) => onChange("bio", e.target.value)}
+          rows={3}
+          className={`${FIELD_CLASS} resize-y leading-[1.6]`}
+        />
       </Field>
       <div className="flex justify-end gap-2.5 pt-0.5">
         <Button variant="muted" size="md" onClick={onCancel} disabled={saving}>
