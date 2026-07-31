@@ -23,7 +23,12 @@ public class SolvedSessionValidator {
             SolvedQuestionPayload current = questions.get(i);
             AnswerChoice userChoice = answerChoiceReader.read(current.choiceId());
             answerChoiceValidator.validateChoiceInQuestion(userChoice, current.questionId());
-            validateChain(current, userChoice, nextQuestionId(questions, i));
+
+            Long nextQuestionId = nextQuestionId(questions, i);
+            if (isQuestionFinished(nextQuestionId)) {
+                continue;
+            }
+            validateChain(current, userChoice, nextQuestionId);
         }
     }
 
@@ -40,4 +45,9 @@ public class SolvedSessionValidator {
         }
         return questions.get(index + 1).questionId();
     }
+
+    private boolean isQuestionFinished(Long nextQuestionId) {
+        return Objects.isNull(nextQuestionId);
+    }
+
 }

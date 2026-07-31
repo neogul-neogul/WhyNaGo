@@ -1,8 +1,12 @@
 import { apiFetch } from "@/lib/api";
 import type {
   ChoiceGradingResponse,
+  CreateEssaySolvedSessionRequest,
   CreateSolvedSessionRequest,
   CreateSolvedSessionResponse,
+  EssayAnswerRequest,
+  EssayAnswerResponse,
+  EssaySessionResponse,
   QuestionCategory,
   QuestionDifficulty,
   QuestionResponse,
@@ -62,7 +66,7 @@ export interface QuestionFilters {
   keyword?: string;
 }
 
-/** 문제은행 목록 조회 (루트 객관식 문제만 반환됨) */
+/** 문제은행 목록 조회 (본질문·꼬리질문 구분 없이 조건에 맞는 모든 문제. 서술형은 choices가 빈 배열) */
 export function fetchQuestions(filters: QuestionFilters = {}): Promise<QuestionResponse[]> {
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
@@ -83,6 +87,37 @@ export function saveSolvedSession(
   request: CreateSolvedSessionRequest,
 ): Promise<CreateSolvedSessionResponse> {
   return apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions", {
+    method: "POST",
+    body: request,
+  });
+}
+
+/** 서술형 세션 시작 — 이후 채점 요청을 묶을 대화 식별자를 발급받는다 */
+export function startEssaySession(questionId: number): Promise<EssaySessionResponse> {
+  return apiFetch<EssaySessionResponse>(`/api/questions/${questionId}/essay/sessions`, {
+    method: "POST",
+  });
+}
+
+/**
+ * 서술형 답변 채점·꼬리질문 생성.
+ * 이전 문답 맥락은 서버가 conversationId로 보관하므로 이번 턴의 질문·답변만 보낸다.
+ */
+export function evaluateEssayAnswer(
+  questionId: number,
+  request: EssayAnswerRequest,
+): Promise<EssayAnswerResponse> {
+  return apiFetch<EssayAnswerResponse>(`/api/questions/${questionId}/essay/answers`, {
+    method: "POST",
+    body: request,
+  });
+}
+
+/** 서술형 풀이 세션 저장 (본질문 1 + 꼬리질문 2 문답 스냅샷. 완료 세션만 저장) */
+export function saveEssaySolvedSession(
+  request: CreateEssaySolvedSessionRequest,
+): Promise<CreateSolvedSessionResponse> {
+  return apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions/essay", {
     method: "POST",
     body: request,
   });

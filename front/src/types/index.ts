@@ -174,54 +174,129 @@ export interface CreateSolvedSessionRequest {
   followupQuestions: SolvedQuestionRequest[];
 }
 
-/** 풀이 세션 저장 응답 */
+/** 풀이 세션 저장 응답 (객관식·서술형 공용) */
 export interface CreateSolvedSessionResponse {
   sessionId: number;
 }
 
-// ===== 학습 도메인 (문제/오답/면접/진단/기록) =====
+// ===== 서술형 풀이 API (백엔드 question / solvedsession 도메인) =====
 
-/** 서술형 문제 (AI 면접식 꼬리질문) */
-export interface EssayQuestion {
-  cat: string;
-  diff: string;
-  text: string;
-  /** 모범답안 */
-  model: string;
-  keywords: string[];
-  /** 꼬리질문 목록 */
-  followups: string[];
-  /** 본 질문 + 꼬리질문별 피드백 */
-  feedbacks: string[];
-  /** 꼬리질문별 모범답안 */
-  followupModels: string[];
+/** 서술형 세션 시작 응답 — POST /api/questions/{qid}/essay/sessions */
+export interface EssaySessionResponse {
+  /** 서버가 발급한 대화 식별자. 이후 채점 요청에 담아 보낸다 */
+  conversationId: string;
 }
 
-/** 오답노트 꼬리질문 */
-export interface WrongFollowup {
-  text: string;
-  options: string[];
-  answer: number;
-  myAnswer: number;
-  explanation: string;
-  wrongExp: string;
+/** 서술형 답변 채점 요청 — POST /api/questions/{qid}/essay/answers */
+export interface EssayAnswerRequest {
+  conversationId: string;
+  /** 이번에 채점할 문항 발문 (본질문 지문 또는 직전 응답의 nextFollowup.question) */
+  question: string;
+  answer: string;
 }
 
-/** 오답노트 항목 */
-export interface WrongNote {
-  q: string;
-  cat: string;
-  diff: string;
-  status: "미복습" | "복습 중" | "반복 오답" | "해결 완료";
-  repeat: number;
-  source: string;
+/** 서술형 한 문항 채점 결과 */
+export interface EssayGradingResponse {
+  feedback: string;
+  modelAnswer: string;
+  /** 통과 여부 (LLM 점수를 서버가 임계값으로 환산한 값) */
+  isCorrect: boolean;
+}
+
+/** AI가 생성한 다음 꼬리질문 */
+export interface EssayFollowupResponse {
+  question: string;
+}
+
+/** 서술형 답변 채점 응답 */
+export interface EssayAnswerResponse {
+  grading: EssayGradingResponse;
+  /** 마지막 문항(3턴째)이면 null → 면접 종료 */
+  nextFollowup: EssayFollowupResponse | null;
+}
+
+/** 서술형 세션 저장 요청의 문항 하나 (문답 스냅샷) */
+export interface EssaySolvedQuestionRequest {
+  /** 본질문만 값. 꼬리질문은 재사용 가능한 Question이 없어 null */
+  questionId: number | null;
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  /** 채점 API가 산출한 통과 여부를 그대로 전달 (저장 시 재채점하지 않음) */
+  isCorrect: boolean;
+}
+
+/** 서술형 풀이 세션 저장 요청 — POST /api/solved-sessions/essay */
+export interface CreateEssaySolvedSessionRequest {
+  rootQuestion: EssaySolvedQuestionRequest;
+  /** 꼬리질문 스냅샷 목록. 정확히 2개 (본질문 1 + 꼬리질문 2 = 3문항 고정) */
+  followupQuestions: EssaySolvedQuestionRequest[];
+}
+
+// ===== 오답노트 API (백엔드 wrongnote 도메인) =====
+// 오답노트는 상태·반복 횟수·출처를 두지 않는다 (docs/DOMAIN.md 결정 사항) — 목록 필터는 북마크 여부뿐.
+
+/** 오답노트 목록 항목 — GET /api/wrong-notes */
+export interface WrongNoteSummaryResponse {
+  id: number;
+  type: QuestionTypeCode;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  /** 본 질문 제목 */
+  title: string;
+  isBookmarked: boolean;
   solvedAt: string;
-  options: string[];
-  myAnswer: number;
-  correctAnswer: number;
+}
+
+/** 오답노트 상세의 객관식 보기 */
+export interface WrongNoteChoiceResponse {
+  id: number;
+  content: string;
+  sequence: number;
+  isCorrect: boolean;
+}
+
+/** 오답노트 상세의 객관식 문항 (본질문/꼬리질문 각 1개) */
+export interface WrongNoteMultipleChoiceItemResponse {
+  sequence: number;
+  questionId: number;
+  title: string;
+  content: string;
+  choices: WrongNoteChoiceResponse[];
+  userChoiceId: number;
+  correctChoiceId: number;
+  isCorrect: boolean;
   explanation: string;
-  wrongExp: string;
-  followups: WrongFollowup[];
+  /** 내가 고른 보기의 오답 해설. 정답이면 null */
+  choiceExplanation: string | null;
+}
+
+/** 오답노트 상세의 서술형 문항 (본질문/꼬리질문 각 1개) */
+export interface WrongNoteEssayItemResponse {
+  sequence: number;
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  isCorrect: boolean;
+}
+
+/** 오답노트 상세 — GET /api/wrong-notes/{id}. 유형에 따라 둘 중 하나만 채워진다 */
+export interface WrongNoteDetailResponse {
+  id: number;
+  type: QuestionTypeCode;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  isBookmarked: boolean;
+  solvedAt: string;
+  multipleChoiceItems: WrongNoteMultipleChoiceItemResponse[] | null;
+  essayItems: WrongNoteEssayItemResponse[] | null;
+}
+
+/** 오답노트 북마크 변경 응답 — PATCH /api/wrong-notes/{id}/bookmark */
+export interface WrongNoteBookmarkResponse {
+  isBookmarked: boolean;
 }
 
 /** 1일 1면접 문항 (카테고리별) */

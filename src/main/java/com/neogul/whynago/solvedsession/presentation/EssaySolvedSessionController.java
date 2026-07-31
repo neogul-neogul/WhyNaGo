@@ -1,5 +1,7 @@
 package com.neogul.whynago.solvedsession.presentation;
 
+import com.neogul.whynago.auth.presentation.AuthContext;
+import com.neogul.whynago.auth.presentation.resolver.LoginUser;
 import com.neogul.whynago.solvedsession.presentation.dto.CreateEssaySolvedSessionRequest;
 import com.neogul.whynago.solvedsession.presentation.dto.CreateEssaySolvedSessionResponse;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
@@ -21,11 +23,11 @@ public class EssaySolvedSessionController {
 
     @PostMapping
     public ResponseEntity<CreateEssaySolvedSessionResponse> create(
-            Long userId,
+            @LoginUser AuthContext authContext,
             @Valid @RequestBody CreateEssaySolvedSessionRequest request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(CreateEssaySolvedSessionResponse.from(essaySolvedSessionService.create(userId, request.toCommand())));
+                .body(CreateEssaySolvedSessionResponse.from(essaySolvedSessionService.create(authContext.id(), request.toCommand())));
     }
 }

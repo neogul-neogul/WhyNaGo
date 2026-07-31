@@ -40,11 +40,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`docs/EXCEPTION.md`** — 예외 처리 컨벤션.
   예외 분류, 일관된 에러 응답 형식(`{code, message}`), 도메인 단위 `ErrorCode` 네이밍(`{DOMAIN}_{REASON}`), `BusinessException`, `GlobalExceptionHandler`의 처리 우선순위와 로깅 규칙을 규정한다. 실제 구현 스캐폴딩은 `src/main/java/com/neogul/whynago/common/exception/`에 있다.
 
+- **`docs/API.md`** — API 규격 컨벤션.
+  백엔드가 제공하는 HTTP API의 요청/응답 규격 기준 문서. `/api` 접두사·JSON 본문·성공 상태코드(생성 201/조회 200)·에러 응답 형식·`userId`는 인증 계층에서 해석 등 공통 규칙과 엔드포인트별 요청/응답 DTO를 규정한다.
+
 - **`docs/TEST.md`** — 테스트 컨벤션.
   테스트 계층(Unit/Service/Repository/Controller/Integration), 네이밍(`@DisplayName` 한글 `~다.` 형식, 메서드 `{method}_{실패이유}`), Given-When-Then, Fixture/Builder, AssertJ 우선 사용, Controller 테스트의 RestAssuredMockMvc 표준, Testcontainers(MySQL) 기반 DB 테스트를 규정한다.
 
 - **`docs/DOMAIN.md`** - 도메인 문서.
   도메인 관련 정보가 담겨있다.
+
+- **`docs/SCRIPT.md`** — 객관식 문제 시드 생성 프롬프트.
+  객관식 문항 시드 데이터를 SQL INSERT문으로 생성하기 위해 LLM에 주는 규칙. 카테고리별 문항 생성, 세션 변수 기반 순환 연결(`related_question_id` NULL 없음), 정답 위치 무작위 분산, 서술형 보기 등을 규정한다.
+
+- **`docs/SEED_GENERATION.md`** — 문제 시드 생성·검증 가이드.
+  위 `SCRIPT.md` 프롬프트를 실제로 굴려 시드를 만들고 검증하는 절차 핸드오프 문서. 도메인 핵심(본질문/꼬리질문 구분 없음), 생성 워크플로(카테고리별 병렬 생성 → 결합 → 실제 스키마에 넣어 검증), 관련 백엔드 사실·파일 위치를 정리한다. 새 시드를 만들 때 먼저 읽는다.
 
 ## 프론트엔드
 

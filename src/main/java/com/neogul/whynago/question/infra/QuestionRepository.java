@@ -11,23 +11,19 @@ import org.springframework.data.repository.query.Param;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
+    // 문제은행 목록은 유형·본질문/꼬리질문 구분 없이 조건에 맞는 모든 Question을 노출한다.
+    // 어떤 보기의 relatedQuestionId로 참조되는지 여부는 노출에 영향을 주지 않는다.
     @Query("""
             select q
             from Question q
-            where q.type = com.neogul.whynago.question.domain.QuestionType.MULTIPLE_CHOICE
-              and q.id not in (
-                  select ac.relatedQuestionId
-                  from AnswerChoice ac
-                  where ac.relatedQuestionId is not null
-              )
-              and (:type is null or q.type = :type)
+            where (:type is null or q.type = :type)
               and (:difficulty is null or q.difficulty = :difficulty)
               and (:category is null or q.category = :category)
               and (:keyword is null or lower(q.title) like lower(concat('%', :keyword, '%'))
                    or lower(q.content) like lower(concat('%', :keyword, '%')))
             order by q.id desc
             """)
-    List<Question> findRootMultipleChoices(
+    List<Question> findQuestions(
             @Param("type") QuestionType type,
             @Param("difficulty") Difficulty difficulty,
             @Param("category") Category category,

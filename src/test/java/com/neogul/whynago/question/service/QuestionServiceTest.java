@@ -19,7 +19,10 @@ import com.neogul.whynago.question.infra.QuestionTagRepository;
 import com.neogul.whynago.question.service.dto.ChoiceGradingResult;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
+import com.neogul.whynago.question.service.dto.QuestionResult;
+import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,6 +112,26 @@ class QuestionServiceTest extends IntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(QuestionErrorCode.QUESTION_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("문제 목록에 서술형 문제가 선택지 없이 태그와 함께 포함된다.")
+    void findQuestions_essay() {
+        // given
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+        questionTagRepository.save(QuestionTag.create(essay.getId(), "트랜잭션"));
+
+        // when
+        List<QuestionResult> results = questionService.findQuestions(
+                new QuestionSearchCommand(QuestionType.ESSAY, null, null, null)
+        );
+
+        // then
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().id()).isEqualTo(essay.getId());
+        assertThat(results.getFirst().type()).isEqualTo(QuestionType.ESSAY);
+        assertThat(results.getFirst().choices()).isEmpty();
+        assertThat(results.getFirst().tags()).containsExactly("트랜잭션");
     }
 
     @Test

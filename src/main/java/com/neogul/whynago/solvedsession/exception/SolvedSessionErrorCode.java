@@ -5,7 +5,8 @@ import org.springframework.http.HttpStatus;
 
 public enum SolvedSessionErrorCode implements ErrorCode {
 
-    SOLVED_SESSION_BROKEN_CHAIN(HttpStatus.BAD_REQUEST, "SOLVED_SESSION_BROKEN_CHAIN", "꼬리질문 연결이 올바르지 않습니다.");
+    SOLVED_SESSION_BROKEN_CHAIN(HttpStatus.BAD_REQUEST, "SOLVED_SESSION_BROKEN_CHAIN", "꼬리질문 연결이 올바르지 않습니다."),
+    SOLVED_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SOLVED_SESSION_NOT_FOUND", "풀이 세션을 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;
