@@ -22,6 +22,12 @@ export interface SignUpResponse {
   userId: number;
 }
 
+/** 내 프로필 조회 응답 — GET /api/users/me */
+export interface UserProfileResponse {
+  /** 최소 학습 목표(하루 최소 풀이 세션 수) */
+  dailyGoal: number;
+}
+
 /** 상단 공통 헤더의 내비게이션 항목 */
 export interface NavItem {
   key: string;
