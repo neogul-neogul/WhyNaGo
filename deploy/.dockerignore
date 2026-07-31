@@ -1,0 +1,9 @@
+.env
+.env.example
+docker-compose.yml
+nginx.conf
+.dockerignore
+
+certbot-conf/
+certbot-www/
+

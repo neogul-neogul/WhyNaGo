@@ -57,3 +57,8 @@ dependencyManagement {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// 산출물 이름을 app.jar 로 고정
+tasks.named('bootJar') {
+    archiveFileName = 'app.jar'
+}

@@ -36,3 +36,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 배포 (deploy) ###
+deploy/.env
+deploy/app.jar
