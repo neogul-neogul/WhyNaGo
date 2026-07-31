@@ -2,11 +2,15 @@ package com.neogul.whynago.user.presentation;
 
 import com.neogul.whynago.auth.presentation.AuthContext;
 import com.neogul.whynago.auth.presentation.resolver.LoginUser;
+import com.neogul.whynago.user.presentation.dto.UpdateDailyGoalRequest;
 import com.neogul.whynago.user.presentation.dto.UserProfileResponse;
 import com.neogul.whynago.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,5 +24,15 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile(@LoginUser AuthContext authContext) {
         return ResponseEntity.ok(UserProfileResponse.from(userService.getProfile(authContext.id())));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateDailyGoal(
+            @LoginUser AuthContext authContext,
+            @Valid @RequestBody UpdateDailyGoalRequest request
+    ) {
+        UserProfileResponse response = UserProfileResponse.from(
+                userService.updateDailyGoal(authContext.id(), request.dailyGoal()));
+        return ResponseEntity.ok(response);
     }
 }

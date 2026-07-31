@@ -41,4 +41,24 @@ class UserServiceTest extends IntegrationTestSupport {
                 .satisfies(e -> assertThat(((BusinessException) e).errorCode())
                         .isEqualTo(UserErrorCode.USER_NOT_FOUND));
     }
+
+    @DisplayName("사용자의 최소 학습 목표를 수정한다.")
+    @Test
+    void updateDailyGoal() {
+        User user = userRepository.save(UserFixture.user().build());
+
+        UserProfileResult result = userService.updateDailyGoal(user.getId(), 20);
+
+        assertThat(result.dailyGoal()).isEqualTo(20);
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getDailyGoal()).isEqualTo(20);
+    }
+
+    @DisplayName("존재하지 않는 사용자의 목표를 수정하면 예외가 발생한다.")
+    @Test
+    void updateDailyGoal_notFound() {
+        assertThatThrownBy(() -> userService.updateDailyGoal(999L, 20))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(UserErrorCode.USER_NOT_FOUND));
+    }
 }
