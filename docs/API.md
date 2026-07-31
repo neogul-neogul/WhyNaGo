@@ -737,13 +737,21 @@ GET /api/users/me
 
 ```json
 {
-  "dailyGoal": 10
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 10,
+  "bio": "CS 기초를 탄탄히 다지는 중입니다."
 }
 ```
 
 | **필드** | **타입** | **설명** |
 | --- | --- | --- |
+| `nickname` | String | 닉네임. |
+| `email` | String | 이메일. |
+| `position` | String | 직무. `BACKEND` \| `FRONTEND` \| `FULLSTACK`. 가입 시 `BACKEND`로 고정되며, 프로필 수정으로 변경할 수 있다. |
 | `dailyGoal` | int | 최소 학습 목표(하루 최소 풀이 세션 수). 가입 시 기본값(10)으로 설정된다. |
+| `bio` | String | 자기소개. 가입 시 빈 문자열. |
 
 ### **에러**
 
@@ -751,7 +759,9 @@ GET /api/users/me
 
 ---
 
-## **최소 학습 목표 수정**
+## **프로필 수정**
+
+닉네임·이메일·직무·최소 학습 목표·자기소개를 한 번에 수정한다(부분 수정 아님 — 매 요청마다 전체 필드를 보낸다).
 
 ### **Endpoint**
 
@@ -765,19 +775,31 @@ PATCH /api/users/me
 
 ```json
 {
-  "dailyGoal": 15
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 15,
+  "bio": "CS 기초를 탄탄히 다지는 중입니다."
 }
 ```
 
 | **필드** | **타입** | **필수** | **설명** |
 | --- | --- | --- | --- |
+| `nickname` | String | O | 4~8자. 다른 사용자와 중복될 수 없다(본인의 기존 닉네임은 예외). |
+| `email` | String | O | 이메일 형식. 다른 사용자와 중복될 수 없다(본인의 기존 이메일은 예외). |
+| `position` | String | O | `BACKEND` \| `FRONTEND` \| `FULLSTACK`. |
 | `dailyGoal` | int | O | 새 최소 학습 목표. 1 이상이어야 한다. |
+| `bio` | String | X | 자기소개. 생략하면 빈 문자열로 저장된다. |
 
 ### **Response Body**
 
 ```json
 {
-  "dailyGoal": 15
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 15,
+  "bio": "CS 기초를 탄탄히 다지는 중입니다."
 }
 ```
 
@@ -785,4 +807,6 @@ PATCH /api/users/me
 
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
-| 400 | `INVALID_INPUT` | `dailyGoal`이 없거나 1 미만. |
+| 400 | `INVALID_INPUT` | 필수값 누락, 닉네임 길이 위반, 이메일 형식 오류, `dailyGoal` 1 미만 등 요청 형식 검증 실패. |
+| 409 | `USER_DUPLICATE_EMAIL` | 다른 사용자가 이미 사용 중인 이메일. |
+| 409 | `USER_DUPLICATE_NICKNAME` | 다른 사용자가 이미 사용 중인 닉네임. |

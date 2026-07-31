@@ -2,7 +2,7 @@ package com.neogul.whynago.user.presentation;
 
 import com.neogul.whynago.auth.presentation.AuthContext;
 import com.neogul.whynago.auth.presentation.resolver.LoginUser;
-import com.neogul.whynago.user.presentation.dto.UpdateDailyGoalRequest;
+import com.neogul.whynago.user.presentation.dto.UpdateProfileRequest;
 import com.neogul.whynago.user.presentation.dto.UserProfileResponse;
 import com.neogul.whynago.user.service.UserService;
 import jakarta.validation.Valid;
@@ -27,12 +27,12 @@ public class UserController {
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<UserProfileResponse> updateDailyGoal(
+    public ResponseEntity<UserProfileResponse> updateProfile(
             @LoginUser AuthContext authContext,
-            @Valid @RequestBody UpdateDailyGoalRequest request
+            @Valid @RequestBody UpdateProfileRequest request
     ) {
         UserProfileResponse response = UserProfileResponse.from(
-                userService.updateDailyGoal(authContext.id(), request.dailyGoal()));
+                userService.updateProfile(authContext.id(), request.toCommand()));
         return ResponseEntity.ok(response);
     }
 }
