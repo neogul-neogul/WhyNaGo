@@ -23,6 +23,49 @@ class UserTest {
         assertThat(user.getEmail().getValue()).isEqualTo("test@example.com");
         assertThat(user.getNickname()).isEqualTo("tester");
         assertThat(user.getPosition()).isEqualTo(Position.BACKEND);
+        assertThat(user.getDailyGoal()).isEqualTo(10);
+    }
+
+    @DisplayName("최소 학습 목표를 변경한다.")
+    @Test
+    void updateDailyGoal() {
+        // given
+        User user = User.create("test@example.com", "hashedPassword", "tester");
+
+        // when
+        user.updateDailyGoal(20);
+
+        // then
+        assertThat(user.getDailyGoal()).isEqualTo(20);
+    }
+
+    @DisplayName("프로필을 수정한다.")
+    @Test
+    void updateProfile() {
+        // given
+        User user = User.create("test@example.com", "hashedPassword", "tester");
+
+        // when
+        user.updateProfile("changed@example.com", "changed", Position.FRONTEND, 20);
+
+        // then
+        assertThat(user.getEmail().getValue()).isEqualTo("changed@example.com");
+        assertThat(user.getNickname()).isEqualTo("changed");
+        assertThat(user.getPosition()).isEqualTo(Position.FRONTEND);
+        assertThat(user.getDailyGoal()).isEqualTo(20);
+    }
+
+    @DisplayName("프로필 수정 시 닉네임 형식이 올바르지 않으면 예외가 발생한다.")
+    @Test
+    void updateProfile_invalidNickname() {
+        // given
+        User user = User.create("test@example.com", "hashedPassword", "tester");
+
+        // when & then
+        assertThatThrownBy(() -> user.updateProfile("test@example.com", "ab", Position.BACKEND, 10))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(UserErrorCode.USER_INVALID_NICKNAME));
     }
 
     @DisplayName("닉네임 형식이 올바르지 않으면 예외가 발생한다.")

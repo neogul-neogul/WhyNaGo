@@ -7,6 +7,7 @@ export default function ProfileDetail({ profile }: { profile: Profile }) {
     <Card className="px-[26px] py-2">
       <DetailRow label="닉네임" value={profile.nickname} border />
       <DetailRow label="이메일" value={profile.email} border />
+      <DetailRow label="직무" value={profile.job} border />
       <DetailRow label="최소 학습 목표" value={`매일 최소 ${profile.goal || "0"}개`} />
     </Card>
   );

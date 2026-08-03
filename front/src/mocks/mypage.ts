@@ -4,9 +4,8 @@ import type { Profile } from "@/types";
 export const defaultProfile: Profile = {
   nickname: "지민",
   email: "jimin.dev@gmail.com",
-  job: "백엔드 개발 준비생",
+  job: "백엔드",
   goal: "10",
-  bio: "CS 기초를 탄탄히 다지는 중입니다.",
 };
 
 // 마이페이지 요약 통계 — 더미

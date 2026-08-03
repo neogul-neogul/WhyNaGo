@@ -1,9 +1,14 @@
 "use client";
 
 import type { Profile } from "@/types";
+import { POSITION_LABELS } from "@/lib/user";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
+
+const POSITION_OPTIONS = Object.values(POSITION_LABELS);
+const FIELD_CLASS =
+  "w-full rounded-[11px] border border-line-input bg-subtle px-[15px] py-[13px] text-sm text-ink outline-none focus:border-ink";
 
 // 프로필 수정 폼
 export default function ProfileEditForm({
@@ -11,11 +16,13 @@ export default function ProfileEditForm({
   onChange,
   onCancel,
   onSave,
+  saving,
 }: {
   draft: Profile;
   onChange: (key: keyof Profile, value: string) => void;
   onCancel: () => void;
   onSave: () => void;
+  saving?: boolean;
 }) {
   return (
     <Card className="flex flex-col gap-4 px-[26px] py-6">
@@ -26,7 +33,17 @@ export default function ProfileEditForm({
         <Input value={draft.email} onChange={(e) => onChange("email", e.target.value)} />
       </Field>
       <Field label="직무">
-        <Input value={draft.job} onChange={(e) => onChange("job", e.target.value)} />
+        <select
+          value={draft.job}
+          onChange={(e) => onChange("job", e.target.value)}
+          className={FIELD_CLASS}
+        >
+          {POSITION_OPTIONS.map((label) => (
+            <option key={label} value={label}>
+              {label}
+            </option>
+          ))}
+        </select>
       </Field>
       <Field label="최소 학습 목표 문제 개수">
         <div className="flex items-center gap-2.5">
@@ -42,11 +59,11 @@ export default function ProfileEditForm({
         </div>
       </Field>
       <div className="flex justify-end gap-2.5 pt-0.5">
-        <Button variant="muted" size="md" onClick={onCancel}>
+        <Button variant="muted" size="md" onClick={onCancel} disabled={saving}>
           취소
         </Button>
-        <Button size="md" onClick={onSave}>
-          저장
+        <Button size="md" onClick={onSave} disabled={saving}>
+          {saving ? "저장 중…" : "저장"}
         </Button>
       </div>
     </Card>
