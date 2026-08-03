@@ -36,7 +36,6 @@ class UserServiceTest extends IntegrationTestSupport {
         assertThat(result.nickname()).isEqualTo("tester");
         assertThat(result.position()).isEqualTo(Position.BACKEND);
         assertThat(result.dailyGoal()).isEqualTo(15);
-        assertThat(result.bio()).isEmpty();
     }
 
     @DisplayName("존재하지 않는 사용자를 조회하면 예외가 발생한다.")
@@ -53,7 +52,7 @@ class UserServiceTest extends IntegrationTestSupport {
     void updateProfile() {
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
         UpdateProfileCommand command = new UpdateProfileCommand(
-                "changed@example.com", "changed", Position.FRONTEND, 20, "새 소개");
+                "changed@example.com", "changed", Position.FRONTEND, 20);
 
         UserProfileResult result = userService.updateProfile(user.getId(), command);
 
@@ -61,7 +60,6 @@ class UserServiceTest extends IntegrationTestSupport {
         assertThat(result.nickname()).isEqualTo("changed");
         assertThat(result.position()).isEqualTo(Position.FRONTEND);
         assertThat(result.dailyGoal()).isEqualTo(20);
-        assertThat(result.bio()).isEqualTo("새 소개");
     }
 
     @DisplayName("자신의 기존 이메일·닉네임으로는 그대로 수정할 수 있다.")
@@ -69,7 +67,7 @@ class UserServiceTest extends IntegrationTestSupport {
     void updateProfile_sameEmailAndNickname() {
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
         UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "tester", Position.BACKEND, 20, "");
+                "member@example.com", "tester", Position.BACKEND, 20);
 
         UserProfileResult result = userService.updateProfile(user.getId(), command);
 
@@ -82,7 +80,7 @@ class UserServiceTest extends IntegrationTestSupport {
         userRepository.save(UserFixture.user().email("taken@example.com").nickname("taken").build());
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
         UpdateProfileCommand command = new UpdateProfileCommand(
-                "taken@example.com", "tester", Position.BACKEND, 10, "");
+                "taken@example.com", "tester", Position.BACKEND, 10);
 
         assertThatThrownBy(() -> userService.updateProfile(user.getId(), command))
                 .isInstanceOf(BusinessException.class)
@@ -96,7 +94,7 @@ class UserServiceTest extends IntegrationTestSupport {
         userRepository.save(UserFixture.user().email("taken@example.com").nickname("taken").build());
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
         UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "taken", Position.BACKEND, 10, "");
+                "member@example.com", "taken", Position.BACKEND, 10);
 
         assertThatThrownBy(() -> userService.updateProfile(user.getId(), command))
                 .isInstanceOf(BusinessException.class)
@@ -108,7 +106,7 @@ class UserServiceTest extends IntegrationTestSupport {
     @Test
     void updateProfile_notFound() {
         UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "tester", Position.BACKEND, 20, "");
+                "member@example.com", "tester", Position.BACKEND, 20);
 
         assertThatThrownBy(() -> userService.updateProfile(999L, command))
                 .isInstanceOf(BusinessException.class)

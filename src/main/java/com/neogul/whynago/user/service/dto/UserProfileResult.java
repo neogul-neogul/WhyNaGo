@@ -7,8 +7,7 @@ public record UserProfileResult(
         String nickname,
         String email,
         Position position,
-        int dailyGoal,
-        String bio
+        int dailyGoal
 ) {
 
     public static UserProfileResult from(User user) {
@@ -16,7 +15,6 @@ public record UserProfileResult(
                 user.getNickname(),
                 user.getEmail().getValue(),
                 user.getPosition(),
-                user.getDailyGoal(),
-                user.getBio());
+                user.getDailyGoal());
     }
 }

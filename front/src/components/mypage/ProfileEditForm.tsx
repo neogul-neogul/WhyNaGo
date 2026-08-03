@@ -58,14 +58,6 @@ export default function ProfileEditForm({
           <span className="text-[14px] text-secondary">개 / 일</span>
         </div>
       </Field>
-      <Field label="자기소개">
-        <textarea
-          value={draft.bio}
-          onChange={(e) => onChange("bio", e.target.value)}
-          rows={3}
-          className={`${FIELD_CLASS} resize-y leading-[1.6]`}
-        />
-      </Field>
       <div className="flex justify-end gap-2.5 pt-0.5">
         <Button variant="muted" size="md" onClick={onCancel} disabled={saving}>
           취소

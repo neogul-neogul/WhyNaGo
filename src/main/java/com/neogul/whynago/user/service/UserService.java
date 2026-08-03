@@ -25,7 +25,7 @@ public class UserService {
     public UserProfileResult updateProfile(Long userId, UpdateProfileCommand command) {
         User user = userReader.read(userId);
         userValidator.validateUniqueForUpdate(userId, command.email(), command.nickname());
-        user.updateProfile(command.email(), command.nickname(), command.position(), command.dailyGoal(), command.bio());
+        user.updateProfile(command.email(), command.nickname(), command.position(), command.dailyGoal());
         return UserProfileResult.from(user);
     }
 }

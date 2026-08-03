@@ -12,11 +12,10 @@ public record UpdateProfileRequest(
         @NotBlank @Email String email,
         @NotBlank @Size(min = 4, max = 8) String nickname,
         @NotNull Position position,
-        @Min(1) int dailyGoal,
-        String bio
+        @Min(1) int dailyGoal
 ) {
 
     public UpdateProfileCommand toCommand() {
-        return new UpdateProfileCommand(email, nickname, position, dailyGoal, bio);
+        return new UpdateProfileCommand(email, nickname, position, dailyGoal);
     }
 }

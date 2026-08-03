@@ -21,7 +21,7 @@ class UserControllerTest extends ControllerTestSupport {
     @Test
     void getProfile() {
         given(userService.getProfile(10L)).willReturn(
-                new UserProfileResult("tester", "member@example.com", Position.BACKEND, 15, "소개"));
+                new UserProfileResult("tester", "member@example.com", Position.BACKEND, 15));
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
@@ -32,15 +32,14 @@ class UserControllerTest extends ControllerTestSupport {
                 .body("nickname", equalTo("tester"))
                 .body("email", equalTo("member@example.com"))
                 .body("position", equalTo("BACKEND"))
-                .body("dailyGoal", equalTo(15))
-                .body("bio", equalTo("소개"));
+                .body("dailyGoal", equalTo(15));
     }
 
     @DisplayName("프로필을 수정한다.")
     @Test
     void updateProfile() {
         given(userService.updateProfile(eq(10L), any())).willReturn(
-                new UserProfileResult("changed", "changed@example.com", Position.FRONTEND, 20, "새 소개"));
+                new UserProfileResult("changed", "changed@example.com", Position.FRONTEND, 20));
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
@@ -50,8 +49,7 @@ class UserControllerTest extends ControllerTestSupport {
                           "nickname": "changed",
                           "email": "changed@example.com",
                           "position": "FRONTEND",
-                          "dailyGoal": 20,
-                          "bio": "새 소개"
+                          "dailyGoal": 20
                         }
                         """)
                 .when()
@@ -74,8 +72,7 @@ class UserControllerTest extends ControllerTestSupport {
                           "nickname": "tester",
                           "email": "member@example.com",
                           "position": "BACKEND",
-                          "dailyGoal": 0,
-                          "bio": ""
+                          "dailyGoal": 0
                         }
                         """)
                 .when()
@@ -96,8 +93,7 @@ class UserControllerTest extends ControllerTestSupport {
                           "nickname": "ab",
                           "email": "member@example.com",
                           "position": "BACKEND",
-                          "dailyGoal": 10,
-                          "bio": ""
+                          "dailyGoal": 10
                         }
                         """)
                 .when()

@@ -47,35 +47,30 @@ public class User {
     @Column(nullable = false)
     private int dailyGoal;
 
-    @Column(columnDefinition = "TEXT")
-    private String bio;
-
-    private User(Email email, String password, String nickname, Position position, int dailyGoal, String bio) {
+    private User(Email email, String password, String nickname, Position position, int dailyGoal) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
         this.position = position;
         this.dailyGoal = dailyGoal;
-        this.bio = bio;
     }
 
     // 직무 BACKEND로 고정
     public static User create(String email, String password, String nickname) {
         validateNickname(nickname);
-        return new User(new Email(email), password, nickname, Position.BACKEND, DEFAULT_DAILY_GOAL, "");
+        return new User(new Email(email), password, nickname, Position.BACKEND, DEFAULT_DAILY_GOAL);
     }
 
     public void updateDailyGoal(int dailyGoal) {
         this.dailyGoal = dailyGoal;
     }
 
-    public void updateProfile(String email, String nickname, Position position, int dailyGoal, String bio) {
+    public void updateProfile(String email, String nickname, Position position, int dailyGoal) {
         validateNickname(nickname);
         this.email = new Email(email);
         this.nickname = nickname;
         this.position = position;
         this.dailyGoal = dailyGoal;
-        this.bio = bio == null ? "" : bio;
     }
 
     private static void validateNickname(String nickname) {

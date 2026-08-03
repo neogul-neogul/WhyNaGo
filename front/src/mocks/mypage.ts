@@ -6,7 +6,6 @@ export const defaultProfile: Profile = {
   email: "jimin.dev@gmail.com",
   job: "백엔드",
   goal: "10",
-  bio: "CS 기초를 탄탄히 다지는 중입니다.",
 };
 
 // 마이페이지 요약 통계 — 더미

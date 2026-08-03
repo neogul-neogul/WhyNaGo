@@ -7,8 +7,7 @@ public record UserProfileResponse(
         String nickname,
         String email,
         Position position,
-        int dailyGoal,
-        String bio
+        int dailyGoal
 ) {
 
     public static UserProfileResponse from(UserProfileResult result) {
@@ -16,7 +15,6 @@ public record UserProfileResponse(
                 result.nickname(),
                 result.email(),
                 result.position(),
-                result.dailyGoal(),
-                result.bio());
+                result.dailyGoal());
     }
 }

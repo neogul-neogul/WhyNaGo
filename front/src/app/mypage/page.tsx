@@ -17,7 +17,6 @@ function toProfile(response: UserProfileResponse): Profile {
     email: response.email,
     job: POSITION_LABELS[response.position],
     goal: String(response.dailyGoal),
-    bio: response.bio,
   };
 }
 
@@ -60,7 +59,6 @@ export default function MypagePage() {
         email: draft.email,
         position,
         dailyGoal: Number(draft.goal),
-        bio: draft.bio,
       });
       setProfile(toProfile(result));
       setEditing(false);
