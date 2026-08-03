@@ -1,16 +1,13 @@
 package com.neogul.whynago.learningrecord.service;
 
 import com.neogul.whynago.learningrecord.implement.DailyRecordAggregator;
+import com.neogul.whynago.learningrecord.implement.RootQuestionReader;
 import com.neogul.whynago.learningrecord.implement.StreakCalculator;
 import com.neogul.whynago.learningrecord.service.dto.DailyRecordCountResult;
 import com.neogul.whynago.learningrecord.service.dto.RecentRecordResult;
 import com.neogul.whynago.learningrecord.service.dto.StreakResult;
 import com.neogul.whynago.question.domain.Question;
-import com.neogul.whynago.question.domain.QuestionType;
-import com.neogul.whynago.question.implement.QuestionReader;
 import com.neogul.whynago.solvedsession.domain.SolvedSession;
-import com.neogul.whynago.solvedsession.implement.EssaySolvedReader;
-import com.neogul.whynago.solvedsession.implement.SolvedMultipleChoiceReader;
 import com.neogul.whynago.solvedsession.implement.SolvedSessionReader;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,9 +26,7 @@ public class LearningRecordService {
     private static final int DEFAULT_DAILY_COUNT_RANGE_DAYS = 364;
 
     private final SolvedSessionReader solvedSessionReader;
-    private final SolvedMultipleChoiceReader solvedMultipleChoiceReader;
-    private final EssaySolvedReader essaySolvedReader;
-    private final QuestionReader questionReader;
+    private final RootQuestionReader rootQuestionReader;
     private final StreakCalculator streakCalculator;
     private final DailyRecordAggregator dailyRecordAggregator;
 
@@ -69,16 +64,7 @@ public class LearningRecordService {
     }
 
     private RecentRecordResult toRecentRecord(SolvedSession session) {
-        Question rootQuestion = readRootQuestion(session);
+        Question rootQuestion = rootQuestionReader.read(session);
         return RecentRecordResult.of(session, rootQuestion.getCategory());
-    }
-
-    private Question readRootQuestion(SolvedSession session) {
-        if (session.getType() == QuestionType.ESSAY) {
-            Long rootQuestionId = essaySolvedReader.readOrdered(session.getId()).get(0).getQuestionId();
-            return questionReader.read(rootQuestionId);
-        }
-        Long rootQuestionId = solvedMultipleChoiceReader.readOrdered(session.getId()).get(0).getQuestionId();
-        return questionReader.read(rootQuestionId);
     }
 }
