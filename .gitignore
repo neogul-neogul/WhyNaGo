@@ -40,3 +40,5 @@ out/
 ### 배포 (deploy) ###
 deploy/.env
 deploy/app.jar
+deploy/certbot-conf/
+deploy/certbot-www/
