@@ -1,8 +1,11 @@
 package com.neogul.whynago.learningrecord.service;
 
 import com.neogul.whynago.learningrecord.implement.DailyRecordAggregator;
+import com.neogul.whynago.learningrecord.implement.DailyRecordRangeCalculator;
 import com.neogul.whynago.learningrecord.implement.RootQuestionReader;
+import com.neogul.whynago.learningrecord.implement.SolvedDateReader;
 import com.neogul.whynago.learningrecord.implement.StreakCalculator;
+import com.neogul.whynago.learningrecord.implement.dto.DateTimeRange;
 import com.neogul.whynago.learningrecord.service.dto.DailyRecordCountResult;
 import com.neogul.whynago.learningrecord.service.dto.RecentRecordResult;
 import com.neogul.whynago.learningrecord.service.dto.StreakResult;
@@ -10,10 +13,9 @@ import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.solvedsession.domain.SolvedSession;
 import com.neogul.whynago.solvedsession.implement.SolvedSessionReader;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class LearningRecordService {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-    private static final int DEFAULT_DAILY_COUNT_RANGE_DAYS = 364;
 
     private final SolvedSessionReader solvedSessionReader;
     private final RootQuestionReader rootQuestionReader;
+    private final SolvedDateReader solvedDateReader;
     private final StreakCalculator streakCalculator;
     private final DailyRecordAggregator dailyRecordAggregator;
+    private final DailyRecordRangeCalculator dailyRecordRangeCalculator;
 
     @Transactional(readOnly = true)
     public List<RecentRecordResult> findRecent(Long userId, int size) {
@@ -39,25 +42,18 @@ public class LearningRecordService {
 
     @Transactional(readOnly = true)
     public StreakResult getStreak(Long userId) {
-        List<LocalDate> solvedDates = solvedSessionReader.readAll(userId).stream()
-                .map(session -> session.getSolvedAt().toLocalDate())
-                .toList();
-        LocalDate today = LocalDate.now(KST);
-        return StreakResult.from(streakCalculator.calculate(solvedDates, today));
+        List<LocalDate> solvedDates = solvedDateReader.readAll(userId);
+        return StreakResult.from(streakCalculator.calculate(solvedDates, LocalDate.now(KST)));
     }
 
     @Transactional(readOnly = true)
     public List<DailyRecordCountResult> findDailyCounts(Long userId, LocalDate from, LocalDate to) {
-        LocalDate resolvedTo = to != null ? to : LocalDate.now(KST);
-        LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(DEFAULT_DAILY_COUNT_RANGE_DAYS);
-        if (resolvedFrom.isAfter(resolvedTo)) {
+        Optional<DateTimeRange> range = dailyRecordRangeCalculator.resolve(from, to, LocalDate.now(KST));
+        if (range.isEmpty()) {
             return List.of();
         }
 
-        LocalDateTime fromDateTime = resolvedFrom.atStartOfDay();
-        LocalDateTime toDateTime = resolvedTo.atTime(LocalTime.MAX);
-        List<SolvedSession> sessions = solvedSessionReader.readBetween(userId, fromDateTime, toDateTime);
-
+        List<SolvedSession> sessions = solvedSessionReader.readBetween(userId, range.get().from(), range.get().to());
         return dailyRecordAggregator.aggregate(sessions).stream()
                 .map(DailyRecordCountResult::from)
                 .toList();
