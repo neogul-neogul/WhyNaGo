@@ -4,13 +4,15 @@ import com.neogul.whynago.solvedsession.service.dto.CreateEssaySolvedSessionComm
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record CreateEssaySolvedSessionRequest(
         @NotNull @Valid EssaySolvedQuestionRequest rootQuestion,
         @NotNull
         @Size(min = 2, max = 2, message = "꼬리질문은 2개여야 합니다.")
-        List<@Valid EssaySolvedQuestionRequest> followupQuestions
+        List<@Valid EssaySolvedQuestionRequest> followupQuestions,
+        @NotNull LocalDateTime startedAt
 ) {
 
     public CreateEssaySolvedSessionCommand toCommand() {
@@ -18,7 +20,8 @@ public record CreateEssaySolvedSessionRequest(
                 rootQuestion.toCommand(),
                 followupQuestions.stream()
                         .map(EssaySolvedQuestionRequest::toCommand)
-                        .toList()
+                        .toList(),
+                startedAt
         );
     }
 }

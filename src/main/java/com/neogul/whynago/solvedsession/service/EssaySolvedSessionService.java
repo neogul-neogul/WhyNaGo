@@ -36,6 +36,7 @@ public class EssaySolvedSessionService {
                 userId,
                 graded.totalCount(),
                 graded.correctCount(),
+                command.startedAt(),
                 solvedAt
         );
         essaySolvedAppender.appendAll(userId, session.getId(), graded.items(), solvedAt);

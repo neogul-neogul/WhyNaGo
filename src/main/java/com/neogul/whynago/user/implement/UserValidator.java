@@ -20,4 +20,14 @@ public class UserValidator {
             throw new BusinessException(UserErrorCode.USER_DUPLICATE_NICKNAME);
         }
     }
+
+    // 본인의 기존 값과는 중복으로 보지 않는다
+    public void validateUniqueForUpdate(Long userId, String email, String nickname) {
+        if (userRepository.existsByEmailValueAndIdNot(email, userId)) {
+            throw new BusinessException(UserErrorCode.USER_DUPLICATE_EMAIL);
+        }
+        if (userRepository.existsByNicknameAndIdNot(nickname, userId)) {
+            throw new BusinessException(UserErrorCode.USER_DUPLICATE_NICKNAME);
+        }
+    }
 }
