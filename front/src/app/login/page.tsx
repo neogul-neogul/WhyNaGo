@@ -1,27 +1,38 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { requestLogin } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import AuthCard from "@/components/auth/AuthCard";
 import Input from "@/components/ui/Input";
 
-export default function LoginPage() {
+// 외부 URL로 튕기지 않도록 앱 내부 경로만 복귀 대상으로 인정한다
+function safeRedirect(target: string | null): string {
+  if (target === null) return "/";
+  if (!target.startsWith("/") || target.startsWith("//")) return "/";
+  return target;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = safeRedirect(searchParams.get("redirect"));
+  const expired = searchParams.get("reason") === "expired";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 백엔드에 로그인 요청 → 성공 시 세션 저장 후 메인으로 이동, 실패 시 에러 표시
+  // 백엔드에 로그인 요청 → 성공 시 세션 저장 후 원래 보던 화면으로 복귀, 실패 시 에러 표시
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
       await requestLogin(email, password);
-      router.push("/");
+      router.replace(redirect);
     } catch (err) {
       if (err instanceof ApiError && err.code === "AUTH_LOGIN_FAILED") {
         setError("이메일 또는 비밀번호가 올바르지 않습니다.");
@@ -37,6 +48,13 @@ export default function LoginPage() {
 
   return (
     <AuthCard subtitle="WhyNaGo에서 성장해보세요!" onSubmit={handleSubmit}>
+      {/* 세션 만료 안내 */}
+      {expired && (
+        <p className="mb-[9px] w-full rounded-[9px] bg-accent-faint px-3 py-2.5 text-[13px] text-accent">
+          세션이 만료되었어요. 다시 로그인해주세요.
+        </p>
+      )}
+
       {/* 입력 */}
       <Input
         type="email"
@@ -74,5 +92,14 @@ export default function LoginPage() {
         회원가입
       </button>
     </AuthCard>
+  );
+}
+
+// useSearchParams는 정적 프리렌더에서 CSR bailout을 일으키므로 Suspense 경계가 필요하다
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
