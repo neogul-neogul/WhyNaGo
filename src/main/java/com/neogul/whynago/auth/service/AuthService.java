@@ -4,6 +4,8 @@ import com.neogul.whynago.auth.domain.JwtClaim;
 import com.neogul.whynago.auth.domain.TokenPair;
 import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.implement.JwtProvider;
+import com.neogul.whynago.auth.implement.RefreshTokenAppender;
+import com.neogul.whynago.auth.implement.RefreshTokenRevoker;
 import com.neogul.whynago.auth.service.dto.LoginCommand;
 import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
@@ -26,6 +28,8 @@ public class AuthService {
     private final UserAppender userAppender;
     private final UserReader userReader;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenAppender refreshTokenAppender;
+    private final RefreshTokenRevoker refreshTokenRevoker;
 
     @Transactional
     public Long signup(SignUpCommand command) {
@@ -35,7 +39,7 @@ public class AuthService {
         return user.getId();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResult login(LoginCommand command) {
         User user = userReader.findByEmail(command.email())
                 .orElseThrow(() -> new BusinessException(AuthErrorCode.AUTH_LOGIN_FAILED));
@@ -43,6 +47,8 @@ public class AuthService {
             throw new BusinessException(AuthErrorCode.AUTH_LOGIN_FAILED);
         }
         TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId()));
+        refreshTokenRevoker.revokeAllByUserId(user.getId());
+        refreshTokenAppender.append(user.getId(), tokenPair.refreshToken());
         return new LoginResult(
                 tokenPair,
                 user.getId(),
