@@ -28,6 +28,247 @@ API는 `docs/ARCHITECTURE.md`의 레이어 규칙을 따른다. 요청/응답 DT
 
 ---
 
+# **Auth API**
+
+회원가입·로그인과 토큰 수명 관리를 담당한다. 관련 도메인은 `auth`다.
+
+## **인증 방식**
+
+로그인하면 **access token**과 **refresh token**을 발급한다. 인증이 필요한 API는 access token을 `Authorization` 헤더에 담아 호출한다.
+
+```
+Authorization: Bearer {accessToken}
+```
+
+| **토큰** | **수명** | **용도** |
+| --- | --- | --- |
+| access token | 30분 | API 호출 인증 |
+| refresh token | 7일 | access token 재발급 |
+
+- **refresh token은 서버에 저장된다.** 저장되어 있는지가 곧 유효한지이며, 재발급·로그아웃 시 폐기된다.
+- **재발급하면 refresh token도 함께 교체된다(rotation).** 재발급에 쓴 토큰은 그 즉시 무효가 되므로, 클라이언트는 응답으로 받은 새 refresh token으로 반드시 갈아끼워야 한다.
+- **한 계정의 활성 세션은 하나다.** 다시 로그인하면 이전 기기의 refresh token이 폐기되고, 그 기기는 다음 재발급 시점에 로그아웃된다.
+- `/api/auth/**`는 모두 인증 없이 호출한다. 재발급과 로그아웃은 access token이 이미 만료된 상태에서 호출되므로 인증을 요구하지 않는다.
+
+### **인증 실패 응답**
+
+인증이 필요한 API에서 토큰이 유효하지 않으면 모두 `401 Unauthorized`로 내려가며, `code`로 원인을 구분한다.
+
+| **상황** | **code** | **클라이언트 처리** |
+| --- | --- | --- |
+| `Authorization` 헤더가 없거나 비어 있음 | `AUTH_TOKEN_MISSING` | 로그인 화면으로 유도 |
+| `Bearer ` 형식이 아니거나 서명이 맞지 않음 | `AUTH_TOKEN_INVALID` | 저장된 토큰을 버리고 재로그인 |
+| 토큰이 만료됨 | `AUTH_TOKEN_EXPIRED` | 재발급을 시도하고, 실패하면 재로그인 |
+
+---
+
+## **회원가입**
+
+계정을 생성한다. 토큰은 발급하지 않으므로 가입 후 로그인을 별도로 호출해야 한다. 직무(`position`)는 현재 `BACKEND`로 고정된다.
+
+### **Endpoint**
+
+```
+POST /api/auth/signup
+```
+
+- 성공 시 `201 Created`와 생성된 사용자 ID를 반환한다.
+- 인증이 필요 없다.
+
+### **Request Body**
+
+```json
+{
+  "email": "member@example.com",
+  "password": "password123",
+  "nickname": "테스터"
+}
+```
+
+| **필드** | **타입** | **제약** | **설명** |
+| --- | --- | --- | --- |
+| `email` | String | 필수, 이메일 형식 | 로그인 ID로 사용한다. |
+| `password` | String | 필수, 8~12자 | 저장 시 해싱된다. |
+| `nickname` | String | 필수, 4~8자 | 중복될 수 없다. |
+
+### **Response Body**
+
+```json
+{
+  "userId": 1
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `userId` | Long | 생성된 사용자 ID. |
+
+### **에러**
+
+| **상황** | **status** | **code** |
+| --- | --- | --- |
+| 형식 검증 실패 | 400 | `INVALID_INPUT` |
+| 이미 사용 중인 이메일 | 409 | `USER_DUPLICATE_EMAIL` |
+| 이미 사용 중인 닉네임 | 409 | `USER_DUPLICATE_NICKNAME` |
+| 닉네임 길이 규칙 위반 | 400 | `USER_INVALID_NICKNAME` |
+| 이메일 형식 규칙 위반 | 400 | `USER_INVALID_EMAIL` |
+
+> `INVALID_INPUT`은 요청 DTO 검증(`@Email`·`@Size`)에서, `USER_INVALID_*`는 도메인 모델 검증에서 발생한다. 같은 입력이라도 앞단에서 걸리면 `INVALID_INPUT`이 먼저 내려간다.
+
+---
+
+## **로그인**
+
+이메일·비밀번호를 검증하고 토큰 쌍과 사용자 정보를 발급한다. **이 시점에 해당 사용자의 기존 refresh token이 모두 폐기된다.**
+
+### **Endpoint**
+
+```
+POST /api/auth/login
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 인증이 필요 없다.
+
+### **Request Body**
+
+```json
+{
+  "email": "member@example.com",
+  "password": "password123"
+}
+```
+
+| **필드** | **타입** | **제약** | **설명** |
+| --- | --- | --- | --- |
+| `email` | String | 필수 | 가입한 이메일. |
+| `password` | String | 필수 | 비밀번호. |
+
+### **Response Body**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "id": 1,
+  "email": "member@example.com",
+  "nickname": "테스터",
+  "position": "BACKEND"
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `accessToken` | String | API 호출에 사용한다. 30분 후 만료된다. |
+| `refreshToken` | String | 재발급에 사용한다. 7일 후 만료된다. |
+| `id` | Long | 사용자 ID. |
+| `email` | String | 이메일. |
+| `nickname` | String | 닉네임. |
+| `position` | String | 직무(`BACKEND` \| `FRONTEND` \| `FULLSTACK`). |
+
+### **에러**
+
+| **상황** | **status** | **code** |
+| --- | --- | --- |
+| 형식 검증 실패 | 400 | `INVALID_INPUT` |
+| 등록되지 않은 이메일이거나 비밀번호가 틀림 | 401 | `AUTH_LOGIN_FAILED` |
+
+> 이메일이 없는 경우와 비밀번호가 틀린 경우를 같은 코드로 응답한다. 어느 쪽인지 알려주면 가입된 이메일을 확인해줄 수 있기 때문이다.
+
+---
+
+## **토큰 재발급**
+
+refresh token으로 새 토큰 쌍을 발급한다. access token이 만료돼 `401 AUTH_TOKEN_EXPIRED`를 받았을 때 호출한다.
+
+요청에 담긴 refresh token은 **폐기되고 새 것으로 교체된다(rotation).** 따라서 같은 refresh token으로 두 번 재발급할 수 없다.
+
+### **Endpoint**
+
+```
+POST /api/auth/reissue
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 인증이 필요 없다. 만료된 access token은 보내지 않아도 된다.
+
+### **Request Body**
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+| **필드** | **타입** | **제약** | **설명** |
+| --- | --- | --- | --- |
+| `refreshToken` | String | 필수 | 로그인 또는 직전 재발급으로 받은 refresh token. |
+
+### **Response Body**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `accessToken` | String | 새 access token. |
+| `refreshToken` | String | 새 refresh token. **기존 값을 이 값으로 교체해야 한다.** |
+
+> 응답에 사용자 정보(`nickname` 등)는 포함하지 않는다. 재발급은 토큰 갱신만 담당한다.
+
+### **에러**
+
+| **상황** | **status** | **code** |
+| --- | --- | --- |
+| `refreshToken` 누락·공백 | 400 | `INVALID_INPUT` |
+| refresh token 만료 | 401 | `AUTH_TOKEN_EXPIRED` |
+| 서명 불일치, 이미 폐기됨(재사용·로그아웃·타 기기 로그인), access token을 보냄 | 401 | `AUTH_TOKEN_INVALID` |
+
+> 모든 실패는 재로그인이 필요하다는 뜻이다. `AUTH_TOKEN_EXPIRED`와 `AUTH_TOKEN_INVALID`를 구분해 안내 문구를 다르게 할 수는 있으나, 처리는 동일하게 로그인 화면으로 보내면 된다.
+
+---
+
+## **로그아웃**
+
+서버에 저장된 refresh token을 폐기한다. 클라이언트 저장소를 비우는 것만으로는 서버의 토큰이 살아 있어 재발급이 계속 가능하므로, 반드시 호출해야 한다.
+
+### **Endpoint**
+
+```
+POST /api/auth/logout
+```
+
+- 성공 시 `204 No Content`를 반환한다. 응답 본문이 없다.
+- 인증이 필요 없다. 폐기 대상은 본문의 refresh token이 지정한다.
+
+### **Request Body**
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9..."
+}
+```
+
+| **필드** | **타입** | **제약** | **설명** |
+| --- | --- | --- | --- |
+| `refreshToken` | String | 필수 | 폐기할 refresh token. |
+
+### **에러**
+
+| **상황** | **status** | **code** |
+| --- | --- | --- |
+| `refreshToken` 누락·공백 | 400 | `INVALID_INPUT` |
+
+> **멱등하다.** 이미 폐기됐거나 만료된 refresh token을 보내도 `204`를 반환한다. 토큰의 서명을 검증하지 않으므로, access token이 만료된 상태에서도 로그아웃할 수 있다.
+>
+> access token은 무효화되지 않는다. 서버가 보관하지 않기 때문이며, 남은 수명(최대 30분) 동안은 계속 유효하다. 클라이언트는 로그아웃 시 저장소에서 함께 지워야 한다.
+
+---
+
 # **Question API**
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
