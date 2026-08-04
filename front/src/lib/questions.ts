@@ -82,6 +82,13 @@ export function gradeQuestion(questionId: number, choiceId: number): Promise<Cho
   return apiFetch<ChoiceGradingResponse>(`/api/questions/${questionId}/choices/${choiceId}`);
 }
 
+/** 현재 시각을 백엔드 LocalDateTime 포맷("yyyy-MM-ddTHH:mm:ss")으로 변환 (세션 startedAt에 사용) */
+export function nowAsLocalDateTime(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
 /** 풀이 세션 저장 (마지막 문항까지 답한 완료 세션만 저장) */
 export function saveSolvedSession(
   request: CreateSolvedSessionRequest,

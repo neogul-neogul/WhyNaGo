@@ -1,12 +1,14 @@
 package com.neogul.whynago.solvedsession.service.dto;
 
 import com.neogul.whynago.solvedsession.implement.dto.SolvedQuestionPayload;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public record CreateSolvedSessionCommand(
         SolvedQuestionCommand rootQuestion,
-        List<SolvedQuestionCommand> followupQuestions
+        List<SolvedQuestionCommand> followupQuestions,
+        LocalDateTime startedAt
 ) {
 
     public List<SolvedQuestionPayload> toPayloads() {

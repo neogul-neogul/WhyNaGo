@@ -5,6 +5,8 @@ import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.presentation.AuthController;
 import com.neogul.whynago.auth.presentation.interceptor.TokenExtractor;
 import com.neogul.whynago.auth.service.AuthService;
+import com.neogul.whynago.learningrecord.presentation.LearningRecordController;
+import com.neogul.whynago.learningrecord.service.LearningRecordService;
 import com.neogul.whynago.question.presentation.QuestionController;
 import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
@@ -12,6 +14,8 @@ import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionControlle
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
+import com.neogul.whynago.user.presentation.UserController;
+import com.neogul.whynago.user.service.UserService;
 import com.neogul.whynago.wrongnote.presentation.WrongNoteController;
 import com.neogul.whynago.wrongnote.service.WrongNoteService;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
@@ -27,7 +31,9 @@ import org.springframework.test.web.servlet.MockMvc;
         QuestionController.class,
         SolvedSessionController.class,
         EssaySolvedSessionController.class,
-        WrongNoteController.class
+        WrongNoteController.class,
+        LearningRecordController.class,
+        UserController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -55,6 +61,12 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected WrongNoteService wrongNoteService;
+
+    @MockitoBean
+    protected LearningRecordService learningRecordService;
+
+    @MockitoBean
+    protected UserService userService;
 
     @BeforeEach
     void setUpMockMvc() {

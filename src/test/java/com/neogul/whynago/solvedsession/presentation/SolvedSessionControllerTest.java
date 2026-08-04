@@ -29,7 +29,8 @@ class SolvedSessionControllerTest extends ControllerTestSupport {
                           "followupQuestions": [
                             {"questionId": 5, "choiceId": 11, "relationQuestionId": 8},
                             {"questionId": 8, "choiceId": 21, "relationQuestionId": null}
-                          ]
+                          ],
+                          "startedAt": "2026-06-25T09:58:00"
                         }
                         """)
                 .when()
@@ -47,6 +48,25 @@ class SolvedSessionControllerTest extends ControllerTestSupport {
                 .contentType(ContentType.JSON)
                 .body("""
                         {
+                          "followupQuestions": []
+                        }
+                        """)
+                .when()
+                .post("/api/solved-sessions")
+                .then()
+                .statusCode(400)
+                .body("code", Matchers.equalTo("INVALID_INPUT"));
+    }
+
+    @Test
+    @DisplayName("startedAt이 없으면 400을 반환한다.")
+    void createWithoutStartedAt() {
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "rootQuestion": {"questionId": 1, "choiceId": 3, "relationQuestionId": null},
                           "followupQuestions": []
                         }
                         """)

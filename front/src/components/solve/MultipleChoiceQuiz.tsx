@@ -3,7 +3,13 @@
 import { useState } from "react";
 import type { ChoiceGradingResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
-import { CATEGORY_LABELS, DIFFICULTY_LABELS, gradeQuestion, saveSolvedSession } from "@/lib/questions";
+import {
+  CATEGORY_LABELS,
+  DIFFICULTY_LABELS,
+  gradeQuestion,
+  nowAsLocalDateTime,
+  saveSolvedSession,
+} from "@/lib/questions";
 import { diffTone, lvBadge } from "@/lib/badges";
 import { palette } from "@/lib/tokens";
 import Badge from "@/components/ui/Badge";
@@ -33,6 +39,8 @@ export default function MultipleChoiceQuiz({
   onFinish: (correct: number, total: number) => void;
 }) {
   const [solvedItems, setSolvedItems] = useState<SolvedItem[]>([]);
+  // 본질문을 처음 받은 시각(세션 시작 시각). 부모가 문항마다 key로 컴포넌트를 새로 마운트하므로 1회만 계산된다
+  const [startedAt] = useState(() => nowAsLocalDateTime());
   // 풀이 중인 문항. null이면 체인 종료(모두 채점됨)
   const [current, setCurrent] = useState<QuestionResponse | null>(question);
   const [selectedChoiceId, setSelectedChoiceId] = useState<number | null>(null);
@@ -88,6 +96,7 @@ export default function MultipleChoiceQuiz({
       await saveSolvedSession({
         rootQuestion: toRequest(solvedItems[0]),
         followupQuestions: solvedItems.slice(1).map(toRequest),
+        startedAt,
       });
       onFinish(correctCount, solvedItems.length);
     } catch (e) {

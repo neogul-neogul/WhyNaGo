@@ -263,7 +263,8 @@ POST /api/solved-sessions
       "choiceId": 20,
       "relationQuestionId": null
     }
-  ]
+  ],
+  "startedAt": "2026-06-25T09:58:00"
 }
 ```
 
@@ -274,6 +275,7 @@ POST /api/solved-sessions
 | `*.questionId` | Long | O | 푼 문제 ID. |
 | `*.choiceId` | Long | O | 사용자가 고른 선택지 ID. 해당 문제에 속한 선택지여야 한다. 정답 여부는 서버가 판정한다. |
 | `*.relationQuestionId` | Long | X | 고른 선택지가 이어지는 다음 문제 ID. 마지막 항목은 `null`(체인 종료). |
+| `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간(`solvedAt - startedAt`) 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 
@@ -344,7 +346,8 @@ POST /api/solved-sessions/essay
       "modelAnswer": "MVCC는 언두 로그 기반 스냅샷으로...",
       "isCorrect": false
     }
-  ]
+  ],
+  "startedAt": "2026-06-24T09:20:00"
 }
 ```
 
@@ -358,6 +361,7 @@ POST /api/solved-sessions/essay
 | `*.feedback` | String | O | AI 피드백. 채점 API 응답의 `grading.feedback`을 그대로 담는다. |
 | `*.modelAnswer` | String | O | 모범답안. 채점 API 응답의 `grading.modelAnswer`를 그대로 담는다. |
 | `*.isCorrect` | boolean | O | 통과 여부. 채점 API가 산출한 값(서버 산출, 클라이언트 relay). 세션 `correctCount` 집계에 사용한다. |
+| `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
 
 **제약**:
 
@@ -586,3 +590,218 @@ DELETE /api/wrong-notes/{wrongNoteId}
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
 | 404 | `WRONG_NOTE_NOT_FOUND` | `wrongNoteId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+# **LearningRecord API**
+
+학습 기록(잔디·최근 기록·연속/누적 학습일) 조회를 담당한다. 관련 도메인은 `learningrecord`다.
+
+별도 저장 테이블 없이 `SolvedSession`을 조회 시점에 집계해 응답한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). 아래 항목은 이번 구현 범위에서 **제외**했다(→ `docs/DOMAIN.md` 보류):
+
+- 최근 기록의 진입 경로(method: 문제 풀이·1일 1면접·오답 복습·모의 진단·카테고리별) 구분 — 대신 세션 유형(`type`)만 내려준다.
+- 잔디 등급(0~4단계)·"학습량 점수" — 대신 일자별 세션 수·문항 수 원본 집계값만 내려준다.
+
+모든 엔드포인트는 인증된 사용자 **본인의 기록만** 조회한다.
+
+## **최근 기록 목록 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/recent
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `size` | int | X | 조회할 최근 세션 개수. 생략하면 `20`. |
+
+정렬은 `solvedAt` 내림차순(최신순)으로 고정한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "sessionId": 42,
+    "type": "MULTIPLE_CHOICE",
+    "category": "NETWORK",
+    "totalCount": 3,
+    "correctCount": 2,
+    "wrongCount": 1,
+    "startedAt": "2026-06-25T09:58:00",
+    "solvedAt": "2026-06-25T10:16:00"
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `sessionId` | Long | 풀이 세션 ID(`SolvedSession.id`). |
+| `type` | String | 세션 유형. `MULTIPLE_CHOICE` \| `ESSAY`. |
+| `category` | String | 본질문의 카테고리(`Category`). |
+| `totalCount` | int | 전체 문항 수. |
+| `correctCount` | int | 정답 수. |
+| `wrongCount` | int | 오답 수(`totalCount - correctCount`). |
+| `startedAt` | LocalDateTime | 세션 시작 시각. |
+| `solvedAt` | LocalDateTime | 세션 완료 시각. |
+
+### **에러**
+
+없음. 기록이 없으면 빈 배열을 반환한다.
+
+---
+
+## **연속·누적 학습일 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/streak
+```
+
+`SolvedSession.solvedAt`의 distinct 날짜를 기준으로 계산한다. "하루"의 경계는 KST(Asia/Seoul) 자정이다. 오늘 아직 풀지 않았어도 어제까지 이어진 연속 학습일은 자정이 지나기 전까지는 끊긴 것으로 보지 않는다.
+
+### **Response Body**
+
+```json
+{
+  "streakDays": 7,
+  "cumulativeDays": 42
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `streakDays` | int | 연속 학습일. |
+| `cumulativeDays` | int | 누적 학습일(학습한 날의 총 수, distinct). |
+
+### **에러**
+
+없음.
+
+---
+
+## **일자별 학습량(잔디) 조회**
+
+### **Endpoint**
+
+```
+GET /api/learning-records/daily-counts
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `from` | LocalDate (`yyyy-MM-dd`) | X | 조회 시작일(포함). 생략하면 `to`로부터 364일 전. |
+| `to` | LocalDate (`yyyy-MM-dd`) | X | 조회 종료일(포함). 생략하면 오늘(KST). |
+
+학습이 없었던 날짜는 응답에 포함되지 않는다(0으로 간주). `from`이 `to`보다 늦으면 빈 배열을 반환한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "date": "2026-06-25",
+    "sessionCount": 2,
+    "questionCount": 5
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `date` | LocalDate | 날짜. |
+| `sessionCount` | int | 그 날짜에 완료한 풀이 세션 수. |
+| `questionCount` | int | 그 날짜에 푼 전체 문항 수(세션별 `totalCount`의 합). |
+
+### **에러**
+
+없음. 범위 내 기록이 없으면 빈 배열을 반환한다.
+
+---
+
+# **User API**
+
+로그인한 사용자 본인의 프로필 조회·수정을 담당한다. 관련 도메인은 `user`다.
+
+## **내 프로필 조회**
+
+### **Endpoint**
+
+```
+GET /api/users/me
+```
+
+### **Response Body**
+
+```json
+{
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 10
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `nickname` | String | 닉네임. |
+| `email` | String | 이메일. |
+| `position` | String | 직무. `BACKEND` \| `FRONTEND` \| `FULLSTACK`. 가입 시 `BACKEND`로 고정되며, 프로필 수정으로 변경할 수 있다. |
+| `dailyGoal` | int | 최소 학습 목표(하루 최소 풀이 세션 수). 가입 시 기본값(10)으로 설정된다. |
+
+### **에러**
+
+없음.
+
+---
+
+## **프로필 수정**
+
+닉네임·이메일·직무·최소 학습 목표를 한 번에 수정한다(부분 수정 아님 — 매 요청마다 전체 필드를 보낸다).
+
+### **Endpoint**
+
+```
+PATCH /api/users/me
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 15
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `nickname` | String | O | 4~8자. 다른 사용자와 중복될 수 없다(본인의 기존 닉네임은 예외). |
+| `email` | String | O | 이메일 형식. 다른 사용자와 중복될 수 없다(본인의 기존 이메일은 예외). |
+| `position` | String | O | `BACKEND` \| `FRONTEND` \| `FULLSTACK`. |
+| `dailyGoal` | int | O | 새 최소 학습 목표. 1 이상이어야 한다. |
+
+### **Response Body**
+
+```json
+{
+  "nickname": "지민",
+  "email": "jimin.dev@gmail.com",
+  "position": "BACKEND",
+  "dailyGoal": 15
+}
+```
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | 필수값 누락, 닉네임 길이 위반, 이메일 형식 오류, `dailyGoal` 1 미만 등 요청 형식 검증 실패. |
+| 409 | `USER_DUPLICATE_EMAIL` | 다른 사용자가 이미 사용 중인 이메일. |
+| 409 | `USER_DUPLICATE_NICKNAME` | 다른 사용자가 이미 사용 중인 닉네임. |

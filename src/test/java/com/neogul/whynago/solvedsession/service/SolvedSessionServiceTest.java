@@ -23,6 +23,7 @@ import com.neogul.whynago.solvedsession.service.dto.CreateSolvedSessionResult;
 import com.neogul.whynago.solvedsession.service.dto.SolvedQuestionCommand;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -91,7 +92,8 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
                 new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L),
-                List.of()
+                List.of(),
+                LocalDateTime.now().minusMinutes(5)
         );
 
         assertThatThrownBy(() -> solvedSessionService.create(10L, command))
@@ -106,7 +108,8 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
                 new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId()),
-                List.of()
+                List.of(),
+                LocalDateTime.now().minusMinutes(5)
         );
 
         assertThatThrownBy(() -> solvedSessionService.create(10L, command))
@@ -146,7 +149,8 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
                     List.of(
                             new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
                             new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
-                    )
+                    ),
+                    LocalDateTime.now().minusMinutes(5)
             );
         }
 
@@ -156,7 +160,8 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
                     List.of(
                             new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
                             new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null)
-                    )
+                    ),
+                    LocalDateTime.now().minusMinutes(5)
             );
         }
     }

@@ -1,6 +1,6 @@
 # 도메인 문서
 
-> 이 문서는 프런트엔드 **문제 풀이 화면**(`front` 의 `MultipleChoiceQuiz` / `EssayQuiz` / `ProblemBank` / `mocks/questions.ts`)에서 관찰되는 동작을 도메인 모델로 정리한 것이다. 알림은 아직 작성 중이다.
+> 이 문서는 프런트엔드 **문제 풀이 화면**(`front` 의 `MultipleChoiceQuiz` / `EssayQuiz` / `ProblemBank` / `mocks/questions.ts`)과 **학습 기록·진척도·주간 리포트 화면**(`front` 의 `RecordsPage` / `ProgressPage` / `WeeklyPage`, `mocks/records.ts` / `mocks/progress.ts`)에서 관찰되는 동작을 도메인 모델로 정리한 것이다. 알림은 아직 작성 중이다.
 
 ---
 
@@ -59,6 +59,7 @@
 | status | 상태 | `COMPLETED`(끝까지 진행). 저장 API는 완료된 세션만 받는다 — [세션 종료 정책](#세션-집계-정책) |
 | totalCount | 전체 문항 수 | 세션에서 실제 응답한 문항 수(본질문+거친 꼬리질문) |
 | correctCount | 정답 수 | 맞힌 문항 수 |
+| startedAt | 시작 시각 | 학습 기록의 소요시간(`time`)을 `solvedAt - startedAt`으로 도출하는 데 필요 → [학습 기록 집계 정책](#학습-기록-집계-정책) |
 | solvedAt | 완료 시각 | |
 
 ### SolvedMultipleChoice (푼 객관식 문항)
@@ -174,6 +175,15 @@
 - 결과 화면의 값 = 세션 집계: 정답률 `correctCount / totalCount`, 정답 수, 오답 수(`totalCount - correctCount`).
 - 마지막 문항까지 답하고 "저장하기"로 끝낸 세션만 저장하며 상태는 `COMPLETED`다. 중간에 "종료하기"로 이탈한 풀이는 저장하지 않는다(중단 세션 저장은 추후 필요 시 별도 논의).
 
+### 학습 기록 집계 정책
+학습 기록(`/records`) 화면의 잔디·최근 기록, 진척도(`/progress`)의 스트릭·누적 통계, 주간 리포트(`/weekly`)는 별도 테이블 없이 `SolvedSession`(서술형 통합 시 `EssaySolved` 포함 — → [1일 1면접(서술형) 세션 통합](#보류-추후-mvp))을 **조회 시점에 집계**해 얻는 값이다. 오답노트가 상태·반복 횟수를 컬럼으로 두지 않고 집계로 계산하는 원칙(→ [오답 자동 저장 정책](#오답-자동-저장-정책))과 동일하게, 저장보다 집계를 우선한다.
+
+- **최근 기록 항목** = `SolvedSession` 1건에 대응한다. `date`/`time`은 `solvedAt`·`startedAt`으로, `solved`/`correct`/`wrong`은 `totalCount`/`correctCount`/`totalCount - correctCount`로 도출한다. `cats`(카테고리 태그)는 세션에 포함된 문항들의 `Question.category`를 distinct 해 얻는다 — 서술형 꼬리질문(`EssaySolved.type = FOLLOWUP`)은 `questionId`가 없으므로 본질문 카테고리만 반영 가능하다.
+- **연속 학습일(스트릭)·누적 학습일** = 사용자의 `SolvedSession.solvedAt` distinct 날짜 집합에서 계산하는 파생값이다. `LearningStats`/`ProgressMetric` 같은 별도 컬럼으로 저장하지 않는다.
+- **잔디(일자별 학습량)** = 날짜별 `SolvedSession` 그룹핑 결과(세션 수·총 문항 수)를 시각화 등급(0~4단계)으로 변환한 값이다.
+
+미확정 사항은 → [보류](#보류-추후-mvp) 참고. 구현된 조회 API는 → `docs/API.md` LearningRecord API 참고(최근 기록 목록·연속/누적 학습일·일자별 학습량). method(진입 경로) 구분과 잔디 등급·점수는 구현에서 제외했다.
+
 ### 문제은행 표시 정책
 - 노출 대상: 조건(유형·난이도·카테고리·검색어)에 맞는 **모든** `Question`이 노출된다. 어떤 보기의 `relatedQuestionId`로 참조되는지 여부는 노출 여부에 영향을 주지 않는다 — 본질문/꼬리질문 구분으로 목록을 걸러내지 않는다.
 - `완료한 사람 수` = 그 문제를 푼(세션에 포함된) 사용자 수(집계).
@@ -206,3 +216,8 @@
 - **1일 1면접(서술형) 세션 통합**: 학습 기록의 `method` 에 "1일 1면접"이 있으나, 면접은 추후 MVP이므로 `SolvedSession` 통합/분리 여부는 나중에 결정한다.
 - ~~**서술형 정답 판정 기준**~~ → **확정**: LLM 0~10 점수를 서버가 임계값 7로 환산해 `EssaySolved.isCorrect`를 산출한다. → [서술형 정답 판정 정책](#서술형-정답-판정-정책) 참고. (임계값 튜닝·다단계 등급은 추후 과제)
 - **오답노트 상세 조회 read model**: `WrongNote`는 `solvedSessionId`만 갖고 있어, 상세 화면에 필요한 문항·보기·내 답·해설은 `SolvedSession` → `SolvedMultipleChoice`(객관식) 또는 `EssaySolved`(서술형)를 순서대로 조인해 재구성해야 한다. 객관식/서술형 응답 모양이 달라 API 응답을 어떻게 분기할지는 API 설계 단계에서 정한다.
+- **학습 기록 method(진입 경로) 구분**: 최근 기록의 "문제 풀이"·"1일 1면접"·"오답 복습"·"모의 진단"·"카테고리별" 구분은 현재 `SolvedSession`에 저장할 컬럼이 없다. 오답노트 출처(source) 미구현 결정과 같은 사안이다 — 카테고리 필터로 진입, 오답노트에서 재풀이, 모의 진단 등 각 진입 경로가 실제 기능으로 구현될 때 `SolvedSession`에 출처 필드를 둘지 함께 설계한다.
+- **잔디 등급(0~4단계)·"학습량 점수" 산식**: 프런트 mock(`mocks/records.ts`)은 "0개/1개 완료/5개 이상/10개 이상/20개 이상"과 "+{count+8}" 점수를 임의로 하드코딩했다. 실제 등급 구간과 점수 산식은 프로덕트 정책으로 확정이 필요하다.
+- ~~**스트릭의 "하루" 기준**~~ → **확정**: KST(Asia/Seoul) 자정을 경계로 한다. 오늘 아직 풀지 않았어도 어제까지 이어진 연속 학습일은 자정이 지나기 전까지 끊긴 것으로 보지 않는다. → `docs/API.md` 연속·누적 학습일 조회.
+- **모의 진단(자가진단) 기능 자체 미구현**: 최근 기록의 "모의 진단" method가 가리키는 자가진단 화면은 아직 백엔드가 없는 mock(`mocks/diagnosis.ts`)이다. 해당 기능이 실제로 만들어질 때 `SolvedSession`과의 관계를 정한다.
+- **진척도·주간 리포트·마이페이지 통계 통합**: 현재 프런트 mock은 화면마다 독립된 값을 가져 서로 불일치한다(예: 연속 학습일이 `mocks/today.ts`/`mocks/progress.ts`에서는 7일, `mocks/mypage.ts`에서는 12일). 실제 연동 시 [학습 기록 집계 정책](#학습-기록-집계-정책)을 단일 소스로 삼아 통일해야 한다.

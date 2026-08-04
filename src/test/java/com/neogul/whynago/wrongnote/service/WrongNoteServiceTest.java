@@ -108,7 +108,7 @@ class WrongNoteServiceTest extends IntegrationTestSupport {
     void findDetail_essay() {
         Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
         SolvedSession session = solvedSessionRepository.save(
-                SolvedSession.completed(10L, QuestionType.ESSAY, 3, 2, LocalDateTime.now()));
+                SolvedSession.completed(10L, QuestionType.ESSAY, 3, 2, LocalDateTime.now().minusMinutes(5), LocalDateTime.now()));
         essaySolvedRepository.save(EssaySolved.create(
                 session.getId(), 10L, ItemType.MAIN, 1, essayRoot.getId(),
                 "격리 수준을 설명하라.", "답변1", "피드백1", "모범답안1", true, LocalDateTime.now()));
@@ -181,7 +181,7 @@ class WrongNoteServiceTest extends IntegrationTestSupport {
         AnswerChoice followupWrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup.getId(), 2));
 
         SolvedSession session = solvedSessionRepository.save(
-                SolvedSession.completed(userId, QuestionType.MULTIPLE_CHOICE, 2, 1, LocalDateTime.now()));
+                SolvedSession.completed(userId, QuestionType.MULTIPLE_CHOICE, 2, 1, LocalDateTime.now().minusMinutes(5), LocalDateTime.now()));
         solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
                 session.getId(), userId, root.getId(), ItemType.MAIN, 1,
                 rootCorrect.getId(), rootCorrect.getId(), true, LocalDateTime.now()));

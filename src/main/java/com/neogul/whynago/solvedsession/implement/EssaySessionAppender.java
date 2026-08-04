@@ -13,12 +13,13 @@ public class EssaySessionAppender {
 
     private final SolvedSessionRepository solvedSessionRepository;
 
-    public SolvedSession append(Long userId, int totalCount, int correctCount, LocalDateTime solvedAt) {
+    public SolvedSession append(Long userId, int totalCount, int correctCount, LocalDateTime startedAt, LocalDateTime solvedAt) {
         return solvedSessionRepository.save(SolvedSession.completed(
                 userId,
                 QuestionType.ESSAY,
                 totalCount,
                 correctCount,
+                startedAt,
                 solvedAt
         ));
     }
