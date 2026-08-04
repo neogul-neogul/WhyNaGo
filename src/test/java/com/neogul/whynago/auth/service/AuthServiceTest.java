@@ -3,10 +3,16 @@ package com.neogul.whynago.auth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.neogul.whynago.auth.domain.RefreshToken;
 import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.fixture.SignUpCommandFixture;
+import com.neogul.whynago.auth.implement.RefreshTokenHasher;
+import com.neogul.whynago.auth.infra.RefreshTokenRepository;
 import com.neogul.whynago.auth.service.dto.LoginCommand;
 import com.neogul.whynago.auth.service.dto.LoginResult;
+import com.neogul.whynago.auth.service.dto.LogoutCommand;
+import com.neogul.whynago.auth.service.dto.ReissueCommand;
+import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.support.IntegrationTestSupport;
@@ -29,6 +35,12 @@ class AuthServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private PasswordHasher passwordHasher;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    private RefreshTokenHasher refreshTokenHasher;
 
     @DisplayName("회원가입에 성공하면 사용자가 저장되고 비밀번호는 암호화되어 저장된다.")
     @Test
@@ -142,5 +154,154 @@ class AuthServiceTest extends IntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).errorCode())
                         .isEqualTo(AuthErrorCode.AUTH_LOGIN_FAILED));
+    }
+
+    @DisplayName("로그인하면 발급된 리프레시 토큰이 해시로 저장된다.")
+    @Test
+    void login_savesRefreshToken() {
+        // when
+        LoginResult result = signUpAndLogin();
+
+        // then
+        assertThat(refreshTokenRepository.findAll())
+                .extracting(RefreshToken::getTokenHash)
+                .containsExactly(refreshTokenHasher.hash(result.tokenPair().refreshToken()));
+    }
+
+    @DisplayName("다시 로그인하면 이전 세션이 사라지고 활성 세션이 하나만 남는다.")
+    @Test
+    void login_replacesPreviousSession() {
+        // given
+        signUpAndLogin();
+
+        // when
+        LoginResult second = authService.login(new LoginCommand("member@example.com", "password123"));
+
+        // then
+        assertThat(refreshTokenRepository.findAll())
+                .extracting(RefreshToken::getTokenHash)
+                .containsExactly(refreshTokenHasher.hash(second.tokenPair().refreshToken()));
+    }
+
+    @DisplayName("리프레시 토큰으로 재발급하면 이전과 다른 토큰 쌍을 받고 새 토큰만 저장된다.")
+    @Test
+    void reissue() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+        String previousRefreshToken = loggedIn.tokenPair().refreshToken();
+
+        // when
+        ReissueResult result = authService.reissue(new ReissueCommand(previousRefreshToken));
+
+        // then
+        assertThat(result.accessToken()).isNotBlank().isNotEqualTo(loggedIn.tokenPair().accessToken());
+        assertThat(result.refreshToken()).isNotBlank().isNotEqualTo(previousRefreshToken);
+        assertThat(refreshTokenRepository.findAll())
+                .extracting(RefreshToken::getTokenHash)
+                .containsExactly(refreshTokenHasher.hash(result.refreshToken()));
+    }
+
+    @DisplayName("재발급에 사용한 리프레시 토큰을 다시 사용하면 재발급에 실패한다.")
+    @Test
+    void reissue_reusedToken() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+        String previousRefreshToken = loggedIn.tokenPair().refreshToken();
+        authService.reissue(new ReissueCommand(previousRefreshToken));
+
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(new ReissueCommand(previousRefreshToken)))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+    }
+
+    @DisplayName("다시 로그인해 폐기된 리프레시 토큰으로는 재발급에 실패한다.")
+    @Test
+    void reissue_tokenOfReplacedSession() {
+        // given
+        LoginResult first = signUpAndLogin();
+        authService.login(new LoginCommand("member@example.com", "password123"));
+
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(new ReissueCommand(first.tokenPair().refreshToken())))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+    }
+
+    @DisplayName("서명이 올바르지 않은 리프레시 토큰으로는 재발급에 실패한다.")
+    @Test
+    void reissue_invalidToken() {
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(new ReissueCommand("invalid.token.value")))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+    }
+
+    @DisplayName("저장된 적 없는 액세스 토큰으로는 재발급에 실패한다.")
+    @Test
+    void reissue_accessToken() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(new ReissueCommand(loggedIn.tokenPair().accessToken())))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+    }
+
+    @DisplayName("로그아웃하면 저장된 리프레시 토큰이 폐기된다.")
+    @Test
+    void logout() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+
+        // when
+        authService.logout(new LogoutCommand(loggedIn.tokenPair().refreshToken()));
+
+        // then
+        assertThat(refreshTokenRepository.findAll()).isEmpty();
+    }
+
+    @DisplayName("로그아웃한 리프레시 토큰으로는 재발급에 실패한다.")
+    @Test
+    void reissue_loggedOutToken() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+        String refreshToken = loggedIn.tokenPair().refreshToken();
+        authService.logout(new LogoutCommand(refreshToken));
+
+        // when & then
+        assertThatThrownBy(() -> authService.reissue(new ReissueCommand(refreshToken)))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+    }
+
+    @DisplayName("이미 폐기된 리프레시 토큰으로 로그아웃해도 예외가 발생하지 않는다.")
+    @Test
+    void logout_alreadyRevoked() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+        String refreshToken = loggedIn.tokenPair().refreshToken();
+        authService.logout(new LogoutCommand(refreshToken));
+
+        // when
+        authService.logout(new LogoutCommand(refreshToken));
+
+        // then
+        assertThat(refreshTokenRepository.findAll()).isEmpty();
+    }
+
+    private LoginResult signUpAndLogin() {
+        authService.signup(SignUpCommandFixture.signUpCommand()
+                .email("member@example.com")
+                .password("password123")
+                .nickname("tester")
+                .build());
+        return authService.login(new LoginCommand("member@example.com", "password123"));
     }
 }

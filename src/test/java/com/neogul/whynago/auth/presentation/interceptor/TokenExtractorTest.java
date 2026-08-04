@@ -25,17 +25,27 @@ class TokenExtractorTest {
         assertThat(token).isEqualTo("abc.def.ghi");
     }
 
-    @DisplayName("Authorization 헤더가 없으면 예외가 발생한다.")
+    @DisplayName("Authorization 헤더가 없으면 인증 정보 누락 예외가 발생한다.")
     @Test
     void extractToken_noHeader() {
         // when & then
         assertThatThrownBy(() -> tokenExtractor.extractToken(null))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).errorCode())
-                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_MISSING));
     }
 
-    @DisplayName("Bearer 형식이 아니면 예외가 발생한다.")
+    @DisplayName("Authorization 헤더가 비어 있으면 인증 정보 누락 예외가 발생한다.")
+    @Test
+    void extractToken_blankHeader() {
+        // when & then
+        assertThatThrownBy(() -> tokenExtractor.extractToken("   "))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_MISSING));
+    }
+
+    @DisplayName("Bearer 형식이 아니면 유효하지 않은 토큰 예외가 발생한다.")
     @Test
     void extractToken_notBearer() {
         // given
