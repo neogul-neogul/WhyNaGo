@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 
 public record WrongNoteSummaryResponse(
         Long id,
+        Long questionId,
         QuestionType type,
         Category category,
         Difficulty difficulty,
@@ -19,6 +20,7 @@ public record WrongNoteSummaryResponse(
     public static WrongNoteSummaryResponse from(WrongNoteSummaryResult result) {
         return new WrongNoteSummaryResponse(
                 result.id(),
+                result.questionId(),
                 result.type(),
                 result.category(),
                 result.difficulty(),

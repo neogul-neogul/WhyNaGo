@@ -97,8 +97,12 @@ export function formatRecordDate(solvedAt: string): string {
 }
 
 /** startedAt~solvedAt 소요시간을 "N분"으로 표시 */
-export function formatDuration(startedAt: string, solvedAt: string): string {
+export function formatDuration(startedAt: string | null, solvedAt: string): string {
+  if (startedAt === null) return "기록 없음";
+
   const ms = new Date(solvedAt).getTime() - new Date(startedAt).getTime();
+  if (Number.isNaN(ms) || ms < 0) return "기록 없음";
+
   const minutes = Math.round(ms / 60000);
-  return minutes <= 0 ? "1분 미만" : `${minutes}분`;
+  return minutes === 0 ? "1분 미만" : `${minutes}분`;
 }
