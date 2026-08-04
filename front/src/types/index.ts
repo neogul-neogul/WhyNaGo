@@ -365,7 +365,7 @@ export interface RecentRecordResponse {
   totalCount: number;
   correctCount: number;
   wrongCount: number;
-  startedAt: string;
+  startedAt: string | null;
   solvedAt: string;
 }
 
