@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.stereotype.Component;
@@ -75,7 +76,7 @@ public class GeminiEssayAiClient implements EssayAiClient {
     @Override
     public int completedTurns(String conversationId) {
         return (int) chatMemory.get(conversationId).stream()
-                .filter(message -> message.getMessageType() == MessageType.USER)
+                .filter(message -> message.getMessageType() == MessageType.ASSISTANT)
                 .count();
     }
 
@@ -89,6 +90,7 @@ public class GeminiEssayAiClient implements EssayAiClient {
     private <T> T call(boolean generateFollowup, String conversationId, Supplier<T> aiCall) {
         String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
         long startedAt = System.nanoTime();
+        List<Message> beforeCall = List.copyOf(chatMemory.get(conversationId));
         try {
             T result = aiCall.get();
             log.info("Gemini {} 완료 - conversationId={}, {}ms",
@@ -98,7 +100,15 @@ public class GeminiEssayAiClient implements EssayAiClient {
             ErrorCode errorCode = errorCodeOf(e);
             log.warn("Gemini {} 실패 - conversationId={}, errorCode={}, {}ms",
                     operation, conversationId, errorCode.code(), elapsedMillis(startedAt), e);
+            rollbackMemory(conversationId, beforeCall);
             throw new BusinessException(errorCode);
+        }
+    }
+
+    private void rollbackMemory(String conversationId, List<Message> beforeCall) {
+        chatMemory.clear(conversationId);
+        if (!beforeCall.isEmpty()) {
+            chatMemory.add(conversationId, beforeCall);
         }
     }
 

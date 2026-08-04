@@ -8,16 +8,21 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.exception.ErrorCode;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.retry.NonTransientAiException;
 
 class GeminiEssayAiClientTest {
@@ -34,6 +39,7 @@ class GeminiEssayAiClientTest {
         ChatClient.Builder builder = mock(ChatClient.Builder.class, RETURNS_SELF);
         given(builder.build()).willReturn(chatClient);
         chatMemory = mock(ChatMemory.class);
+        given(chatMemory.get(anyString())).willReturn(List.of());
         client = new GeminiEssayAiClient(builder, chatMemory);
     }
 
@@ -84,6 +90,31 @@ class GeminiEssayAiClientTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));
+    }
+
+    @Test
+    @DisplayName("채점이 실패하면 대화 메모리를 호출 직전 상태로 되돌린다.")
+    void grade_rollsBackMemory() {
+        List<Message> beforeCall = List.of(new UserMessage("답변1"), new AssistantMessage("피드백1"));
+        given(chatMemory.get(CONVERSATION_ID)).willReturn(beforeCall);
+        givenAiCallFailsWith(new RuntimeException("LLM down"));
+
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true))
+                .isInstanceOf(BusinessException.class);
+
+        verify(chatMemory).clear(CONVERSATION_ID);
+        verify(chatMemory).add(CONVERSATION_ID, beforeCall);
+    }
+
+    @Test
+    @DisplayName("완료한 턴 수는 응답이 돌아온 턴만 계산한다.")
+    void completedTurns() {
+        given(chatMemory.get(CONVERSATION_ID)).willReturn(List.of(
+                new UserMessage("답변1"),
+                new AssistantMessage("피드백1"),
+                new UserMessage("답변2")));
+
+        assertThat(client.completedTurns(CONVERSATION_ID)).isEqualTo(1);
     }
 
     @SuppressWarnings("unchecked")
