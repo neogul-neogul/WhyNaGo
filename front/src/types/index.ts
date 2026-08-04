@@ -261,6 +261,7 @@ export interface CreateEssaySolvedSessionRequest {
 /** 오답노트 목록 항목 — GET /api/wrong-notes */
 export interface WrongNoteSummaryResponse {
   id: number;
+  questionId: number;
   type: QuestionTypeCode;
   category: QuestionCategory;
   difficulty: QuestionDifficulty;
