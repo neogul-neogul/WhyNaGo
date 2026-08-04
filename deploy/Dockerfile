@@ -5,8 +5,9 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-# 로컬에서 `./gradlew clean bootJar` 후
-# build/libs/whynago-0.0.1-SNAPSHOT.jar (-plain.jar 아님) 을 deploy/app.jar 로 복사해둔다.
+# `./gradlew clean bootJar` 하면 build/libs/app.jar 가 나온다
+# (build.gradle 의 bootJar.archiveFileName 으로 이름을 고정해 둠).
+# 이 파일을 deploy/app.jar 로 복사한 뒤 이미지를 빌드한다.
 COPY app.jar app.jar
 
 # t3.micro에 MySQL이 함께 뜨므로 힙을 컨테이너 메모리의 40%(약 380MB)로 제한한다.

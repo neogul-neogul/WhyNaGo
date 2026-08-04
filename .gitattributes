@@ -1,3 +1,7 @@
 /gradlew text eol=lf
+*.sh text eol=lf
+*.cnf text eol=lf
+deploy/*.yml text eol=lf
+deploy/*.conf text eol=lf
 *.bat text eol=crlf
 *.jar binary

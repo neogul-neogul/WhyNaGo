@@ -4,7 +4,11 @@
 # app(8080)과 db(3306)은 도커 내부 네트워크에서만 접근 가능하므로
 # EC2 보안그룹에는 22/80/443만 열어두면 된다.
 #
-# 실행: deploy/ 디렉터리에서 `docker compose up -d --build`
+# app 이미지는 GitHub Actions가 ECR에 올린 것을 pull 해서 쓴다(.env 의 APP_IMAGE).
+# 이 디렉터리에서 도커 빌드를 하지 않는다.
+#
+# 실행: deploy/ 디렉터리에서 `docker compose up -d`
+# app만 교체: `docker compose up -d app`
 
 services:
   db:
@@ -37,10 +41,16 @@ services:
       start_period: 40s
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: whynago-app
+    # 이미지는 GitHub Actions가 빌드해 ECR에 올린다. 여기서는 pull만 한다.
+    # t3.micro에서 도커 빌드를 돌리면 메모리·CPU 크레딧을 태우므로 build: 를 두지 않는다.
+    #
+    # APP_IMAGE 예: 123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/whynago-repo:abc1234
+    # 롤백은 이전 커밋 SHA 태그로 다시 올리면 된다.
+    #   APP_IMAGE=<...>:<이전SHA> docker compose up -d app
+    #
+    # :? 는 값이 없으면 뒤 메시지와 함께 즉시 실패시킨다.
+    # 없는 채로 뜨면 이미지 이름이 빈 문자열이 되어 원인을 알기 어려운 에러가 난다.
+    image: ${APP_IMAGE:?APP_IMAGE 를 .env 에 설정해야 한다}
     container_name: whynago-app
     restart: unless-stopped
     env_file: .env

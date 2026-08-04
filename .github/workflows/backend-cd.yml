@@ -1,0 +1,150 @@
+name: Backend CD
+
+# 손으로 몇 번 돌려 검증한 뒤 아래 push 트리거를 열어 자동 배포로 전환한다.
+#
+#  push:
+#    branches: [ main ]
+#    paths-ignore:
+#      - 'front/**'
+#      - 'docs/**'
+#      - 'plans/**'
+#      - '**.md'
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: backend-cd
+  # 배포 중간에 끊기면 서버 상태가 애매해지므로 진행 중인 배포는 취소하지 않는다.
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: whynago-repo
+  HEALTH_URL: https://whynago.kro.kr/health
+  # 서버의 ~/deploy. 변수 안의 ~ 는 확장되지 않으므로 절대 경로로 적는다.
+  # EC2_USER 가 ec2-user 라면 /home/ec2-user/deploy 로 바꿀 것.
+  EC2_DEPLOY_PATH: /home/ubuntu/deploy
+
+jobs:
+  # 잡을 나누면 steps 컨텍스트가 잡 단위라서 ECR 로그인 결과를 배포 잡에서 쓸 수 없다.
+  deploy:
+    name: 빌드 및 배포
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      # 미등록 secret 은 에러가 아니라 빈 문자열로 치환되어, 빌드와 ECR 푸시를
+      # 마친 뒤에야 깨진다. 첫 배포가 성공하면 이 스텝은 지운다.
+      - name: 필수 secret 확인
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          missing=()
+          for k in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY EC2_HOST EC2_USER EC2_SSH_KEY; do
+            [ -n "${!k:-}" ] || missing+=("$k")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::미등록 secret: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Gradle 설정
+        uses: gradle/actions/setup-gradle@v4
+
+      # 수동 실행은 CI가 검증하지 않은 커밋도 배포할 수 있어 테스트를 돌린다.
+      # push 트리거로 전환하면 그 커밋은 CI가 이미 검증하므로 bootJar 로 줄인다.
+      - name: 빌드 및 테스트
+        run: ./gradlew build --no-daemon
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # deploy/Dockerfile 은 빌드된 jar 만 복사하는 런타임 전용 이미지다.
+      - name: jar 를 도커 빌드 컨텍스트로 복사
+        run: cp build/libs/app.jar deploy/app.jar
+
+      - name: AWS 자격증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # outputs.registry 로 레지스트리 주소를 받는다. 계정 ID를 직접 적어둘 필요가 없다.
+      - name: ECR 로그인
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # SHA 태그가 롤백 대상이 된다. latest 는 사람이 최신을 찾을 때만 쓴다.
+      - name: 이미지 빌드 및 푸시
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+
+          docker build -t "$IMAGE" -t "$LATEST" deploy/
+          docker push "$IMAGE"
+          docker push "$LATEST"
+
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "배포할 이미지: ${IMAGE}"
+
+      # EC2에 AWS 자격증명을 두지 않기 위해 러너에서 발급해 넘긴다. 12시간 후 만료된다.
+      - name: EC2 전달용 ECR 토큰 발급
+        id: ecr-token
+        run: |
+          TOKEN="$(aws ecr get-login-password --region "$AWS_REGION")"
+          echo "::add-mask::$TOKEN"
+          echo "token=${TOKEN}" >> "$GITHUB_OUTPUT"
+
+      # appleboy 액션들은 SSH 키를 다루므로 태그가 아닌 커밋 SHA로 고정한다.
+      # scp-action v1.0.0 / ssh-action v1.2.5
+      #
+      # 서버의 .env 는 저장소에 없어 이 전송으로 덮어써지지 않는다.
+      - name: 설정 파일 전송
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "deploy/docker-compose.yml,deploy/nginx.conf,deploy/deploy.sh,deploy/mysql-conf"
+          target: ${{ env.EC2_DEPLOY_PATH }}
+          strip_components: 1
+
+      # 교체 절차는 deploy/deploy.sh 에 있다. 수동 배포와 같은 코드를 타게 하기 위함이다.
+      # 헬스체크 실패 시 deploy.sh 가 컨테이너 로그를 남기고 종료한다.
+      - name: 배포 실행
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        env:
+          IMAGE: ${{ steps.build-image.outputs.image }}
+          ECR_TOKEN: ${{ steps.ecr-token.outputs.token }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: IMAGE,ECR_TOKEN,HEALTH_URL,EC2_DEPLOY_PATH
+          script: |
+            set -e
+            cd "$EC2_DEPLOY_PATH"
+            chmod +x deploy.sh
+            ./deploy.sh "$IMAGE"
+
+      # deploy.sh 는 서버 안에서 로컬 nginx 를 친다. 여기서 DNS·인증서·보안그룹까지 확인한다.
+      - name: 외부 접근 확인
+        run: curl -fsS --max-time 15 "$HEALTH_URL"
