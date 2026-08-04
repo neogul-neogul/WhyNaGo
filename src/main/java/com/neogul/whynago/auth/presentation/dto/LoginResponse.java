@@ -1,5 +1,6 @@
 package com.neogul.whynago.auth.presentation.dto;
 
+import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.user.domain.Position;
 
 public record LoginResponse(
@@ -10,4 +11,14 @@ public record LoginResponse(
         String nickname,
         Position position
 ) {
+
+    public static LoginResponse from(LoginResult result) {
+        return new LoginResponse(
+                result.tokenPair().accessToken(),
+                result.tokenPair().refreshToken(),
+                result.userId(),
+                result.email(),
+                result.nickname(),
+                result.position());
+    }
 }

@@ -8,6 +8,9 @@ import com.neogul.whynago.auth.implement.RefreshTokenAppender;
 import com.neogul.whynago.auth.implement.RefreshTokenRevoker;
 import com.neogul.whynago.auth.service.dto.LoginCommand;
 import com.neogul.whynago.auth.service.dto.LoginResult;
+import com.neogul.whynago.auth.service.dto.LogoutCommand;
+import com.neogul.whynago.auth.service.dto.ReissueCommand;
+import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.user.domain.User;
@@ -55,5 +58,21 @@ public class AuthService {
                 user.getEmail().getValue(),
                 user.getNickname(),
                 user.getPosition());
+    }
+
+    @Transactional
+    public ReissueResult reissue(ReissueCommand command) {
+        JwtClaim claim = jwtProvider.parseToken(command.refreshToken());
+        refreshTokenRevoker.revokeForRotation(command.refreshToken());
+        TokenPair tokenPair = jwtProvider.createTokenPair(claim);
+        refreshTokenAppender.append(claim.id(), tokenPair.refreshToken());
+        return ReissueResult.from(tokenPair);
+    }
+
+    // 이미 만료된 access token을 들고 있어도 로그아웃할 수 있어야 하므로 토큰을 검증하지 않고,
+    // 이미 폐기된 refresh token이어도 성공으로 처리한다.
+    @Transactional
+    public void logout(LogoutCommand command) {
+        refreshTokenRevoker.revoke(command.refreshToken());
     }
 }
