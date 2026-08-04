@@ -416,6 +416,7 @@ GET /api/wrong-notes
 [
   {
     "id": 12,
+    "questionId": 7,
     "type": "MULTIPLE_CHOICE",
     "category": "NETWORK",
     "difficulty": "MEDIUM",
@@ -429,6 +430,7 @@ GET /api/wrong-notes
 | **필드** | **타입** | **설명** |
 | --- | --- | --- |
 | `id` | Long | 오답노트 ID. 상세 조회·북마크 수정·삭제에 사용. |
+| `questionId` | Long | 본 질문의 ID(`Question.id`). 재풀이 진입(`/solve/{questionId}`)에 사용. |
 | `type` | String | 오답이 발생한 세션 유형. `MULTIPLE_CHOICE` \| `ESSAY`. |
 | `category` | String | 본 질문의 카테고리(`Category`). |
 | `difficulty` | String | 본 질문의 난이도(`Difficulty`). |
