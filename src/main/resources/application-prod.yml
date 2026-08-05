@@ -17,10 +17,6 @@ spring:
       hibernate:
         format_sql: false
 
-  h2:
-    console:
-      enabled: false
-
   sql:
     init:
       # data.sql 은 로컬 전용 시드이므로 운영에서는 실행하지 않는다.
@@ -40,7 +36,7 @@ management:
     web:
       exposure:
         # 배포 검증에 필요한 health 만 노출한다. env/beans/mappings 등은 내부 구조를 드러낸다.
-        include: health
+        include: health, prometheus
   endpoint:
     health:
       # {"status":"UP"} 만 응답한다. 컴포넌트별 상세(DB 종류·디스크 용량 등)는 숨긴다.
