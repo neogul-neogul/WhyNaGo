@@ -21,7 +21,6 @@ public class RefreshToken {
     @Column(nullable = false)
     private Long userId;
 
-    // 원문이 아닌 해시를 저장한다
     @Column(nullable = false, unique = true)
     private String tokenHash;
 

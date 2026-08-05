@@ -69,8 +69,6 @@ public class AuthService {
         return ReissueResult.from(tokenPair);
     }
 
-    // 이미 만료된 access token을 들고 있어도 로그아웃할 수 있어야 하므로 토큰을 검증하지 않고,
-    // 이미 폐기된 refresh token이어도 성공으로 처리한다.
     @Transactional
     public void logout(LogoutCommand command) {
         refreshTokenRevoker.revoke(command.refreshToken());

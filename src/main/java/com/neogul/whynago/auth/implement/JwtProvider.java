@@ -43,9 +43,6 @@ public class JwtProvider {
         return createToken(claim, refreshExpiration);
     }
 
-    // jti가 없으면 같은 사용자에게 같은 초에 발급한 토큰은 (userId, iat, exp)가 모두 같아
-    // 바이트 단위로 동일해진다(iat·exp는 JWT 사양상 초 단위). 그러면 재발급이 이전 토큰을
-    // 실제로 교체하지 못하므로, 매번 달라지는 값을 하나 넣어 유일성을 보장한다.
     private String createToken(JwtClaim claim, long expiration) {
         Date now = new Date();
         return Jwts.builder()
