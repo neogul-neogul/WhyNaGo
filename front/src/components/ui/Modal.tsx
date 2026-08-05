@@ -71,7 +71,7 @@ export default function Modal({
         aria-modal="true"
         aria-labelledby={labelledBy}
         onKeyDown={trapTab}
-        className="flex w-full max-w-110 flex-col items-center rounded-[18px] border border-line-card bg-white px-10 py-11 text-center"
+        className="relative flex w-full max-w-110 flex-col items-center rounded-[18px] border border-line-card bg-white px-10 py-11 text-center"
       >
         {children}
       </div>

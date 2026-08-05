@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Modal from "@/components/ui/Modal";
 
-export default function LoginRequiredGate() {
+export default function LoginRequiredGate({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <Modal labelledBy="login-required-title">
+    <Modal labelledBy="login-required-title" onClose={onClose}>
       <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-bg text-accent">
         <svg
           width="26"
@@ -49,6 +49,16 @@ export default function LoginRequiredGate() {
           홈으로
         </Link>
       </div>
+
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 text-xs font-semibold text-soft transition-colors hover:text-ink"
+        >
+          닫기
+        </button>
+      )}
     </Modal>
   );
 }
