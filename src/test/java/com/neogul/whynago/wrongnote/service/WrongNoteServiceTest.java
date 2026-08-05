@@ -73,6 +73,20 @@ class WrongNoteServiceTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("오답노트 목록은 재풀이 진입에 사용할 본질문 ID를 함께 반환한다.")
+    void findAll_questionIdIsRootQuestion() {
+        Long sessionId = saveMultipleChoiceSession(10L);
+        wrongNoteRepository.save(WrongNote.create(10L, sessionId));
+        Long rootQuestionId = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(sessionId)
+                .get(0)
+                .getQuestionId();
+
+        List<WrongNoteSummaryResult> result = wrongNoteService.findAll(10L, null);
+
+        assertThat(result.get(0).questionId()).isEqualTo(rootQuestionId);
+    }
+
+    @Test
     @DisplayName("북마크한 오답노트만 필터링해 조회한다.")
     void findAll_bookmarkedOnly() {
         WrongNote bookmarked = wrongNoteRepository.save(WrongNote.create(10L, saveMultipleChoiceSession(10L)));

@@ -145,7 +145,7 @@ export default function WrongPage() {
                     onOpen={() => setDetailId(note.id)}
                     onToggleBookmark={() => toggleBookmark(note.id, note.isBookmarked)}
                     onDelete={() => remove(note.id)}
-                    onResolve={() => router.push("/solve")}
+                    onResolve={() => router.push(`/solve/${note.questionId}`)}
                   />
                 ))}
             </div>

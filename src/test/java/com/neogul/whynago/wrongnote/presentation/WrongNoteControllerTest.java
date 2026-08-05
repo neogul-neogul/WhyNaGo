@@ -31,7 +31,7 @@ class WrongNoteControllerTest extends ControllerTestSupport {
     @DisplayName("오답노트 목록을 조회한다.")
     void findAll() {
         given(wrongNoteService.findAll(eq(10L), isNull())).willReturn(List.of(new WrongNoteSummaryResult(
-                1L, QuestionType.MULTIPLE_CHOICE, Category.NETWORK, Difficulty.MEDIUM,
+                1L, 7L, QuestionType.MULTIPLE_CHOICE, Category.NETWORK, Difficulty.MEDIUM,
                 "TCP 3-way handshake", true, LocalDateTime.of(2026, 6, 25, 10, 0)
         )));
 
@@ -42,6 +42,7 @@ class WrongNoteControllerTest extends ControllerTestSupport {
                 .then()
                 .statusCode(200)
                 .body("[0].id", Matchers.equalTo(1))
+                .body("[0].questionId", Matchers.equalTo(7))
                 .body("[0].type", Matchers.equalTo("MULTIPLE_CHOICE"))
                 .body("[0].isBookmarked", Matchers.equalTo(true));
     }
