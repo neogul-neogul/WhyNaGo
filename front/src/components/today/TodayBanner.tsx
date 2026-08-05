@@ -13,7 +13,7 @@ export default function TodayBanner({
 }) {
   return (
     <div className="relative flex flex-col gap-5 overflow-hidden rounded-[18px] bg-ink px-7 py-[26px] text-white">
-      <div className={`flex flex-col gap-5 ${preview ? "opacity-75 blur-[1.5px]" : ""}`}>
+      <div className={`flex flex-col gap-5 ${preview ? "opacity-80 blur-[2.0px]" : ""}`}>
         <div className="flex items-center justify-between gap-6">
           <div className="flex flex-col gap-2.5">
             <div>
@@ -68,7 +68,7 @@ export default function TodayBanner({
           <span className="rounded-[20px] bg-white/15 px-3 py-1 text-[13px] font-semibold text-white">
             예시 화면
           </span>
-          <div className="text-[19px] font-bold leading-[1.4] text-white">
+          <div className="text-[20px] font-bold leading-[1.4] text-white">
             로그인하면 오늘의 기록이 여기에 쌓여요
           </div>
           <div className="text-[15px] text-placeholder">
