@@ -1,0 +1,16 @@
+// Grafana Cloud Fleet Management에서 실제 파이프라인(메트릭/로그 스크레이프, remote_write 등)을
+// 원격으로 내려받아 적용한다. 파이프라인 자체는 Grafana Cloud 콘솔에서 관리하고,
+// 여기서는 그걸 받아오기 위한 인증/접속 정보만 정의한다.
+remotecfg {
+  url = sys.env("GCLOUD_FM_URL")
+  // constants.hostname(컨테이너 ID)은 재기동할 때마다 바뀌어서 콘솔에 매번 새 collector로
+  // 잡힌다. 고정값으로 박아서 항상 같은 collector로 인식되게 한다.
+  id             = "whynago-local"
+  attributes     = { "service" = "whynago-local" }
+  poll_frequency = sys.env("GCLOUD_FM_POLL_FREQUENCY")
+
+  basic_auth {
+    username = sys.env("GCLOUD_FM_HOSTED_ID")
+    password = sys.env("GCLOUD_RW_API_KEY")
+  }
+}
