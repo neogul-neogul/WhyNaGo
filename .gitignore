@@ -2,6 +2,8 @@ HELP.md
 .gradle
 build/
 logs/
+*.pem
+.env
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -42,3 +44,4 @@ deploy/.env
 deploy/app.jar
 deploy/certbot-conf/
 deploy/certbot-www/
+
