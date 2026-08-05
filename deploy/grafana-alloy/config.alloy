@@ -5,8 +5,8 @@ remotecfg {
   url = sys.env("GCLOUD_FM_URL")
   // constants.hostname(컨테이너 ID)은 재기동할 때마다 바뀌어서 콘솔에 매번 새 collector로
   // 잡힌다. 고정값으로 박아서 항상 같은 collector로 인식되게 한다.
-  id             = "whynago-local"
-  attributes     = { "service" = "whynago-local" }
+  id             = "whynago"
+  attributes     = { "service" = "whynago" }
   poll_frequency = sys.env("GCLOUD_FM_POLL_FREQUENCY")
 
   basic_auth {
