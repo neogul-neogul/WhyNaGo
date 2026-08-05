@@ -26,6 +26,7 @@ dependencies {
 
     // 배포 검증용 헬스체크(/actuator/health). nginx가 /health 로 프록시한다(deploy/nginx.conf).
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
 
     // Spring AI — Gemini(OpenAI 호환 엔드포인트)를 OpenAI 커넥터로 호출
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
