@@ -183,7 +183,7 @@ class AuthServiceTest extends IntegrationTestSupport {
                 .containsExactly(refreshTokenHasher.hash(second.tokenPair().refreshToken()));
     }
 
-    @DisplayName("리프레시 토큰으로 재발급하면 이전과 다른 토큰 쌍을 받고 새 토큰만 저장된다.")
+    @DisplayName("리프레시 토큰으로 재발급하면 이전과 다른 토큰 쌍을 받고 새 토큰만 유효하게 남는다.")
     @Test
     void reissue() {
         // given
@@ -197,23 +197,43 @@ class AuthServiceTest extends IntegrationTestSupport {
         assertThat(result.accessToken()).isNotBlank().isNotEqualTo(loggedIn.tokenPair().accessToken());
         assertThat(result.refreshToken()).isNotBlank().isNotEqualTo(previousRefreshToken);
         assertThat(refreshTokenRepository.findAll())
+                .filteredOn(token -> token.getUsedAt() == null)
                 .extracting(RefreshToken::getTokenHash)
                 .containsExactly(refreshTokenHasher.hash(result.refreshToken()));
     }
 
-    @DisplayName("재발급에 사용한 리프레시 토큰을 다시 사용하면 재발급에 실패한다.")
+    @DisplayName("재발급에 사용한 리프레시 토큰은 사용 시각이 기록된다.")
     @Test
-    void reissue_reusedToken() {
+    void reissue_marksPreviousTokenUsed() {
         // given
         LoginResult loggedIn = signUpAndLogin();
         String previousRefreshToken = loggedIn.tokenPair().refreshToken();
+
+        // when
         authService.reissue(new ReissueCommand(previousRefreshToken));
 
-        // when & then
-        assertThatThrownBy(() -> authService.reissue(new ReissueCommand(previousRefreshToken)))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
-                        .isEqualTo(AuthErrorCode.AUTH_TOKEN_INVALID));
+        // then
+        assertThat(refreshTokenRepository.findByTokenHash(refreshTokenHasher.hash(previousRefreshToken)))
+                .isPresent()
+                .get()
+                .extracting(RefreshToken::getUsedAt)
+                .isNotNull();
+    }
+
+    @DisplayName("유예 시간 안에 같은 리프레시 토큰으로 다시 재발급하면 새 토큰 쌍을 받는다.")
+    @Test
+    void reissue_reusedTokenWithinGracePeriod() {
+        // given
+        LoginResult loggedIn = signUpAndLogin();
+        String previousRefreshToken = loggedIn.tokenPair().refreshToken();
+        ReissueResult first = authService.reissue(new ReissueCommand(previousRefreshToken));
+
+        // when
+        ReissueResult second = authService.reissue(new ReissueCommand(previousRefreshToken));
+
+        // then
+        assertThat(second.refreshToken()).isNotBlank().isNotEqualTo(first.refreshToken());
+        assertThat(second.accessToken()).isNotBlank();
     }
 
     @DisplayName("다시 로그인해 폐기된 리프레시 토큰으로는 재발급에 실패한다.")

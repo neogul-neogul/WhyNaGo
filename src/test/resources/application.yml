@@ -31,3 +31,4 @@ jwt:
     expiration: 1800000
   refresh:
     expiration: 604800000
+    grace-period: 10000

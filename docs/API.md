@@ -46,7 +46,8 @@ Authorization: Bearer {accessToken}
 | refresh token | 7일 | access token 재발급 |
 
 - **refresh token은 서버에 저장된다.** 저장되어 있는지가 곧 유효한지이며, 재발급·로그아웃 시 폐기된다.
-- **재발급하면 refresh token도 함께 교체된다(rotation).** 재발급에 쓴 토큰은 그 즉시 무효가 되므로, 클라이언트는 응답으로 받은 새 refresh token으로 반드시 갈아끼워야 한다.
+- **재발급하면 refresh token도 함께 교체된다(rotation).** 재발급에 쓴 토큰은 무효가 되므로, 클라이언트는 응답으로 받은 새 refresh token으로 반드시 갈아끼워야 한다.
+- **재발급에는 10초의 유예 시간이 있다.** 여러 탭이 같은 refresh token으로 동시에 재발급을 요청해도 모두 성공하며, 각 요청은 서로 다른 토큰 쌍을 받는다. 유예 시간이 지난 뒤 같은 토큰을 다시 쓰면 `AUTH_TOKEN_INVALID`로 거절된다.
 - **한 계정의 활성 세션은 하나다.** 다시 로그인하면 이전 기기의 refresh token이 폐기되고, 그 기기는 다음 재발급 시점에 로그아웃된다.
 - `/api/auth/**`는 모두 인증 없이 호출한다. 재발급과 로그아웃은 access token이 이미 만료된 상태에서 호출되므로 인증을 요구하지 않는다.
 
@@ -181,7 +182,9 @@ POST /api/auth/login
 
 refresh token으로 새 토큰 쌍을 발급한다. access token이 만료돼 `401 AUTH_TOKEN_EXPIRED`를 받았을 때 호출한다.
 
-요청에 담긴 refresh token은 **폐기되고 새 것으로 교체된다(rotation).** 따라서 같은 refresh token으로 두 번 재발급할 수 없다.
+요청에 담긴 refresh token은 **폐기되고 새 것으로 교체된다(rotation).**
+
+같은 refresh token으로 두 번 재발급하는 것은 **10초 안에서만 허용된다.** 여러 탭의 access token이 동시에 만료되면 같은 refresh token으로 재발급 요청이 여러 번 나가는데, 이때 뒤늦은 요청까지 거절하면 멀쩡한 세션이 끊기기 때문이다. 유예 시간이 지난 뒤의 재사용은 토큰 탈취로 보고 거절한다.
 
 ### **Endpoint**
 
@@ -226,7 +229,7 @@ POST /api/auth/reissue
 | --- | --- | --- |
 | `refreshToken` 누락·공백 | 400 | `INVALID_INPUT` |
 | refresh token 만료 | 401 | `AUTH_TOKEN_EXPIRED` |
-| 서명 불일치, 이미 폐기됨(재사용·로그아웃·타 기기 로그인), access token을 보냄 | 401 | `AUTH_TOKEN_INVALID` |
+| 서명 불일치, 이미 폐기됨(유예 시간이 지난 재사용·로그아웃·타 기기 로그인), access token을 보냄 | 401 | `AUTH_TOKEN_INVALID` |
 
 > 모든 실패는 재로그인이 필요하다는 뜻이다. `AUTH_TOKEN_EXPIRED`와 `AUTH_TOKEN_INVALID`를 구분해 안내 문구를 다르게 할 수는 있으나, 처리는 동일하게 로그인 화면으로 보내면 된다.
 

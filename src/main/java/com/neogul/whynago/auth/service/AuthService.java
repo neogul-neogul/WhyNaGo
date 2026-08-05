@@ -6,6 +6,7 @@ import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.implement.RefreshTokenAppender;
 import com.neogul.whynago.auth.implement.RefreshTokenRevoker;
+import com.neogul.whynago.auth.implement.RefreshTokenRotator;
 import com.neogul.whynago.auth.service.dto.LoginCommand;
 import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.auth.service.dto.LogoutCommand;
@@ -33,6 +34,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenAppender refreshTokenAppender;
     private final RefreshTokenRevoker refreshTokenRevoker;
+    private final RefreshTokenRotator refreshTokenRotator;
 
     @Transactional
     public Long signup(SignUpCommand command) {
@@ -63,7 +65,7 @@ public class AuthService {
     @Transactional
     public ReissueResult reissue(ReissueCommand command) {
         JwtClaim claim = jwtProvider.parseToken(command.refreshToken());
-        refreshTokenRevoker.revokeForRotation(command.refreshToken());
+        refreshTokenRotator.rotate(command.refreshToken());
         TokenPair tokenPair = jwtProvider.createTokenPair(claim);
         refreshTokenAppender.append(claim.id(), tokenPair.refreshToken());
         return ReissueResult.from(tokenPair);
