@@ -76,7 +76,8 @@ public class GeminiEssayAiClient implements EssayAiClient {
     }
 
     // 외부 AI 호출 실패는 기술 예외를 노출하지 않고 도메인 에러코드로 변환한다.
-    // LLM 왕복은 수 초가 걸려 화면 대기 시간을 좌우하므로, 성공·실패 모두 소요 시간을 남긴다.
+    // 원인 예외는 BusinessException에 그대로 담아 전달해, GlobalExceptionHandler가 실제 장애의 stack trace를 로그로 남기게 한다.
+    // 이 지점에서는 stack trace 없이 conversationId·소요 시간 같은 운영 지표만 한 줄로 남겨 중복 로깅을 피한다.
     private <T> T call(boolean generateFollowup, String conversationId, Supplier<T> aiCall) {
         String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
         long startedAt = System.nanoTime();
@@ -86,9 +87,9 @@ public class GeminiEssayAiClient implements EssayAiClient {
                     operation, conversationId, elapsedMillis(startedAt));
             return result;
         } catch (RuntimeException e) {
-            log.warn("Gemini {} 실패 - conversationId={}, {}ms",
-                    operation, conversationId, elapsedMillis(startedAt), e);
-            throw new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE);
+            log.warn("Gemini {} 실패 - conversationId={}, {}ms, cause={}",
+                    operation, conversationId, elapsedMillis(startedAt), e.toString());
+            throw new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE, e);
         }
     }
 

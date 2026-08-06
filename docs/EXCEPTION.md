@@ -71,6 +71,12 @@ public class BusinessException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
+    // 외부 API·인프라 예외를 도메인 에러코드로 변환할 때 원인을 보존한다.
+    public BusinessException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode.message(), cause);
+        this.errorCode = errorCode;
+    }
+
     public ErrorCode errorCode() {
         return errorCode;
     }
@@ -92,10 +98,13 @@ public class BusinessException extends RuntimeException {
 
 규칙은 다음과 같다.
 
-- BusinessException은 warn 로그를 남긴다.
+- BusinessException의 로그 레벨은 ErrorCode가 가진 HTTP 상태로 결정한다.
+    - 4xx(BAD_REQUEST/NOT_FOUND/CONFLICT/UNAUTHORIZED 등)는 클라이언트 요청에서 나온 정상적인 실패 흐름이므로 info로 남긴다. stack trace는 남기지 않는다.
+    - 5xx(SERVICE_UNAVAILABLE 등)는 외부 의존성·인프라 장애를 감지해 도메인 에러코드로 감싼 경우이므로 warn으로 남기고, 원인 예외의 stack trace를 함께 남긴다.
+- 검증 실패(`MethodArgumentNotValidException`, `ConstraintViolationException`)는 항상 4xx이므로 info로 남긴다.
 - 예상하지 못한 Exception은 error 로그를 남긴다.
 - 클라이언트 응답에 stack trace를 포함하지 않는다.
-- 외부 API 장애는 내부 예외를 그대로 노출하지 않고 프로젝트 에러 코드로 변환한다.
+- 외부 API 장애는 내부 예외를 그대로 노출하지 않고 프로젝트 에러 코드로 변환한다. 이때 원래 예외는 `BusinessException(ErrorCode, Throwable)` 생성자로 cause에 담아 전달해, GlobalExceptionHandler가 실제 장애 원인의 stack trace를 로그로 남길 수 있게 한다.
 
 ## **예외를 던지는 위치**
 
