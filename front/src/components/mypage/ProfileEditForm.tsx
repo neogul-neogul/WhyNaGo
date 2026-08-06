@@ -30,7 +30,7 @@ export default function ProfileEditForm({
         <Input value={draft.nickname} onChange={(e) => onChange("nickname", e.target.value)} />
       </Field>
       <Field label="이메일">
-        <Input value={draft.email} onChange={(e) => onChange("email", e.target.value)} />
+        <Input value={draft.email} disabled className="cursor-not-allowed opacity-60" />
       </Field>
       <Field label="직무">
         <select

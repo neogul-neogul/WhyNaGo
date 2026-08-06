@@ -65,9 +65,8 @@ public class User {
         this.dailyGoal = dailyGoal;
     }
 
-    public void updateProfile(String email, String nickname, Position position, int dailyGoal) {
+    public void updateProfile(String nickname, Position position, int dailyGoal) {
         validateNickname(nickname);
-        this.email = new Email(email);
         this.nickname = nickname;
         this.position = position;
         this.dailyGoal = dailyGoal;

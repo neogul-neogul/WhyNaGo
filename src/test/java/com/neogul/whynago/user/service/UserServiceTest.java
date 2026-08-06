@@ -51,41 +51,25 @@ class UserServiceTest extends IntegrationTestSupport {
     @Test
     void updateProfile() {
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
-        UpdateProfileCommand command = new UpdateProfileCommand(
-                "changed@example.com", "changed", Position.FRONTEND, 20);
+        UpdateProfileCommand command = new UpdateProfileCommand("changed", Position.FRONTEND, 20);
 
         UserProfileResult result = userService.updateProfile(user.getId(), command);
 
-        assertThat(result.email()).isEqualTo("changed@example.com");
+        assertThat(result.email()).isEqualTo("member@example.com");
         assertThat(result.nickname()).isEqualTo("changed");
         assertThat(result.position()).isEqualTo(Position.FRONTEND);
         assertThat(result.dailyGoal()).isEqualTo(20);
     }
 
-    @DisplayName("자신의 기존 이메일·닉네임으로는 그대로 수정할 수 있다.")
+    @DisplayName("자신의 기존 닉네임으로는 그대로 수정할 수 있다.")
     @Test
-    void updateProfile_sameEmailAndNickname() {
+    void updateProfile_sameNickname() {
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
-        UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "tester", Position.BACKEND, 20);
+        UpdateProfileCommand command = new UpdateProfileCommand("tester", Position.BACKEND, 20);
 
         UserProfileResult result = userService.updateProfile(user.getId(), command);
 
         assertThat(result.dailyGoal()).isEqualTo(20);
-    }
-
-    @DisplayName("다른 사용자가 이미 사용 중인 이메일로 수정하면 예외가 발생한다.")
-    @Test
-    void updateProfile_duplicateEmail() {
-        userRepository.save(UserFixture.user().email("taken@example.com").nickname("taken").build());
-        User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
-        UpdateProfileCommand command = new UpdateProfileCommand(
-                "taken@example.com", "tester", Position.BACKEND, 10);
-
-        assertThatThrownBy(() -> userService.updateProfile(user.getId(), command))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
-                        .isEqualTo(UserErrorCode.USER_DUPLICATE_EMAIL));
     }
 
     @DisplayName("다른 사용자가 이미 사용 중인 닉네임으로 수정하면 예외가 발생한다.")
@@ -93,8 +77,7 @@ class UserServiceTest extends IntegrationTestSupport {
     void updateProfile_duplicateNickname() {
         userRepository.save(UserFixture.user().email("taken@example.com").nickname("taken").build());
         User user = userRepository.save(UserFixture.user().email("member@example.com").nickname("tester").build());
-        UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "taken", Position.BACKEND, 10);
+        UpdateProfileCommand command = new UpdateProfileCommand("taken", Position.BACKEND, 10);
 
         assertThatThrownBy(() -> userService.updateProfile(user.getId(), command))
                 .isInstanceOf(BusinessException.class)
@@ -105,8 +88,7 @@ class UserServiceTest extends IntegrationTestSupport {
     @DisplayName("존재하지 않는 사용자의 프로필을 수정하면 예외가 발생한다.")
     @Test
     void updateProfile_notFound() {
-        UpdateProfileCommand command = new UpdateProfileCommand(
-                "member@example.com", "tester", Position.BACKEND, 20);
+        UpdateProfileCommand command = new UpdateProfileCommand("tester", Position.BACKEND, 20);
 
         assertThatThrownBy(() -> userService.updateProfile(999L, command))
                 .isInstanceOf(BusinessException.class)
