@@ -48,6 +48,17 @@ class JwtProviderTest {
         assertThat(jwtProvider.parseToken(tokenPair.refreshToken()).id()).isEqualTo(1L);
     }
 
+    @DisplayName("같은 사용자에게 연속으로 발급한 리프레시 토큰은 서로 다르다.")
+    @Test
+    void createRefreshToken_unique() {
+        // when
+        String first = jwtProvider.createRefreshToken(new JwtClaim(1L));
+        String second = jwtProvider.createRefreshToken(new JwtClaim(1L));
+
+        // then
+        assertThat(first).isNotEqualTo(second);
+    }
+
     @DisplayName("만료된 토큰은 만료된 것으로 판별한다.")
     @Test
     void isExpired_expiredToken() {

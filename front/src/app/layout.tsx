@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
+import AuthGate from "@/components/layout/AuthGate";
 import ComingSoonGate from "@/components/layout/ComingSoonGate";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -30,7 +31,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col bg-page text-ink">
         <Header />
-        <ComingSoonGate>{children}</ComingSoonGate>
+        <AuthGate>
+          <ComingSoonGate>{children}</ComingSoonGate>
+        </AuthGate>
       </body>
     </html>
   );

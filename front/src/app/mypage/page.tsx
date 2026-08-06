@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Profile, UserProfileResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { POSITION_LABELS, fetchMyProfile, positionFromLabel, updateMyProfile } from "@/lib/user";
+import { syncStoredUser } from "@/lib/auth";
 import { defaultProfile, mypageStats } from "@/mocks/mypage";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProfileCard from "@/components/mypage/ProfileCard";
@@ -61,6 +62,7 @@ export default function MypagePage() {
         dailyGoal: Number(draft.goal),
       });
       setProfile(toProfile(result));
+      syncStoredUser(result);
       setEditing(false);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "저장에 실패했습니다. 다시 시도해주세요.");

@@ -4,8 +4,14 @@ import com.neogul.whynago.auth.domain.JwtClaim;
 import com.neogul.whynago.auth.domain.TokenPair;
 import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.implement.JwtProvider;
+import com.neogul.whynago.auth.implement.RefreshTokenAppender;
+import com.neogul.whynago.auth.implement.RefreshTokenRevoker;
+import com.neogul.whynago.auth.implement.RefreshTokenRotator;
 import com.neogul.whynago.auth.service.dto.LoginCommand;
 import com.neogul.whynago.auth.service.dto.LoginResult;
+import com.neogul.whynago.auth.service.dto.LogoutCommand;
+import com.neogul.whynago.auth.service.dto.ReissueCommand;
+import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.user.domain.User;
@@ -26,6 +32,9 @@ public class AuthService {
     private final UserAppender userAppender;
     private final UserReader userReader;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenAppender refreshTokenAppender;
+    private final RefreshTokenRevoker refreshTokenRevoker;
+    private final RefreshTokenRotator refreshTokenRotator;
 
     @Transactional
     public Long signup(SignUpCommand command) {
@@ -35,7 +44,7 @@ public class AuthService {
         return user.getId();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResult login(LoginCommand command) {
         User user = userReader.findByEmail(command.email())
                 .orElseThrow(() -> new BusinessException(AuthErrorCode.AUTH_LOGIN_FAILED));
@@ -43,11 +52,27 @@ public class AuthService {
             throw new BusinessException(AuthErrorCode.AUTH_LOGIN_FAILED);
         }
         TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId()));
+        refreshTokenRevoker.revokeAllByUserId(user.getId());
+        refreshTokenAppender.append(user.getId(), tokenPair.refreshToken());
         return new LoginResult(
                 tokenPair,
                 user.getId(),
                 user.getEmail().getValue(),
                 user.getNickname(),
                 user.getPosition());
+    }
+
+    @Transactional
+    public ReissueResult reissue(ReissueCommand command) {
+        JwtClaim claim = jwtProvider.parseToken(command.refreshToken());
+        refreshTokenRotator.rotate(command.refreshToken());
+        TokenPair tokenPair = jwtProvider.createTokenPair(claim);
+        refreshTokenAppender.append(claim.id(), tokenPair.refreshToken());
+        return ReissueResult.from(tokenPair);
+    }
+
+    @Transactional
+    public void logout(LogoutCommand command) {
+        refreshTokenRevoker.revoke(command.refreshToken());
     }
 }

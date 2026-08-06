@@ -17,6 +17,12 @@ export interface LoginResponse extends AuthUser {
   refreshToken: string;
 }
 
+/** 재발급 API 응답 바디 (사용자 정보는 포함하지 않는다) */
+export interface ReissueResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
 /** 회원가입 API 응답 바디 */
 export interface SignUpResponse {
   userId: number;

@@ -1,4 +1,4 @@
-import type { LearningMenuItem, TodayGoal, TodayMetric } from "@/types";
+import type { LearningMenuItem, LearningStats, TodayGoal, TodayMetric } from "@/types";
 import { palette } from "@/lib/tokens";
 
 // 오늘의 학습 목표 진행 상황 (더미)
@@ -6,6 +6,18 @@ export const todayGoal: TodayGoal = {
   target: 10,
   current: 12,
   completed: true,
+};
+
+// 게스트 홈 배너 프리뷰용 더미 (실제 값 아님, 예시 화면 안내용)
+export const guestPreviewGoal: TodayGoal = {
+  target: 10,
+  current: 6,
+  completed: false,
+};
+
+export const guestPreviewStats: LearningStats = {
+  streakDays: 7,
+  cumulativeDays: 23,
 };
 
 // 오늘 지표 카드 (더미)

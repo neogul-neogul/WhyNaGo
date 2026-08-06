@@ -10,7 +10,10 @@ import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.auth.fixture.LoginRequestFixture;
 import com.neogul.whynago.auth.fixture.SignUpRequestFixture;
 import com.neogul.whynago.auth.presentation.dto.LoginRequest;
+import com.neogul.whynago.auth.presentation.dto.LogoutRequest;
+import com.neogul.whynago.auth.presentation.dto.ReissueRequest;
 import com.neogul.whynago.auth.presentation.dto.SignUpRequest;
+import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.support.ControllerTestSupport;
 import com.neogul.whynago.user.domain.Position;
@@ -174,5 +177,99 @@ class AuthControllerTest extends ControllerTestSupport {
                 .then()
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .body("code", equalTo("AUTH_LOGIN_FAILED"));
+    }
+
+    @DisplayName("재발급에 성공하면 200 OK와 새 토큰 쌍을 응답한다.")
+    @Test
+    void reissue() {
+        // given
+        given(authService.reissue(any()))
+                .willReturn(new ReissueResult("new.access.token", "new.refresh.token"));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new ReissueRequest("refresh.token"))
+                .when()
+                .post("/api/auth/reissue")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("accessToken", equalTo("new.access.token"))
+                .body("refreshToken", equalTo("new.refresh.token"));
+    }
+
+    @DisplayName("재발급 요청에 리프레시 토큰이 없으면 400 Bad Request를 응답한다.")
+    @Test
+    void reissue_blankRefreshToken() {
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new ReissueRequest(""))
+                .when()
+                .post("/api/auth/reissue")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
+    }
+
+    @DisplayName("폐기된 리프레시 토큰으로 재발급하면 401 Unauthorized를 응답한다.")
+    @Test
+    void reissue_revokedToken() {
+        // given
+        given(authService.reissue(any()))
+                .willThrow(new BusinessException(AuthErrorCode.AUTH_TOKEN_INVALID));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new ReissueRequest("revoked.refresh.token"))
+                .when()
+                .post("/api/auth/reissue")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("code", equalTo("AUTH_TOKEN_INVALID"));
+    }
+
+    @DisplayName("만료된 리프레시 토큰으로 재발급하면 401 Unauthorized를 응답한다.")
+    @Test
+    void reissue_expiredToken() {
+        // given
+        given(authService.reissue(any()))
+                .willThrow(new BusinessException(AuthErrorCode.AUTH_TOKEN_EXPIRED));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new ReissueRequest("expired.refresh.token"))
+                .when()
+                .post("/api/auth/reissue")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("code", equalTo("AUTH_TOKEN_EXPIRED"));
+    }
+
+    @DisplayName("로그아웃에 성공하면 204 No Content를 응답한다.")
+    @Test
+    void logout() {
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new LogoutRequest("refresh.token"))
+                .when()
+                .post("/api/auth/logout")
+                .then()
+                .statusCode(HttpStatus.NO_CONTENT.value());
+    }
+
+    @DisplayName("로그아웃 요청에 리프레시 토큰이 없으면 400 Bad Request를 응답한다.")
+    @Test
+    void logout_blankRefreshToken() {
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new LogoutRequest(""))
+                .when()
+                .post("/api/auth/logout")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
     }
 }

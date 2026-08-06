@@ -1,81 +1,87 @@
+/**
+ * 인증 도메인 API와 로그인 상태 구독 훅.
+ * 저장소 접근은 authStorage.ts에 위임하고, 여기서는 흐름만 다룬다.
+ */
+
 import { useSyncExternalStore } from "react";
 import { apiFetch } from "@/lib/api";
-import type { AuthUser, LoginResponse, SignUpResponse } from "@/types";
+import {
+  clearSession,
+  getAccessToken,
+  getRefreshToken,
+  getStoredUser,
+  notifyAuthChange,
+  setStoredUser,
+  setTokens,
+  subscribeAuthChange,
+} from "@/lib/authStorage";
+import type {
+  AuthUser,
+  LoginResponse,
+  SignUpResponse,
+  UserProfileResponse,
+} from "@/types";
 
-// 로그인 세션(토큰 + 사용자 정보)을 localStorage에 저장/조회/삭제한다.
-const ACCESS_TOKEN_KEY = "whynago:accessToken";
-const REFRESH_TOKEN_KEY = "whynago:refreshToken";
-const USER_KEY = "whynago:user";
-const AUTH_EVENT = "whynago:auth-change";
-
-function isBrowser() {
-  return typeof window !== "undefined";
-}
-
-/** 현재 로그인 여부 (저장된 accessToken 존재 여부로 판단) */
+/** 현재 로그인 여부 (저장된 access token 존재 여부로 판단) */
 export function isLoggedIn(): boolean {
-  if (!isBrowser()) return false;
-  try {
-    return window.localStorage.getItem(ACCESS_TOKEN_KEY) !== null;
-  } catch {
-    return false;
-  }
+  return getAccessToken() !== null;
 }
-
-// getCurrentUser가 매번 새 객체를 반환하면 useSyncExternalStore가 무한 렌더링하므로,
-// 원본 문자열이 바뀔 때만 다시 파싱해 참조를 안정적으로 유지한다.
-let cachedUserRaw: string | null = null;
-let cachedUser: AuthUser | null = null;
 
 /** 저장된 사용자 정보 (없으면 null) */
 export function getCurrentUser(): AuthUser | null {
-  if (!isBrowser()) return null;
-  let raw: string | null;
-  try {
-    raw = window.localStorage.getItem(USER_KEY);
-  } catch {
-    return null;
-  }
-  if (raw === cachedUserRaw) return cachedUser;
-  cachedUserRaw = raw;
-  try {
-    cachedUser = raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    cachedUser = null;
-  }
-  return cachedUser;
+  return getStoredUser();
 }
 
-/** 로그인 성공 응답을 받아 토큰과 사용자 정보를 저장하고 구독자에게 통지 */
+/** 로그인 성공 응답을 받아 토큰과 사용자 정보를 저장하고 구독자에게 통지한다 */
 export function saveSession(res: LoginResponse) {
-  if (!isBrowser()) return;
-  try {
-    window.localStorage.setItem(ACCESS_TOKEN_KEY, res.accessToken);
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
-    const user: AuthUser = {
-      id: res.id,
-      email: res.email,
-      nickname: res.nickname,
-      position: res.position,
-    };
-    window.localStorage.setItem(USER_KEY, JSON.stringify(user));
-  } catch {
-    // 저장 불가 환경 무시
-  }
-  window.dispatchEvent(new Event(AUTH_EVENT));
+  setTokens(res.accessToken, res.refreshToken);
+  setStoredUser({
+    id: res.id,
+    email: res.email,
+    nickname: res.nickname,
+    position: res.position,
+  });
+  notifyAuthChange();
 }
 
-/** 로그아웃: 저장된 세션 정보를 모두 제거하고 구독자에게 통지 */
-export function logout() {
-  if (!isBrowser()) return;
+/**
+ * 로그아웃: 로컬 세션을 먼저 비우고, 서버에 저장된 refresh token 폐기를 이어서 요청한다.
+ * 로컬 정리가 첫 await 이전에 끝나므로 호출부는 기다리지 않고 화면을 전환해도 된다.
+ * 서버 호출 실패는 삼킨다 — 폐기에 실패해도 되돌릴 수단이 없고,
+ * 로컬 세션을 남기면 사용자에겐 로그아웃이 동작하지 않는 것으로 보인다.
+ */
+export async function logout() {
+  const refreshToken = getRefreshToken();
+  clearSession();
+  notifyAuthChange();
+
+  if (refreshToken === null) return;
   try {
-    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-    window.localStorage.removeItem(USER_KEY);
+    await apiFetch<void>("/api/auth/logout", {
+      method: "POST",
+      body: { refreshToken },
+      skipAuth: true,
+    });
   } catch {
-    // 삭제 불가 환경 무시
+    return;
   }
-  window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
+/**
+ * 서버에서 받은 최신 프로필로 저장된 사용자 정보를 갱신한다.
+ * 재발급 응답에는 사용자 정보가 없어(백엔드 002 D7) 프로필 조회·수정 시점에 맞춰 동기화한다.
+ * 프로필 응답에는 id가 없으므로 저장된 값을 유지한다.
+ */
+export function syncStoredUser(profile: UserProfileResponse) {
+  const current = getStoredUser();
+  if (current === null) return;
+  setStoredUser({
+    id: current.id,
+    email: profile.email,
+    nickname: profile.nickname,
+    position: profile.position,
+  });
+  notifyAuthChange();
 }
 
 /** 로그인 API 호출 후 성공 시 세션 저장 */
@@ -102,27 +108,17 @@ export async function requestSignup(
   });
 }
 
-function subscribe(callback: () => void) {
-  if (!isBrowser()) return () => {};
-  window.addEventListener(AUTH_EVENT, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(AUTH_EVENT, callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
 /**
  * 로그인 여부를 반응형으로 구독하는 훅.
  * 서버 렌더 시엔 항상 로그아웃(false)으로 렌더해 hydration 불일치를 피한다.
  */
 export function useAuth(): boolean {
-  return useSyncExternalStore(subscribe, isLoggedIn, () => false);
+  return useSyncExternalStore(subscribeAuthChange, isLoggedIn, () => false);
 }
 
 /** 저장된 사용자 정보를 반응형으로 구독하는 훅 (서버 렌더 시 null) */
 export function useCurrentUser(): AuthUser | null {
-  return useSyncExternalStore(subscribe, getCurrentUser, () => null);
+  return useSyncExternalStore(subscribeAuthChange, getCurrentUser, () => null);
 }
 
 const noopSubscribe = () => () => {};

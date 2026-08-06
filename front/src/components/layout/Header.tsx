@@ -104,7 +104,6 @@ export default function Header() {
   // 인증 화면(로그인/회원가입)에서는 공통 헤더를 숨긴다
   if (pathname === "/login" || pathname === "/signup") return null;
 
-  // 클라이언트 측 더미 로그아웃: 세션 정보를 비우고 메인 페이지로 이동
   const handleLogout = () => {
     setProfileOpen(false);
     if (!window.confirm("로그아웃 하시겠어요?")) return;

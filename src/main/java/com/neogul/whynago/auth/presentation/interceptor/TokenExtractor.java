@@ -10,7 +10,10 @@ public class TokenExtractor {
     private static final String BEARER_PREFIX = "Bearer ";
 
     public String extractToken(String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            throw new BusinessException(AuthErrorCode.AUTH_TOKEN_MISSING);
+        }
+        if (!authorizationHeader.startsWith(BEARER_PREFIX)) {
             throw new BusinessException(AuthErrorCode.AUTH_TOKEN_INVALID);
         }
         return authorizationHeader.substring(BEARER_PREFIX.length());
