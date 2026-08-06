@@ -1051,3 +1051,100 @@ PATCH /api/users/me
 | 400 | `INVALID_INPUT` | 필수값 누락, 닉네임 길이 위반, 이메일 형식 오류, `dailyGoal` 1 미만 등 요청 형식 검증 실패. |
 | 409 | `USER_DUPLICATE_EMAIL` | 다른 사용자가 이미 사용 중인 이메일. |
 | 409 | `USER_DUPLICATE_NICKNAME` | 다른 사용자가 이미 사용 중인 닉네임. |
+
+---
+
+# **NotificationSetting API**
+
+로그인한 사용자 본인의 알림 설정 조회·수정을 담당한다. 관련 도메인은 `notification`이다.
+
+설정은 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**된다(→ `docs/DOMAIN.md` NotificationSetting). 이번 구현 범위는 **설정값 저장·조회**이며, 설정에 따른 실제 알림 발송(스케줄러·이메일 발송)은 포함하지 않는다.
+
+## **내 알림 설정 조회**
+
+### **Endpoint**
+
+```
+GET /api/notification-settings/me
+```
+
+### **Response Body**
+
+```json
+{
+  "everyDayRemind": true,
+  "remindTime": "21:00:00",
+  "streakStopPrevention": true,
+  "wrongNote": true,
+  "interviewRemind": false,
+  "weeklyReport": true
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `everyDayRemind` | boolean | 매일 학습 리마인드 수신 여부. |
+| `remindTime` | String (`HH:mm:ss`) | `everyDayRemind` 알림을 받을 시각. |
+| `streakStopPrevention` | boolean | 연속 학습 중단 방지 알림 수신 여부. |
+| `wrongNote` | boolean | 오답 복습 알림 수신 여부. |
+| `interviewRemind` | boolean | 1일 1면접 알림 수신 여부. 면접 기능이 아직 없어 저장만 되고 발송 대상은 없다. |
+| `weeklyReport` | boolean | 주간 리포트 수신 여부. |
+
+### **에러**
+
+없음. 설정이 없던 사용자는 기본값으로 생성한 뒤 반환한다.
+
+---
+
+## **알림 설정 수정**
+
+부분 수정이 아니라 매 요청마다 전체 필드를 보낸다(User 프로필 수정과 동일).
+
+### **Endpoint**
+
+```
+PATCH /api/notification-settings/me
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "everyDayRemind": true,
+  "remindTime": "21:00:00",
+  "streakStopPrevention": true,
+  "wrongNote": true,
+  "interviewRemind": false,
+  "weeklyReport": true
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `everyDayRemind` | boolean | O | 매일 학습 리마인드 수신 여부. |
+| `remindTime` | String (`HH:mm:ss`) | O | 알림을 받을 시각. |
+| `streakStopPrevention` | boolean | O | 연속 학습 중단 방지 알림 수신 여부. |
+| `wrongNote` | boolean | O | 오답 복습 알림 수신 여부. |
+| `interviewRemind` | boolean | O | 1일 1면접 알림 수신 여부. |
+| `weeklyReport` | boolean | O | 주간 리포트 수신 여부. |
+
+### **Response Body**
+
+```json
+{
+  "everyDayRemind": true,
+  "remindTime": "21:00:00",
+  "streakStopPrevention": true,
+  "wrongNote": true,
+  "interviewRemind": false,
+  "weeklyReport": true
+}
+```
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `remindTime` 누락 등 요청 형식 검증 실패. |

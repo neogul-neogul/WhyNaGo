@@ -411,3 +411,20 @@ export interface Profile {
   job: string;
   goal: string;
 }
+
+// ===== 알림 설정 API (백엔드 notification 도메인) =====
+// 설정 저장·조회만 다룬다. 실제 알림 발송(스케줄러·이메일)은 백엔드에 아직 없다.
+
+/** 내 알림 설정 조회 응답 — GET /api/notification-settings/me */
+export interface NotificationSettingResponse {
+  everyDayRemind: boolean;
+  /** "HH:mm:ss" 형식 */
+  remindTime: string;
+  streakStopPrevention: boolean;
+  wrongNote: boolean;
+  interviewRemind: boolean;
+  weeklyReport: boolean;
+}
+
+/** 알림 설정 수정 요청 — PATCH /api/notification-settings/me (부분 수정이 아니라 전체 필드를 보낸다) */
+export type UpdateNotificationSettingRequest = NotificationSettingResponse;
