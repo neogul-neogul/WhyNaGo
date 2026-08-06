@@ -467,7 +467,9 @@ POST /api/questions/{questionId}/essay/answers
 | 400 | `INVALID_INPUT` | 필수값 누락 또는 공백. |
 | 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
 | 400 | `QUESTION_NOT_ESSAY` | `questionId` 문제가 서술형(`ESSAY`)이 아님. |
-| 503 | `ESSAY_AI_UNAVAILABLE` | AI 채점·꼬리질문 생성 호출이 실패함(LLM 장애 등). |
+| 503 | `ESSAY_AI_UNAVAILABLE` | AI 채점·꼬리질문 생성 호출이 실패함(LLM 장애 등). 즉시 재시도 가능. |
+| 429 | `ESSAY_AI_QUOTA_EXCEEDED` | AI 분당 요청 한도를 초과함. 잠시(약 1분) 기다린 뒤 재시도해야 한다. |
+| 429 | `ESSAY_AI_DAILY_QUOTA_EXCEEDED` | AI 일일 요청 한도를 초과함. 한도가 초기화되기 전에는 재시도해도 실패한다. |
 
 ---
 

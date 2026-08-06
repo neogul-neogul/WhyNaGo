@@ -1,14 +1,20 @@
 package com.neogul.whynago.question.infra.ai;
 
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.common.exception.ErrorCode;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import java.time.Duration;
+import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -28,6 +34,10 @@ public class GeminiEssayAiClient implements EssayAiClient {
 
     private static final String NO_FOLLOWUP_INSTRUCTION =
             "이번 턴에서는 꼬리질문을 생성하지 말고 followupQuestion은 null로 두어라.";
+
+    private static final String QUOTA_STATUS = "RESOURCE_EXHAUSTED";
+    private static final Pattern QUOTA_STATUS_CODE = Pattern.compile("\\b429\\b");
+    private static final List<String> DAILY_QUOTA_HINTS = List.of("perday", "per day", "daily");
 
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
@@ -66,7 +76,7 @@ public class GeminiEssayAiClient implements EssayAiClient {
     @Override
     public int completedTurns(String conversationId) {
         return (int) chatMemory.get(conversationId).stream()
-                .filter(message -> message.getMessageType() == MessageType.USER)
+                .filter(message -> message.getMessageType() == MessageType.ASSISTANT)
                 .count();
     }
 
@@ -80,16 +90,48 @@ public class GeminiEssayAiClient implements EssayAiClient {
     private <T> T call(boolean generateFollowup, String conversationId, Supplier<T> aiCall) {
         String operation = generateFollowup ? "채점·꼬리질문 생성" : "채점";
         long startedAt = System.nanoTime();
+        List<Message> beforeCall = List.copyOf(chatMemory.get(conversationId));
         try {
             T result = aiCall.get();
             log.info("Gemini {} 완료 - conversationId={}, {}ms",
                     operation, conversationId, elapsedMillis(startedAt));
             return result;
         } catch (RuntimeException e) {
-            log.warn("Gemini {} 실패 - conversationId={}, {}ms",
-                    operation, conversationId, elapsedMillis(startedAt), e);
-            throw new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE);
+            ErrorCode errorCode = errorCodeOf(e);
+            log.warn("Gemini {} 실패 - conversationId={}, errorCode={}, {}ms",
+                    operation, conversationId, errorCode.code(), elapsedMillis(startedAt), e);
+            rollbackMemory(conversationId, beforeCall);
+            throw new BusinessException(errorCode);
         }
+    }
+
+    private void rollbackMemory(String conversationId, List<Message> beforeCall) {
+        chatMemory.clear(conversationId);
+        if (!beforeCall.isEmpty()) {
+            chatMemory.add(conversationId, beforeCall);
+        }
+    }
+
+    private ErrorCode errorCodeOf(RuntimeException e) {
+        String detail = e.getMessage();
+        if (!(e instanceof NonTransientAiException) || !isQuotaExceeded(detail)) {
+            return QuestionErrorCode.ESSAY_AI_UNAVAILABLE;
+        }
+        return isDailyQuota(detail)
+                ? QuestionErrorCode.ESSAY_AI_DAILY_QUOTA_EXCEEDED
+                : QuestionErrorCode.ESSAY_AI_QUOTA_EXCEEDED;
+    }
+
+    private boolean isQuotaExceeded(String detail) {
+        if (detail == null) {
+            return false;
+        }
+        return detail.contains(QUOTA_STATUS) || QUOTA_STATUS_CODE.matcher(detail).find();
+    }
+
+    private boolean isDailyQuota(String detail) {
+        String normalized = detail.toLowerCase(Locale.ROOT);
+        return DAILY_QUOTA_HINTS.stream().anyMatch(normalized::contains);
     }
 
     private long elapsedMillis(long startedAt) {

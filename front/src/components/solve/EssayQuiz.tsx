@@ -30,6 +30,10 @@ interface GradedItem {
 
 const label = (i: number) => (i === 0 ? "본 질문" : `꼬리질문 ${i}`);
 
+const QUOTA_COOLDOWN_SECONDS = 60;
+const QUOTA_CODE = "ESSAY_AI_QUOTA_EXCEEDED";
+const DAILY_QUOTA_CODE = "ESSAY_AI_DAILY_QUOTA_EXCEEDED";
+
 // 서술형 풀이 (AI 면접식 꼬리질문)
 // 꼬리질문은 미리 알 수 없고 채점 응답(nextFollowup)으로만 도착한다 — 문항 시퀀스가 응답으로 성장한다
 export default function EssayQuiz({
@@ -55,6 +59,9 @@ export default function EssayQuiz({
   const [grading, setGrading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 쿼터 초과는 재시도해도 즉시 회복되지 않아 일반 실패와 분리해 다룬다
+  const [quota, setQuota] = useState<{ daily: boolean; message: string } | null>(null);
+  const [cooldown, setCooldown] = useState(0);
 
   // 세션 시작은 진입 시 1회만 (StrictMode의 이펙트 이중 실행으로 대화가 두 개 발급되지 않게 막는다)
   const startedRef = useRef(false);
@@ -79,17 +86,25 @@ export default function EssayQuiz({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   // 화면에 노출되는 문항 시퀀스 = 채점 완료된 문항들 + 답변 중 문항
   const seq = [...items.map((item) => item.question), ...(current ? [current] : [])];
   const idx = items.length;
   const done = current === null;
   const correctCount = items.filter((item) => item.isCorrect).length;
+  const dailyQuotaReached = quota?.daily === true;
 
   const submit = async () => {
-    if (!conversationId || !current || !draft.trim() || grading) return;
+    if (!conversationId || !current || !draft.trim() || grading || cooldown > 0 || dailyQuotaReached) return;
     const answer = draft.trim();
     setGrading(true);
     setError(null);
+    setQuota(null);
     try {
       const result = await evaluateEssayAnswer(question.id, {
         conversationId,
@@ -110,7 +125,14 @@ export default function EssayQuiz({
       setDraft("");
     } catch (e) {
       // 실패해도 draft를 지우지 않는다 — 같은 답변으로 바로 재시도할 수 있게
-      setError(e instanceof ApiError ? e.message : "채점에 실패했습니다. 다시 시도해주세요.");
+      const code = e instanceof ApiError ? e.code : null;
+      if (code === QUOTA_CODE || code === DAILY_QUOTA_CODE) {
+        const daily = code === DAILY_QUOTA_CODE;
+        setQuota({ daily, message: (e as ApiError).message });
+        setCooldown(daily ? 0 : QUOTA_COOLDOWN_SECONDS);
+      } else {
+        setError(e instanceof ApiError ? e.message : "채점에 실패했습니다. 다시 시도해주세요.");
+      }
     } finally {
       setGrading(false);
     }
@@ -258,6 +280,29 @@ export default function EssayQuiz({
                 </div>
               )}
 
+              {/* AI 채점 쿼터 초과 — 분당 한도는 쿨다운 후 재시도, 일일 한도는 재시도 대신 이탈 안내 */}
+              {quota && (
+                <div className="flex flex-col items-start gap-2 rounded-[12px] border border-alert-line bg-alert-bg px-4 py-3.5">
+                  <div className="text-[13.5px] font-semibold text-alert-deep">{quota.message}</div>
+                  {quota.daily ? (
+                    <>
+                      <div className="text-[12.5px] text-alert-deep">
+                        지금은 객관식 문제로 학습을 이어갈 수 있어요.
+                      </div>
+                      <Button variant="secondary" onClick={onQuit}>
+                        문제은행으로 가기
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="text-[12.5px] font-semibold text-alert-deep">
+                      {cooldown > 0
+                        ? `${cooldown}초 후 같은 답변으로 다시 제출할 수 있어요.`
+                        : "이제 다시 제출할 수 있어요."}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* 현재 질문 답변 입력 */}
               {!done && !startError && (
                 <div className="flex flex-col gap-[11px]">
@@ -285,6 +330,13 @@ export default function EssayQuiz({
                     className="block min-h-[170px] w-full resize-y rounded-[12px] border border-line-input bg-white px-4 py-3.5 text-[14.5px] leading-[1.7] text-ink outline-none disabled:bg-subtle disabled:text-soft"
                   />
                   <span className="font-mono text-xs text-placeholder">{draft.length}자</span>
+                </div>
+              )}
+
+              {/* 미완주 상태 — 저장 조건(3문항 완주)을 못 채우면 진행분이 남지 않는다 */}
+              {!done && items.length > 0 && (
+                <div className="text-[12.5px] font-semibold text-soft">
+                  3문항을 모두 답해야 저장할 수 있어요. 지금 종료하면 지금까지 답변은 저장되지 않습니다.
                 </div>
               )}
 
@@ -332,9 +384,11 @@ export default function EssayQuiz({
                   <Button
                     size="lg"
                     onClick={submit}
-                    disabled={!conversationId || !draft.trim() || grading}
+                    disabled={
+                      !conversationId || !draft.trim() || grading || cooldown > 0 || dailyQuotaReached
+                    }
                   >
-                    {grading ? "채점 중…" : "답변 제출"}
+                    {grading ? "채점 중…" : cooldown > 0 ? `${cooldown}초 후 재시도` : "답변 제출"}
                   </Button>
                 </>
               )}
