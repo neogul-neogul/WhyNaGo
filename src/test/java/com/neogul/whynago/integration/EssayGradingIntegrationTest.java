@@ -1,13 +1,16 @@
 package com.neogul.whynago.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.QuestionFixture;
 import com.neogul.whynago.question.domain.Question;
+import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
@@ -28,6 +31,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -132,6 +136,35 @@ class EssayGradingIntegrationTest extends IntegrationTestSupport {
 
         // then
         assertThat(chatMemory.get(conversationId)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("채점이 실패한 턴은 대화 이력에 남지 않아 재시도해도 꼬리질문이 조기에 끊기지 않는다.")
+    void gradeAfterFailure_doesNotShortenSession() {
+        // given
+        given(chatModel.call(any(Prompt.class)))
+                .willReturn(aiResponse("피드백1", 9, "꼬리질문1"))
+                .willThrow(new NonTransientAiException(
+                        "HTTP 429 - {\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\"}}"))
+                .willReturn(aiResponse("피드백2", 8, "꼬리질문2"));
+        String conversationId = essayAnswerService.startSession(essay.getId()).conversationId();
+        EssayAnswerResult first = evaluate(conversationId, essay.getContent(), "답변1");
+
+        // when
+        assertThatThrownBy(() -> evaluate(conversationId, first.nextFollowup().question(), "답변2"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
+                        .isEqualTo(QuestionErrorCode.ESSAY_AI_QUOTA_EXCEEDED));
+        EssayAnswerResult retried = evaluate(conversationId, first.nextFollowup().question(), "답변2");
+
+        // then
+        assertThat(retried.nextFollowup())
+                .as("실패한 턴이 완료 턴 수에 잡히면 마지막 턴으로 판정되어 꼬리질문이 사라진다")
+                .isNotNull();
+        assertThat(retried.nextFollowup().question()).isEqualTo("꼬리질문2");
+        assertThat(promptText(capturedPrompts(3).get(2)))
+                .as("실패한 턴이 남아 있으면 같은 답변이 이력에 중복으로 실린다")
+                .containsOnlyOnce("답변2");
     }
 
     @Test
