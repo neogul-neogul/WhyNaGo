@@ -15,6 +15,7 @@ import { diffTone, lvBadge } from "@/lib/badges";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
+import GradingProgress from "@/components/solve/GradingProgress";
 
 /** 채점이 끝난 문항 (발문·내 답변 + 채점 응답 스냅샷) */
 interface GradedItem {
@@ -265,6 +266,9 @@ export default function EssayQuiz({
                 </div>
               ))}
 
+              {/* 채점 대기 — 채점 결과가 들어올 자리에 그대로 표시한다 */}
+              {grading && <GradingProgress />}
+
               {/* 세션 시작 실패 — 답변 입력을 막고 재시도만 노출 */}
               {startError && (
                 <div className="flex flex-col items-start gap-2.5 rounded-[12px] border border-alert-line bg-alert-bg px-4 py-3.5">
@@ -375,7 +379,19 @@ export default function EssayQuiz({
                       !conversationId || !draft.trim() || grading || cooldown > 0 || dailyQuotaReached
                     }
                   >
-                    {grading ? "채점 중…" : cooldown > 0 ? `${cooldown}초 후 재시도` : "답변 제출"}
+                    {grading ? (
+                      <span className="flex items-center gap-[7px]">
+                        <span
+                          className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                          aria-hidden="true"
+                        />
+                        채점 중…
+                      </span>
+                    ) : cooldown > 0 ? (
+                      `${cooldown}초 후 재시도`
+                    ) : (
+                      "답변 제출"
+                    )}
                   </Button>
                 </>
               )}
