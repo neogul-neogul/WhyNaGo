@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { EssaySolvedQuestionRequest, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
@@ -15,6 +16,7 @@ import { diffTone, lvBadge } from "@/lib/badges";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
+import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
 
 /** 채점이 끝난 문항 (발문·내 답변 + 채점 응답 스냅샷) */
 interface GradedItem {
@@ -43,6 +45,8 @@ export default function EssayQuiz({
   onQuit: () => void;
   onFinish: (correct: number, total: number) => void;
 }) {
+  const loggedIn = useAuth();
+  const [showLoginGate, setShowLoginGate] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   // 본질문을 처음 받은 시각(세션 시작 시각). 부모가 문항마다 key로 컴포넌트를 새로 마운트하므로 1회만 계산된다
   const [startedAt] = useState(() => nowAsLocalDateTime());
@@ -75,11 +79,12 @@ export default function EssayQuiz({
   };
 
   useEffect(() => {
-    if (startedRef.current) return;
+    // 비로그인이면 세션 시작 자체를 하지 않음
+    if (startedRef.current || !loggedIn) return;
     startedRef.current = true;
     void startSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loggedIn]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -306,13 +311,21 @@ export default function EssayQuiz({
                       {label(idx)}
                     </Badge>
                     <span className="text-xs font-semibold text-soft">
-                      {conversationId ? "에 답변해 주세요" : "· 세션을 시작하는 중입니다…"}
+                      {!loggedIn
+                        ? "· 로그인하면 답변할 수 있어요"
+                        : conversationId
+                          ? "에 답변해 주세요"
+                          : "· 세션을 시작하는 중입니다…"}
                     </span>
                   </div>
                   <textarea
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    disabled={!conversationId || grading || dailyQuotaReached}
+                    onFocus={() => {
+                      if (!loggedIn) setShowLoginGate(true);
+                    }}
+                    readOnly={!loggedIn}
+                    disabled={loggedIn && (!conversationId || grading)}
                     placeholder="면접관에게 답하듯 설명해 보세요. 근거와 예시를 함께 들면 좋습니다."
                     className="block min-h-[170px] w-full resize-y rounded-[12px] border border-line-input bg-white px-4 py-3.5 text-[14.5px] leading-[1.7] text-ink outline-none disabled:bg-subtle disabled:text-soft"
                   />
@@ -383,6 +396,8 @@ export default function EssayQuiz({
           </Card>
         </div>
       </div>
+
+      {showLoginGate && <LoginRequiredGate onClose={() => setShowLoginGate(false)} />}
     </div>
   );
 }

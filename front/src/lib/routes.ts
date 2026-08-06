@@ -4,12 +4,20 @@
  */
 const PUBLIC_ROUTES = ["/", "/solve", "/login", "/signup"] as const;
 
+/**
+ * 하위 경로까지 공개인 경로.
+ * /solve/[id](문제 상세)는 조회는 공개이고, 풀이 액션(선택지 클릭·답안 입력)만
+ * 각 퀴즈 컴포넌트에서 로그인 여부를 따로 확인해 막는다.
+ */
+const PUBLIC_PREFIX_ROUTES = ["/solve"] as const;
+
 /** 로그인한 사용자에게는 의미가 없어 홈으로 돌려보내는 경로 */
 const GUEST_ONLY_ROUTES = ["/login", "/signup"] as const;
 
-/** 비로그인으로 볼 수 있는 경로인지 (하위 경로는 포함하지 않는다 — /solve는 공개지만 /solve/1은 아니다) */
+/** 비로그인으로 볼 수 있는 경로인지 (PUBLIC_PREFIX_ROUTES에 등록된 경로는 하위 경로도 포함) */
 export function isPublicRoute(pathname: string): boolean {
-  return PUBLIC_ROUTES.some((route) => route === pathname);
+  if (PUBLIC_ROUTES.some((route) => route === pathname)) return true;
+  return PUBLIC_PREFIX_ROUTES.some((route) => pathname.startsWith(`${route}/`));
 }
 
 /** 로그인 상태로 접근하면 홈으로 보내야 하는 경로인지 */

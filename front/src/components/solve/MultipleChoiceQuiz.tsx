@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ChoiceGradingResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
@@ -15,6 +16,7 @@ import { palette } from "@/lib/tokens";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
+import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
 
 /** 채점이 끝난 문항 (본질문/꼬리질문 각 1개) */
 interface SolvedItem {
@@ -38,6 +40,8 @@ export default function MultipleChoiceQuiz({
   onQuit: () => void;
   onFinish: (correct: number, total: number) => void;
 }) {
+  const loggedIn = useAuth();
+  const [showLoginGate, setShowLoginGate] = useState(false);
   const [solvedItems, setSolvedItems] = useState<SolvedItem[]>([]);
   // 본질문을 처음 받은 시각(세션 시작 시각). 부모가 문항마다 key로 컴포넌트를 새로 마운트하므로 1회만 계산된다
   const [startedAt] = useState(() => nowAsLocalDateTime());
@@ -61,6 +65,11 @@ export default function MultipleChoiceQuiz({
   const correctCount = solvedItems.filter((item) => item.grading.correct).length;
 
   const select = (choiceId: number) => {
+    // 비로그인이면 채점 대신 로그인 모달
+    if (!loggedIn) {
+      setShowLoginGate(true);
+      return;
+    }
     // 채점 완료 문항은 선택 변경 불가 (1문항 1회 응답)
     if (viewedItem || grading) return;
     setSelectedChoiceId(choiceId);
@@ -299,6 +308,8 @@ export default function MultipleChoiceQuiz({
           </Card>
         </div>
       </div>
+
+      {showLoginGate && <LoginRequiredGate onClose={() => setShowLoginGate(false)} />}
     </div>
   );
 }

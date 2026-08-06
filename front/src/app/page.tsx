@@ -10,7 +10,12 @@ import { fetchDailyCounts, fetchStreak, todayDateKey } from "@/lib/records";
 import { fetchWrongNotes } from "@/lib/wrongNotes";
 import { fetchMyProfile } from "@/lib/user";
 import { syncStoredUser, useAuth } from "@/lib/auth";
-import { learningMenu as learningMenuBase, todayMetrics as todayMetricsBase } from "@/mocks/today";
+import {
+  guestPreviewGoal,
+  guestPreviewStats,
+  learningMenu as learningMenuBase,
+  todayMetrics as todayMetricsBase,
+} from "@/mocks/today";
 
 interface TodaySummary {
   stats: LearningStats;
@@ -92,7 +97,11 @@ export default function Home() {
       />
       <PageBody>
         <div className="flex flex-col gap-[22px]">
-          <TodayBanner goal={todayGoal} stats={summary.stats} />
+          <TodayBanner
+            goal={loggedIn ? todayGoal : guestPreviewGoal}
+            stats={loggedIn ? summary.stats : guestPreviewStats}
+            preview={!loggedIn}
+          />
           <TodayMetrics metrics={todayMetrics} />
           <LearningMenu items={learningMenu} />
         </div>
