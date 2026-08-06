@@ -46,10 +46,12 @@ class GeminiEssayAiClientTest {
     @Test
     @DisplayName("Gemini 호출이 실패하면 도메인 에러코드로 변환한다.")
     void grade_aiCallFails() {
-        givenAiCallFailsWith(new RuntimeException("LLM down"));
+        RuntimeException llmFailure = new RuntimeException("LLM down");
+        givenAiCallFailsWith(llmFailure);
 
         assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true))
                 .isInstanceOf(BusinessException.class)
+                .hasCause(llmFailure)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));
     }
