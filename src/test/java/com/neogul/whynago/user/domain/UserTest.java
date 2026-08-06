@@ -46,10 +46,10 @@ class UserTest {
         User user = User.create("test@example.com", "hashedPassword", "tester");
 
         // when
-        user.updateProfile("changed@example.com", "changed", Position.FRONTEND, 20);
+        user.updateProfile("changed", Position.FRONTEND, 20);
 
         // then
-        assertThat(user.getEmail().getValue()).isEqualTo("changed@example.com");
+        assertThat(user.getEmail().getValue()).isEqualTo("test@example.com");
         assertThat(user.getNickname()).isEqualTo("changed");
         assertThat(user.getPosition()).isEqualTo(Position.FRONTEND);
         assertThat(user.getDailyGoal()).isEqualTo(20);
@@ -62,7 +62,7 @@ class UserTest {
         User user = User.create("test@example.com", "hashedPassword", "tester");
 
         // when & then
-        assertThatThrownBy(() -> user.updateProfile("test@example.com", "ab", Position.BACKEND, 10))
+        assertThatThrownBy(() -> user.updateProfile("ab", Position.BACKEND, 10))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).errorCode())
                         .isEqualTo(UserErrorCode.USER_INVALID_NICKNAME));

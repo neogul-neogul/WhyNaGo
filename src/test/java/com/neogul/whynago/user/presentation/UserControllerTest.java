@@ -47,7 +47,6 @@ class UserControllerTest extends ControllerTestSupport {
                 .body("""
                         {
                           "nickname": "changed",
-                          "email": "changed@example.com",
                           "position": "FRONTEND",
                           "dailyGoal": 20
                         }
@@ -70,7 +69,6 @@ class UserControllerTest extends ControllerTestSupport {
                 .body("""
                         {
                           "nickname": "tester",
-                          "email": "member@example.com",
                           "position": "BACKEND",
                           "dailyGoal": 0
                         }
@@ -91,7 +89,6 @@ class UserControllerTest extends ControllerTestSupport {
                 .body("""
                         {
                           "nickname": "ab",
-                          "email": "member@example.com",
                           "position": "BACKEND",
                           "dailyGoal": 10
                         }

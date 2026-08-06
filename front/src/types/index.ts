@@ -31,10 +31,9 @@ export interface UserProfileResponse {
   dailyGoal: number;
 }
 
-/** 프로필 수정 요청 — PATCH /api/users/me (부분 수정이 아니라 전체 필드를 보낸다) */
+/** 프로필 수정 요청 — PATCH /api/users/me (부분 수정이 아니라 전체 필드를 보낸다, 이메일은 수정 불가) */
 export interface UpdateProfileRequest {
   nickname: string;
-  email: string;
   position: Position;
   dailyGoal: number;
 }

@@ -761,7 +761,7 @@ GET /api/users/me
 
 ## **프로필 수정**
 
-닉네임·이메일·직무·최소 학습 목표를 한 번에 수정한다(부분 수정 아님 — 매 요청마다 전체 필드를 보낸다).
+닉네임·직무·최소 학습 목표를 한 번에 수정한다(부분 수정 아님 — 매 요청마다 전체 필드를 보낸다). 이메일은 가입 시 값으로 고정되며 이 엔드포인트로 변경할 수 없다.
 
 ### **Endpoint**
 
@@ -776,7 +776,6 @@ PATCH /api/users/me
 ```json
 {
   "nickname": "지민",
-  "email": "jimin.dev@gmail.com",
   "position": "BACKEND",
   "dailyGoal": 15
 }
@@ -785,7 +784,6 @@ PATCH /api/users/me
 | **필드** | **타입** | **필수** | **설명** |
 | --- | --- | --- | --- |
 | `nickname` | String | O | 4~8자. 다른 사용자와 중복될 수 없다(본인의 기존 닉네임은 예외). |
-| `email` | String | O | 이메일 형식. 다른 사용자와 중복될 수 없다(본인의 기존 이메일은 예외). |
 | `position` | String | O | `BACKEND` \| `FRONTEND` \| `FULLSTACK`. |
 | `dailyGoal` | int | O | 새 최소 학습 목표. 1 이상이어야 한다. |
 

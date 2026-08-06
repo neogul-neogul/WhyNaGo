@@ -56,7 +56,6 @@ export default function MypagePage() {
     try {
       const result = await updateMyProfile({
         nickname: draft.nickname,
-        email: draft.email,
         position,
         dailyGoal: Number(draft.goal),
       });
