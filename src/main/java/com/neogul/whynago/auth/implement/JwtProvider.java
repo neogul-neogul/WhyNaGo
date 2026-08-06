@@ -10,6 +10,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -45,6 +46,7 @@ public class JwtProvider {
     private String createToken(JwtClaim claim, long expiration) {
         Date now = new Date();
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .claim(JwtClaim.ID, claim.id())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))

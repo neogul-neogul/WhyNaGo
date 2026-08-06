@@ -2,19 +2,19 @@ package com.neogul.whynago.auth.presentation;
 
 import com.neogul.whynago.auth.presentation.dto.LoginRequest;
 import com.neogul.whynago.auth.presentation.dto.LoginResponse;
+import com.neogul.whynago.auth.presentation.dto.LogoutRequest;
+import com.neogul.whynago.auth.presentation.dto.ReissueRequest;
+import com.neogul.whynago.auth.presentation.dto.ReissueResponse;
 import com.neogul.whynago.auth.presentation.dto.SignUpRequest;
 import com.neogul.whynago.auth.presentation.dto.SignUpResponse;
 import com.neogul.whynago.auth.service.AuthService;
-import com.neogul.whynago.auth.service.dto.LoginCommand;
-import com.neogul.whynago.auth.service.dto.LoginResult;
-import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,22 +25,25 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    @ResponseStatus(HttpStatus.CREATED)
-    public SignUpResponse signup(@Valid @RequestBody SignUpRequest request) {
-        Long userId = authService.signup(
-                new SignUpCommand(request.email(), request.password(), request.nickname()));
-        return new SignUpResponse(userId);
+    public ResponseEntity<SignUpResponse> signup(@Valid @RequestBody SignUpRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(new SignUpResponse(authService.signup(request.toCommand())));
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        LoginResult result = authService.login(new LoginCommand(request.email(), request.password()));
-        return new LoginResponse(
-                result.tokenPair().accessToken(),
-                result.tokenPair().refreshToken(),
-                result.userId(),
-                result.email(),
-                result.nickname(),
-                result.position());
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(LoginResponse.from(authService.login(request.toCommand())));
+    }
+
+    @PostMapping("/reissue")
+    public ResponseEntity<ReissueResponse> reissue(@Valid @RequestBody ReissueRequest request) {
+        return ResponseEntity.ok(ReissueResponse.from(authService.reissue(request.toCommand())));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.toCommand());
+        return ResponseEntity.noContent().build();
     }
 }
