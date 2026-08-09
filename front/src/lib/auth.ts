@@ -95,6 +95,20 @@ export async function requestLogin(email: string, password: string): Promise<Log
   return res;
 }
 
+/**
+ * 구글 로그인 API 호출 후 성공 시 세션 저장.
+ * credential은 GIS가 콜백으로 준 id_token이며, 검증은 백엔드가 한다(저장하지 않는다).
+ */
+export async function requestGoogleLogin(credential: string): Promise<LoginResponse> {
+  const res = await apiFetch<LoginResponse>("/api/auth/login/google", {
+    method: "POST",
+    body: { credential },
+    skipAuth: true,
+  });
+  saveSession(res);
+  return res;
+}
+
 /** 회원가입 API 호출 (세션 저장은 하지 않음 — 성공 후 로그인 페이지로 이동) */
 export async function requestSignup(
   email: string,
