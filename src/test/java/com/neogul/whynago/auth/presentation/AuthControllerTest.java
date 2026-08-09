@@ -9,6 +9,7 @@ import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.service.dto.LoginResult;
 import com.neogul.whynago.auth.fixture.LoginRequestFixture;
 import com.neogul.whynago.auth.fixture.SignUpRequestFixture;
+import com.neogul.whynago.auth.presentation.dto.GoogleLoginRequest;
 import com.neogul.whynago.auth.presentation.dto.LoginRequest;
 import com.neogul.whynago.auth.presentation.dto.LogoutRequest;
 import com.neogul.whynago.auth.presentation.dto.ReissueRequest;
@@ -177,6 +178,121 @@ class AuthControllerTest extends ControllerTestSupport {
                 .then()
                 .statusCode(HttpStatus.UNAUTHORIZED.value())
                 .body("code", equalTo("AUTH_LOGIN_FAILED"));
+    }
+
+    @DisplayName("구글 로그인에 성공하면 200 OK와 함께 토큰 및 사용자 정보를 응답한다.")
+    @Test
+    void googleLogin() {
+        // given
+        given(authService.googleLogin(any()))
+                .willReturn(new LoginResult(
+                        new TokenPair("access.token", "refresh.token"),
+                        1L,
+                        "test@example.com",
+                        "u123456",
+                        Position.BACKEND));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new GoogleLoginRequest("credential"))
+                .when()
+                .post("/api/auth/login/google")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("accessToken", equalTo("access.token"))
+                .body("refreshToken", equalTo("refresh.token"))
+                .body("id", equalTo(1))
+                .body("email", equalTo("test@example.com"))
+                .body("nickname", equalTo("u123456"))
+                .body("position", equalTo("BACKEND"));
+    }
+
+    @DisplayName("구글 로그인 요청에 credential이 없으면 400 Bad Request를 응답한다.")
+    @Test
+    void googleLogin_blankCredential() {
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new GoogleLoginRequest(""))
+                .when()
+                .post("/api/auth/login/google")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value());
+    }
+
+    @DisplayName("검증에 실패한 id_token이면 401 Unauthorized를 응답한다.")
+    @Test
+    void googleLogin_invalidToken() {
+        // given
+        given(authService.googleLogin(any()))
+                .willThrow(new BusinessException(AuthErrorCode.AUTH_OAUTH_TOKEN_INVALID));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new GoogleLoginRequest("invalid.credential"))
+                .when()
+                .post("/api/auth/login/google")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("code", equalTo("AUTH_OAUTH_TOKEN_INVALID"));
+    }
+
+    @DisplayName("일반 계정으로 가입된 이메일로 구글 로그인하면 409 Conflict를 응답한다.")
+    @Test
+    void googleLogin_localAccount() {
+        // given
+        given(authService.googleLogin(any()))
+                .willThrow(new BusinessException(AuthErrorCode.AUTH_LOCAL_ACCOUNT));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(new GoogleLoginRequest("credential"))
+                .when()
+                .post("/api/auth/login/google")
+                .then()
+                .statusCode(HttpStatus.CONFLICT.value())
+                .body("code", equalTo("AUTH_LOCAL_ACCOUNT"));
+    }
+
+    @DisplayName("구글 계정으로 가입된 이메일로 회원가입하면 409 Conflict를 응답한다.")
+    @Test
+    void signup_socialAccount() {
+        // given
+        given(authService.signup(any()))
+                .willThrow(new BusinessException(UserErrorCode.USER_DUPLICATE_EMAIL_SOCIAL));
+        SignUpRequest request = SignUpRequestFixture.signUpRequest().build();
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post("/api/auth/signup")
+                .then()
+                .statusCode(HttpStatus.CONFLICT.value())
+                .body("code", equalTo("USER_DUPLICATE_EMAIL_SOCIAL"));
+    }
+
+    @DisplayName("구글로 가입한 계정으로 일반 로그인하면 401 Unauthorized를 응답한다.")
+    @Test
+    void login_socialAccount() {
+        // given
+        given(authService.login(any()))
+                .willThrow(new BusinessException(AuthErrorCode.AUTH_SOCIAL_ACCOUNT));
+        LoginRequest request = LoginRequestFixture.loginRequest().build();
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(request)
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.value())
+                .body("code", equalTo("AUTH_SOCIAL_ACCOUNT"));
     }
 
     @DisplayName("재발급에 성공하면 200 OK와 새 토큰 쌍을 응답한다.")
