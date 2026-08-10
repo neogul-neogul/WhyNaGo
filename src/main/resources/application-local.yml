@@ -14,3 +14,7 @@ spring:
   sql:
     init:
       mode: always
+
+  ai:
+    openai:
+      api-key: ${API_KEY:local-mock-key}
