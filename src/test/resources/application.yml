@@ -25,6 +25,12 @@ spring:
     openai:
       api-key: test-key
 
+  mail:
+    host: localhost
+    port: 2500
+    username: test@example.com
+    password: test-password
+
 google:
   client-id: test-client-id
 
@@ -35,3 +41,6 @@ jwt:
   refresh:
     expiration: 604800000
     grace-period: 10000
+
+mail:
+  from: test@example.com

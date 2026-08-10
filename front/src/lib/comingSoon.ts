@@ -3,7 +3,6 @@ export const COMING_SOON_ROUTES = [
   "/mock",
   "/progress",
   "/weekly",
-  "/settings",
 ] as const;
 
 export function isComingSoon(pathname: string): boolean {

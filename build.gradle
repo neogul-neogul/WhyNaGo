@@ -33,6 +33,8 @@ dependencies {
 
     // 구글 소셜 로그인 — id_token의 서명·aud·iss·exp 검증
     implementation 'com.google.api-client:google-api-client:2.7.0'
+    // 공용 이메일 발송 (common/mail)
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 
     //jjwt
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'

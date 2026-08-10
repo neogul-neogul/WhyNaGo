@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import Card from "@/components/ui/Card";
 import Chip from "@/components/ui/Chip";
+import { REMIND_TIME_LABELS, labelToRemindTime, remindTimeLabel } from "@/lib/notification";
 
-const TIMES = ["오전 8시", "오후 1시", "오후 9시", "오후 11시"];
+const TIME_LABELS = Object.values(REMIND_TIME_LABELS);
 
-// 매일 리마인드 시간 선택 카드 (더미 상태는 섹션 내부에서만 관리)
-export default function NotifyTimeCard() {
-  const [time, setTime] = useState("오후 9시");
+interface NotifyTimeCardProps {
+  remindTime: string;
+  onChange: (remindTime: string) => void;
+}
+
+// 매일 리마인드 시간 선택 카드
+export default function NotifyTimeCard({ remindTime, onChange }: NotifyTimeCardProps) {
+  const currentLabel = remindTimeLabel(remindTime);
 
   return (
     <Card className="flex items-center justify-between gap-4 px-[26px] py-[22px]">
@@ -17,8 +22,16 @@ export default function NotifyTimeCard() {
         <span className="text-[12.5px] text-soft">매일 리마인드를 받을 시간을 설정합니다</span>
       </div>
       <div className="flex gap-2">
-        {TIMES.map((t) => (
-          <Chip key={t} label={t} active={time === t} onClick={() => setTime(t)} />
+        {TIME_LABELS.map((label) => (
+          <Chip
+            key={label}
+            label={label}
+            active={currentLabel === label}
+            onClick={() => {
+              const time = labelToRemindTime(label);
+              if (time) onChange(time);
+            }}
+          />
         ))}
       </div>
     </Card>
