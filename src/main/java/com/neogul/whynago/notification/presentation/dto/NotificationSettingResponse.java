@@ -7,7 +7,6 @@ public record NotificationSettingResponse(
         boolean everyDayRemind,
         LocalTime remindTime,
         boolean streakStopPrevention,
-        boolean wrongNote,
         boolean interviewRemind,
         boolean weeklyReport
 ) {
@@ -17,7 +16,6 @@ public record NotificationSettingResponse(
                 result.everyDayRemind(),
                 result.remindTime(),
                 result.streakStopPrevention(),
-                result.wrongNote(),
                 result.interviewRemind(),
                 result.weeklyReport());
     }

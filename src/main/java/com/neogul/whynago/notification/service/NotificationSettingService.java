@@ -29,7 +29,6 @@ public class NotificationSettingService {
                 command.everyDayRemind(),
                 command.remindTime(),
                 command.streakStopPrevention(),
-                command.wrongNote(),
                 command.interviewRemind(),
                 command.weeklyReport());
         return NotificationSettingResult.from(setting);

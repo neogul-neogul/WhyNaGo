@@ -422,7 +422,6 @@ export interface NotificationSettingResponse {
   /** "HH:mm:ss" 형식 */
   remindTime: string;
   streakStopPrevention: boolean;
-  wrongNote: boolean;
   interviewRemind: boolean;
   weeklyReport: boolean;
 }

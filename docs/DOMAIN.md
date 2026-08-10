@@ -119,7 +119,6 @@
 | everyDayRemind | 매일 리마인드 | 학습 기록이 없으면 `remindTime`에 알림 |
 | remindTime | 알림 시간 | `everyDayRemind` 발송 시각. 기본값 21:00 |
 | streakStopPrevention | 연속 학습 중단 방지 | 연속 학습 중인데 당일 기록이 없으면 저녁에 알림 |
-| wrongNote | 오답 복습 알림 | 미복습 오답이 일정 개수 이상이면 알림 |
 | interviewRemind | 1일 1면접 알림 | 면접 기능 자체가 아직 없어 필드만 미리 둔다(저장은 되나 발송 대상 없음) |
 | weeklyReport | 주간 리포트 수신 | 매주 월요일 학습 요약 알림 |
 

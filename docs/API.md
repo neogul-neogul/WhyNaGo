@@ -1077,7 +1077,6 @@ GET /api/notification-settings/me
   "everyDayRemind": true,
   "remindTime": "21:00:00",
   "streakStopPrevention": true,
-  "wrongNote": true,
   "interviewRemind": false,
   "weeklyReport": true
 }
@@ -1088,7 +1087,6 @@ GET /api/notification-settings/me
 | `everyDayRemind` | boolean | 매일 학습 리마인드 수신 여부. |
 | `remindTime` | String (`HH:mm:ss`) | `everyDayRemind` 알림을 받을 시각. |
 | `streakStopPrevention` | boolean | 연속 학습 중단 방지 알림 수신 여부. |
-| `wrongNote` | boolean | 오답 복습 알림 수신 여부. |
 | `interviewRemind` | boolean | 1일 1면접 알림 수신 여부. 면접 기능이 아직 없어 저장만 되고 발송 대상은 없다. |
 | `weeklyReport` | boolean | 주간 리포트 수신 여부. |
 
@@ -1117,7 +1115,6 @@ PATCH /api/notification-settings/me
   "everyDayRemind": true,
   "remindTime": "21:00:00",
   "streakStopPrevention": true,
-  "wrongNote": true,
   "interviewRemind": false,
   "weeklyReport": true
 }
@@ -1128,7 +1125,6 @@ PATCH /api/notification-settings/me
 | `everyDayRemind` | boolean | O | 매일 학습 리마인드 수신 여부. |
 | `remindTime` | String (`HH:mm:ss`) | O | 알림을 받을 시각. |
 | `streakStopPrevention` | boolean | O | 연속 학습 중단 방지 알림 수신 여부. |
-| `wrongNote` | boolean | O | 오답 복습 알림 수신 여부. |
 | `interviewRemind` | boolean | O | 1일 1면접 알림 수신 여부. |
 | `weeklyReport` | boolean | O | 주간 리포트 수신 여부. |
 
@@ -1139,7 +1135,6 @@ PATCH /api/notification-settings/me
   "everyDayRemind": true,
   "remindTime": "21:00:00",
   "streakStopPrevention": true,
-  "wrongNote": true,
   "interviewRemind": false,
   "weeklyReport": true
 }

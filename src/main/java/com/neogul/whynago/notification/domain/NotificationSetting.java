@@ -36,9 +36,6 @@ public class NotificationSetting {
     private boolean streakStopPrevention;
 
     @Column(nullable = false)
-    private boolean wrongNote;
-
-    @Column(nullable = false)
     private boolean interviewRemind;
 
     @Column(nullable = false)
@@ -49,33 +46,29 @@ public class NotificationSetting {
             boolean everyDayRemind,
             LocalTime remindTime,
             boolean streakStopPrevention,
-            boolean wrongNote,
             boolean interviewRemind,
             boolean weeklyReport) {
         this.userId = userId;
         this.everyDayRemind = everyDayRemind;
         this.remindTime = remindTime;
         this.streakStopPrevention = streakStopPrevention;
-        this.wrongNote = wrongNote;
         this.interviewRemind = interviewRemind;
         this.weeklyReport = weeklyReport;
     }
 
     public static NotificationSetting createDefault(Long userId) {
-        return new NotificationSetting(userId, true, DEFAULT_REMIND_TIME, true, true, false, true);
+        return new NotificationSetting(userId, true, DEFAULT_REMIND_TIME, true, false, true);
     }
 
     public void update(
             boolean everyDayRemind,
             LocalTime remindTime,
             boolean streakStopPrevention,
-            boolean wrongNote,
             boolean interviewRemind,
             boolean weeklyReport) {
         this.everyDayRemind = everyDayRemind;
         this.remindTime = remindTime;
         this.streakStopPrevention = streakStopPrevention;
-        this.wrongNote = wrongNote;
         this.interviewRemind = interviewRemind;
         this.weeklyReport = weeklyReport;
     }

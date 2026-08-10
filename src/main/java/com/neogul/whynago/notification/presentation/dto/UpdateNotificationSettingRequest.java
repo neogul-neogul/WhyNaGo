@@ -8,13 +8,12 @@ public record UpdateNotificationSettingRequest(
         boolean everyDayRemind,
         @NotNull LocalTime remindTime,
         boolean streakStopPrevention,
-        boolean wrongNote,
         boolean interviewRemind,
         boolean weeklyReport
 ) {
 
     public UpdateNotificationSettingCommand toCommand() {
         return new UpdateNotificationSettingCommand(
-                everyDayRemind, remindTime, streakStopPrevention, wrongNote, interviewRemind, weeklyReport);
+                everyDayRemind, remindTime, streakStopPrevention, interviewRemind, weeklyReport);
     }
 }

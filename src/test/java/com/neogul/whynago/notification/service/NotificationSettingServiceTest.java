@@ -35,7 +35,7 @@ class NotificationSettingServiceTest extends IntegrationTestSupport {
     @Test
     void getSettings_returnsExisting() {
         NotificationSetting setting = notificationSettingRepository.save(NotificationSetting.createDefault(1L));
-        setting.update(false, LocalTime.of(8, 0), false, false, true, false);
+        setting.update(false, LocalTime.of(8, 0), false, true, false);
 
         NotificationSettingResult result = notificationSettingService.getSettings(1L);
 
@@ -49,14 +49,13 @@ class NotificationSettingServiceTest extends IntegrationTestSupport {
     void updateSettings() {
         notificationSettingRepository.save(NotificationSetting.createDefault(1L));
         UpdateNotificationSettingCommand command =
-                new UpdateNotificationSettingCommand(false, LocalTime.of(13, 0), false, true, true, false);
+                new UpdateNotificationSettingCommand(false, LocalTime.of(13, 0), false, true, false);
 
         NotificationSettingResult result = notificationSettingService.updateSettings(1L, command);
 
         assertThat(result.everyDayRemind()).isFalse();
         assertThat(result.remindTime()).isEqualTo(LocalTime.of(13, 0));
         assertThat(result.streakStopPrevention()).isFalse();
-        assertThat(result.wrongNote()).isTrue();
         assertThat(result.interviewRemind()).isTrue();
         assertThat(result.weeklyReport()).isFalse();
     }
@@ -65,7 +64,7 @@ class NotificationSettingServiceTest extends IntegrationTestSupport {
     @Test
     void updateSettings_createsDefaultWhenAbsent() {
         UpdateNotificationSettingCommand command =
-                new UpdateNotificationSettingCommand(false, LocalTime.of(23, 0), true, true, false, true);
+                new UpdateNotificationSettingCommand(false, LocalTime.of(23, 0), true, false, true);
 
         NotificationSettingResult result = notificationSettingService.updateSettings(1L, command);
 

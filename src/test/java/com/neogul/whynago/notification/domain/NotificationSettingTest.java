@@ -17,7 +17,6 @@ class NotificationSettingTest {
         assertThat(setting.isEveryDayRemind()).isTrue();
         assertThat(setting.getRemindTime()).isEqualTo(LocalTime.of(21, 0));
         assertThat(setting.isStreakStopPrevention()).isTrue();
-        assertThat(setting.isWrongNote()).isTrue();
         assertThat(setting.isInterviewRemind()).isFalse();
         assertThat(setting.isWeeklyReport()).isTrue();
     }
@@ -27,12 +26,11 @@ class NotificationSettingTest {
     void update() {
         NotificationSetting setting = NotificationSetting.createDefault(1L);
 
-        setting.update(false, LocalTime.of(8, 0), false, false, true, false);
+        setting.update(false, LocalTime.of(8, 0), false, true, false);
 
         assertThat(setting.isEveryDayRemind()).isFalse();
         assertThat(setting.getRemindTime()).isEqualTo(LocalTime.of(8, 0));
         assertThat(setting.isStreakStopPrevention()).isFalse();
-        assertThat(setting.isWrongNote()).isFalse();
         assertThat(setting.isInterviewRemind()).isTrue();
         assertThat(setting.isWeeklyReport()).isFalse();
     }

@@ -6,7 +6,6 @@ public record UpdateNotificationSettingCommand(
         boolean everyDayRemind,
         LocalTime remindTime,
         boolean streakStopPrevention,
-        boolean wrongNote,
         boolean interviewRemind,
         boolean weeklyReport
 ) {

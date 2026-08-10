@@ -21,7 +21,7 @@ class NotificationSettingControllerTest extends ControllerTestSupport {
     @Test
     void getSettings() {
         given(notificationSettingService.getSettings(10L)).willReturn(
-                new NotificationSettingResult(true, LocalTime.of(21, 0), true, true, false, true));
+                new NotificationSettingResult(true, LocalTime.of(21, 0), true, false, true));
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
@@ -38,7 +38,7 @@ class NotificationSettingControllerTest extends ControllerTestSupport {
     @Test
     void updateSettings() {
         given(notificationSettingService.updateSettings(eq(10L), any())).willReturn(
-                new NotificationSettingResult(false, LocalTime.of(8, 0), false, true, true, false));
+                new NotificationSettingResult(false, LocalTime.of(8, 0), false, true, false));
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
@@ -48,7 +48,6 @@ class NotificationSettingControllerTest extends ControllerTestSupport {
                           "everyDayRemind": false,
                           "remindTime": "08:00:00",
                           "streakStopPrevention": false,
-                          "wrongNote": true,
                           "interviewRemind": true,
                           "weeklyReport": false
                         }
@@ -72,7 +71,6 @@ class NotificationSettingControllerTest extends ControllerTestSupport {
                         {
                           "everyDayRemind": true,
                           "streakStopPrevention": true,
-                          "wrongNote": true,
                           "interviewRemind": false,
                           "weeklyReport": true
                         }
