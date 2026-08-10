@@ -363,6 +363,17 @@ export interface InterviewResultResponse {
   items: InterviewResultItemResponse[];
 }
 
+/** 면접 기록 목록 항목 — GET /api/interviews (완료된 면접 전부, 정답/오답 필터링 없음) */
+export interface InterviewHistoryResponse {
+  interviewId: number;
+  interviewDate: string;
+  category: QuestionCategory;
+  title: string;
+  totalCount: number;
+  correctCount: number;
+  completedAt: string;
+}
+
 // ===== 오답노트 API (백엔드 wrongnote 도메인) =====
 // 오답노트는 상태·반복 횟수·출처를 두지 않는다 (docs/DOMAIN.md 결정 사항) — 목록 필터는 북마크 여부뿐.
 

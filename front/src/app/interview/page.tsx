@@ -131,12 +131,20 @@ export default function InterviewPage() {
           <div className="text-[13.5px] leading-[1.7] text-soft">
             면접은 하루에 한 번만 볼 수 있어요. 내일 새로운 질문으로 다시 만나요.
           </div>
-          <Link
-            href={`/interview/result/${today.interviewId}`}
-            className="rounded-[11px] bg-ink px-7 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
-          >
-            결과 보기
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href={`/interview/result/${today.interviewId}`}
+              className="rounded-[11px] bg-ink px-7 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
+            >
+              결과 보기
+            </Link>
+            <Link
+              href="/interview/history"
+              className="rounded-[11px] border border-line-strong bg-white px-7 py-[13px] text-[15px] font-semibold text-ink transition-colors hover:border-ink"
+            >
+              면접 기록 보기
+            </Link>
+          </div>
         </Card>
       );
     }
