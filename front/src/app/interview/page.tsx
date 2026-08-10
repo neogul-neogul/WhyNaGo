@@ -36,6 +36,7 @@ export default function InterviewPage() {
   const [started, setStarted] = useState<StartInterviewResponse | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [showLoginGate, setShowLoginGate] = useState(false);
   const startingRef = useRef(false);
 
   // 상태 갱신은 응답 콜백 안에서만 한다 — 이펙트 본문에서 동기 setState를 하지 않기 위해서다
@@ -85,7 +86,16 @@ export default function InterviewPage() {
 
   const body = () => {
     if (!hydrated) return <Placeholder text="불러오는 중…" />;
-    if (!loggedIn) return <LoginRequiredGate />;
+
+    // 비로그인은 안내 화면까지는 보여주고, "면접 진행" 클릭 시에만 로그인을 요구한다
+    if (!loggedIn) {
+      return (
+        <>
+          <InterviewIntro onStart={() => setShowLoginGate(true)} starting={false} error={null} />
+          {showLoginGate && <LoginRequiredGate onClose={() => setShowLoginGate(false)} />}
+        </>
+      );
+    }
 
     // 면접 진행 중 (이 세션에서 시작한 경우에만 진행 화면을 띄운다)
     if (started) {

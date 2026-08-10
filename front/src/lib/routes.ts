@@ -2,7 +2,7 @@
  * 로그인 없이 접근할 수 있는 경로 화이트리스트.
  * 여기에 없는 경로는 전부 보호 대상이므로, 새 페이지를 추가하면 기본값이 "로그인 필요"다.
  */
-const PUBLIC_ROUTES = ["/", "/solve", "/login", "/signup"] as const;
+const PUBLIC_ROUTES = ["/", "/solve", "/interview", "/login", "/signup"] as const;
 
 /**
  * 하위 경로까지 공개인 경로.
