@@ -8,6 +8,7 @@ import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.implement.QuestionReader;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,12 @@ public class DailyQuestionResolver {
             throw new BusinessException(InterviewErrorCode.INTERVIEW_QUESTION_NOT_AVAILABLE);
         }
         Long questionId = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size())).getId();
-        dailyInterviewQuestionRepository.save(DailyInterviewQuestion.pin(today, questionId));
-        return questionId;
+        int insertedRows = dailyInterviewQuestionRepository.insertIfAbsent(today, questionId, LocalDateTime.now());
+        if (insertedRows > 0) {
+            return questionId;
+        }
+        return dailyInterviewQuestionRepository.findByDateWithLock(today)
+                .map(DailyInterviewQuestion::getQuestionId)
+                .orElseThrow(() -> new BusinessException(InterviewErrorCode.INTERVIEW_QUESTION_NOT_AVAILABLE));
     }
 }
