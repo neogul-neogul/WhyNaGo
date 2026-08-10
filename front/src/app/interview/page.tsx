@@ -19,6 +19,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import InterviewIntro from "@/components/interview/InterviewIntro";
 import InterviewSession from "@/components/interview/InterviewSession";
+import InterviewStartConfirmModal from "@/components/interview/InterviewStartConfirmModal";
 
 /**
  * 1일 1면접 안내 + 진행.
@@ -37,6 +38,7 @@ export default function InterviewPage() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [showLoginGate, setShowLoginGate] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const startingRef = useRef(false);
 
   // 상태 갱신은 응답 콜백 안에서만 한다 — 이펙트 본문에서 동기 setState를 하지 않기 위해서다
@@ -177,7 +179,20 @@ export default function InterviewPage() {
       );
     }
 
-    return <InterviewIntro onStart={() => void start()} starting={starting} error={startError} />;
+    return (
+      <>
+        <InterviewIntro onStart={() => setShowStartConfirm(true)} starting={starting} error={startError} />
+        {showStartConfirm && (
+          <InterviewStartConfirmModal
+            onConfirm={() => {
+              setShowStartConfirm(false);
+              void start();
+            }}
+            onClose={() => setShowStartConfirm(false)}
+          />
+        )}
+      </>
+    );
   };
 
   return (
