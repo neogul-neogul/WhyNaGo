@@ -110,6 +110,7 @@ POST /api/auth/signup
 | --- | --- | --- |
 | 형식 검증 실패 | 400 | `INVALID_INPUT` |
 | 이미 사용 중인 이메일 | 409 | `USER_DUPLICATE_EMAIL` |
+| 구글 계정으로 가입된 이메일 | 409 | `USER_DUPLICATE_EMAIL_SOCIAL` |
 | 이미 사용 중인 닉네임 | 409 | `USER_DUPLICATE_NICKNAME` |
 | 닉네임 길이 규칙 위반 | 400 | `USER_INVALID_NICKNAME` |
 | 이메일 형식 규칙 위반 | 400 | `USER_INVALID_EMAIL` |
@@ -173,8 +174,74 @@ POST /api/auth/login
 | --- | --- | --- |
 | 형식 검증 실패 | 400 | `INVALID_INPUT` |
 | 등록되지 않은 이메일이거나 비밀번호가 틀림 | 401 | `AUTH_LOGIN_FAILED` |
+| 구글 계정으로 가입된 이메일 | 401 | `AUTH_SOCIAL_ACCOUNT` |
 
 > 이메일이 없는 경우와 비밀번호가 틀린 경우를 같은 코드로 응답한다. 어느 쪽인지 알려주면 가입된 이메일을 확인해줄 수 있기 때문이다.
+>
+> 다만 **구글로 가입한 이메일은 예외로 구분해준다.** 이미 그 계정의 존재를 아는 사용자에게 "비밀번호가 틀렸다"고만 답하면 영원히 로그인할 수 없기 때문이다.
+
+---
+
+## **구글 로그인**
+
+구글 계정으로 로그인한다. **처음 로그인하는 계정이면 가입까지 함께 처리하고**, 이후에는 같은 계정으로 로그인한다. 일반 로그인과 마찬가지로 **이 시점에 해당 사용자의 기존 refresh token이 모두 폐기된다.**
+
+프론트는 Google Identity Services(GIS) SDK로 받은 `credential`(구글이 서명한 id_token)을 그대로 전달하고, 서버가 서명·`aud`·`iss`·`exp`·`email_verified`를 검증한다. 리다이렉트나 `client_secret`은 쓰지 않는다.
+
+가입 시 값은 다음과 같이 정해진다.
+
+- `email` — 구글 계정의 이메일
+- `nickname` — 서버가 자동 생성한다(`u` + 6자리 숫자). 마이페이지에서 변경할 수 있다.
+- `position` — 회원가입과 동일하게 `BACKEND`로 고정
+- 비밀번호는 저장하지 않는다.
+
+**한 계정은 로그인 수단을 하나만 가진다.** 이메일이 겹쳐도 기존 계정에 구글을 연동하지 않고, 어느 쪽으로 로그인해야 하는지 안내한다.
+
+### **Endpoint**
+
+```
+POST /api/auth/login/google
+```
+
+- 성공 시 `200 OK`를 반환한다. 신규 가입이어도 `201`이 아니라 `200`이다 — 응답의 본질이 로그인 결과(토큰)이기 때문이다.
+- 인증이 필요 없다.
+
+### **Request Body**
+
+```json
+{
+  "credential": "eyJhbGciOiJSUzI1NiIsImtpZCI6..."
+}
+```
+
+| **필드** | **타입** | **제약** | **설명** |
+| --- | --- | --- | --- |
+| `credential` | String | 필수 | GIS 콜백이 넘겨준 id_token. 클라이언트는 저장하지 않고 이 요청에만 쓴다. |
+
+### **Response Body**
+
+로그인과 동일하다.
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
+  "id": 1,
+  "email": "member@example.com",
+  "nickname": "u483920",
+  "position": "BACKEND"
+}
+```
+
+### **에러**
+
+| **상황** | **status** | **code** |
+| --- | --- | --- |
+| `credential`이 비어 있음 | 400 | `INVALID_INPUT` |
+| id_token 검증 실패(서명·`aud`·`iss`·만료) 또는 `email_verified`가 아님 | 401 | `AUTH_OAUTH_TOKEN_INVALID` |
+| 일반 계정으로 가입된 이메일 | 409 | `AUTH_LOCAL_ACCOUNT` |
+
+> `aud` 검증은 서버가 설정된 client id로 수행한다. 프론트와 서버의 client id가 다르면 모든 요청이 `AUTH_OAUTH_TOKEN_INVALID`로 떨어진다.
 
 ---
 

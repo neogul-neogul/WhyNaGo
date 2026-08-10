@@ -1,6 +1,7 @@
 package com.neogul.whynago.user.implement;
 
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.user.domain.AuthProvider;
 import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import com.neogul.whynago.user.infra.UserRepository;
@@ -16,6 +17,10 @@ public class UserReader {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmailValue(email);
+    }
+
+    public Optional<User> findBySocial(AuthProvider provider, String providerId) {
+        return userRepository.findByProviderAndProviderId(provider, providerId);
     }
 
     public User read(Long userId) {

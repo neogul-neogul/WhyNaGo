@@ -1,5 +1,6 @@
 package com.neogul.whynago.auth.presentation;
 
+import com.neogul.whynago.auth.presentation.dto.GoogleLoginRequest;
 import com.neogul.whynago.auth.presentation.dto.LoginRequest;
 import com.neogul.whynago.auth.presentation.dto.LoginResponse;
 import com.neogul.whynago.auth.presentation.dto.LogoutRequest;
@@ -34,6 +35,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(LoginResponse.from(authService.login(request.toCommand())));
+    }
+
+    @PostMapping("/login/google")
+    public ResponseEntity<LoginResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(LoginResponse.from(authService.googleLogin(request.toCommand())));
     }
 
     @PostMapping("/reissue")

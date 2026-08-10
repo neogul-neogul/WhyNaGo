@@ -24,6 +24,25 @@ class UserTest {
         assertThat(user.getNickname()).isEqualTo("tester");
         assertThat(user.getPosition()).isEqualTo(Position.BACKEND);
         assertThat(user.getDailyGoal()).isEqualTo(10);
+        assertThat(user.getProvider()).isEqualTo(AuthProvider.LOCAL);
+        assertThat(user.isLocal()).isTrue();
+    }
+
+    @DisplayName("소셜 사용자를 생성하면 비밀번호 없이 제공자 정보가 저장된다.")
+    @Test
+    void createSocial() {
+        // when
+        User user = User.createSocial("test@example.com", "u123456", AuthProvider.GOOGLE, "google-sub-1");
+
+        // then
+        assertThat(user.getEmail().getValue()).isEqualTo("test@example.com");
+        assertThat(user.getNickname()).isEqualTo("u123456");
+        assertThat(user.getPassword()).isNull();
+        assertThat(user.getProvider()).isEqualTo(AuthProvider.GOOGLE);
+        assertThat(user.getProviderId()).isEqualTo("google-sub-1");
+        assertThat(user.isLocal()).isFalse();
+        assertThat(user.getPosition()).isEqualTo(Position.BACKEND);
+        assertThat(user.getDailyGoal()).isEqualTo(10);
     }
 
     @DisplayName("최소 학습 목표를 변경한다.")
