@@ -1,6 +1,6 @@
 # 도메인 문서
 
-> 이 문서는 프런트엔드 **문제 풀이 화면**(`front` 의 `MultipleChoiceQuiz` / `EssayQuiz` / `ProblemBank` / `mocks/questions.ts`)과 **학습 기록·진척도·주간 리포트 화면**(`front` 의 `RecordsPage` / `ProgressPage` / `WeeklyPage`, `mocks/records.ts` / `mocks/progress.ts`)에서 관찰되는 동작을 도메인 모델로 정리한 것이다. 알림은 아직 작성 중이다.
+> 이 문서는 프런트엔드 **문제 풀이 화면**(`front` 의 `MultipleChoiceQuiz` / `EssayQuiz` / `ProblemBank` / `mocks/questions.ts`)과 **학습 기록·진척도·주간 리포트 화면**(`front` 의 `RecordsPage` / `ProgressPage` / `WeeklyPage`, `mocks/records.ts` / `mocks/progress.ts`)에서 관찰되는 동작을 도메인 모델로 정리한 것이다.
 
 ---
 
@@ -108,16 +108,19 @@
 | isCorrect | 정답 여부 | LLM 채점 통과 여부. 세션 `correctCount` 집계에 사용 (판정 기준: [서술형 정답 판정 정책](#서술형-정답-판정-정책)) |
 | solvedAt | 응답 시각 | 개별 문항 채점 시각 (선택) |
 
-### NotificationSetting (작성 중)
+### NotificationSetting (알림 설정)
+
+사용자별 알림 수신 여부를 저장한다. 사용자당 1행이며, 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**한다(get-or-create). 이 엔티티는 **설정값 저장만** 다룬다 — 실제 알림 발송(스케줄러·이메일 발송)은 이 저장소에 아직 구현되어 있지 않다.
 
 | 이름 | 한글 | 설명 |
 | --- | --- | --- |
-| id | | |
-| userId | | |
-| everyDayRemind | 매일 리마인드 | |
-| streakStopPrevention | 연속 학습 중단 방지 | |
-| wrongNote | 오답 복습 알림 | |
-| weeklyReport | 주간 리포트 수신 | |
+| id | | PK |
+| userId | | FK → User (unique, 사용자당 1행) |
+| everyDayRemind | 매일 리마인드 | 학습 기록이 없으면 `remindTime`에 알림 |
+| remindTime | 알림 시간 | `everyDayRemind` 발송 시각. 기본값 21:00 |
+| streakStopPrevention | 연속 학습 중단 방지 | 연속 학습 중인데 당일 기록이 없으면 저녁에 알림 |
+| interviewRemind | 1일 1면접 알림 | 면접 기능 자체가 아직 없어 필드만 미리 둔다(저장은 되나 발송 대상 없음) |
+| weeklyReport | 주간 리포트 수신 | 매주 월요일 학습 요약 알림 |
 
 ---
 
