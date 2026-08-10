@@ -18,6 +18,7 @@ import com.neogul.whynago.interview.service.dto.CompleteInterviewCommand;
 import com.neogul.whynago.interview.service.dto.CompleteInterviewResult;
 import com.neogul.whynago.interview.service.dto.InterviewAnswerSnapshotCommand;
 import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
+import com.neogul.whynago.interview.service.dto.InterviewSummaryResult;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
 import com.neogul.whynago.question.infra.QuestionRepository;
@@ -341,6 +342,36 @@ class InterviewServiceTest extends IntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(InterviewErrorCode.INTERVIEW_NOT_FOUND));
+    }
+
+    @Test
+    @DisplayName("완료한 면접이 없으면 빈 목록을 돌려준다.")
+    void findAllWhenEmpty() {
+        assertThat(interviewService.findAll(USER_ID)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("모두 맞힌 면접도 포함해 완료된 면접을 전부 돌려준다.")
+    void findAll() {
+        StartInterviewResult started = interviewService.start(USER_ID);
+        interviewService.complete(USER_ID, started.interviewId(), completeCommand(true, true, true));
+
+        List<InterviewSummaryResult> results = interviewService.findAll(USER_ID);
+
+        assertThat(results).hasSize(1);
+        InterviewSummaryResult result = results.get(0);
+        assertThat(result.interviewId()).isEqualTo(started.interviewId());
+        assertThat(result.title()).isEqualTo("트랜잭션 격리 수준 설명");
+        assertThat(result.totalCount()).isEqualTo(3);
+        assertThat(result.correctCount()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("진행 중인 면접은 목록에서 제외한다.")
+    void findAllExcludesInProgress() {
+        interviewService.start(USER_ID);
+
+        assertThat(interviewService.findAll(USER_ID)).isEmpty();
     }
 
     private CompleteInterviewCommand completeCommand(boolean first, boolean second, boolean third) {

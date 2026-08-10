@@ -12,6 +12,7 @@ import com.neogul.whynago.interview.service.dto.AnswerInterviewResult;
 import com.neogul.whynago.interview.service.dto.CompleteInterviewCommand;
 import com.neogul.whynago.interview.service.dto.CompleteInterviewResult;
 import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
+import com.neogul.whynago.interview.service.dto.InterviewSummaryResult;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
 import com.neogul.whynago.question.domain.Question;
@@ -21,6 +22,7 @@ import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,5 +102,13 @@ public class InterviewService {
     public InterviewResultDetail findResult(Long userId, Long interviewId) {
         DailyInterview interview = dailyInterviewReader.readCompleted(interviewId, userId);
         return InterviewResultDetail.from(interviewResultAssembler.assemble(interview));
+    }
+
+    @Transactional(readOnly = true)
+    public List<InterviewSummaryResult> findAll(Long userId) {
+        return dailyInterviewReader.readCompletedAll(userId).stream()
+                .map(interviewResultAssembler::assembleSummary)
+                .map(InterviewSummaryResult::from)
+                .toList();
     }
 }

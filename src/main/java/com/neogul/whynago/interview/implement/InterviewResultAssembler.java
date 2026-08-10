@@ -3,6 +3,8 @@ package com.neogul.whynago.interview.implement;
 import com.neogul.whynago.interview.domain.DailyInterview;
 import com.neogul.whynago.interview.implement.dto.InterviewResult;
 import com.neogul.whynago.interview.implement.dto.InterviewResultItem;
+import com.neogul.whynago.interview.implement.dto.InterviewSummary;
+import com.neogul.whynago.question.implement.QuestionReader;
 import com.neogul.whynago.solvedsession.domain.SolvedSession;
 import com.neogul.whynago.solvedsession.implement.EssaySolvedReader;
 import com.neogul.whynago.solvedsession.implement.SolvedSessionReader;
@@ -17,6 +19,7 @@ public class InterviewResultAssembler {
 
     private final SolvedSessionReader solvedSessionReader;
     private final EssaySolvedReader essaySolvedReader;
+    private final QuestionReader questionReader;
 
     public InterviewResult assemble(DailyInterview interview) {
         SolvedSession session = solvedSessionReader.read(interview.getSolvedSessionId());
@@ -36,6 +39,21 @@ public class InterviewResultAssembler {
                 interview.getCompletedAt(),
                 Duration.between(interview.getStartedAt(), interview.getCompletedAt()).toSeconds(),
                 items
+        );
+    }
+
+    public InterviewSummary assembleSummary(DailyInterview interview) {
+        SolvedSession session = solvedSessionReader.read(interview.getSolvedSessionId());
+        String title = questionReader.read(interview.getQuestionId()).getTitle();
+
+        return new InterviewSummary(
+                interview.getId(),
+                interview.getInterviewDate(),
+                interview.getCategory(),
+                title,
+                session.getTotalCount(),
+                session.getCorrectCount(),
+                interview.getCompletedAt()
         );
     }
 }

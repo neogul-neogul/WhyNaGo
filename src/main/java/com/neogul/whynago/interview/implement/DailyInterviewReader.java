@@ -2,9 +2,11 @@ package com.neogul.whynago.interview.implement;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.interview.domain.DailyInterview;
+import com.neogul.whynago.interview.domain.InterviewStatus;
 import com.neogul.whynago.interview.exception.InterviewErrorCode;
 import com.neogul.whynago.interview.infra.DailyInterviewRepository;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -42,5 +44,9 @@ public class DailyInterviewReader {
             throw new BusinessException(InterviewErrorCode.INTERVIEW_NOT_COMPLETED);
         }
         return interview;
+    }
+
+    public List<DailyInterview> readCompletedAll(Long userId) {
+        return dailyInterviewRepository.findByUserIdAndStatusOrderByInterviewDateDesc(userId, InterviewStatus.COMPLETED);
     }
 }

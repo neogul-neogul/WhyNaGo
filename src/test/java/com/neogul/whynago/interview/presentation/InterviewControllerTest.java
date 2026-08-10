@@ -11,6 +11,7 @@ import com.neogul.whynago.interview.service.dto.InterviewGradingResult;
 import com.neogul.whynago.interview.service.dto.InterviewQuestionResult;
 import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
 import com.neogul.whynago.interview.service.dto.InterviewResultItemDetail;
+import com.neogul.whynago.interview.service.dto.InterviewSummaryResult;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
 import com.neogul.whynago.question.domain.Category;
@@ -231,6 +232,46 @@ class InterviewControllerTest extends ControllerTestSupport {
                 .body("durationSeconds", Matchers.equalTo(700))
                 .body("items[0].type", Matchers.equalTo("MAIN"))
                 .body("items[0].modelAnswer", Matchers.equalTo("m1"));
+    }
+
+    @Test
+    @DisplayName("면접 기록 목록을 조회한다.")
+    void findAll() {
+        given(interviewService.findAll(10L)).willReturn(List.of(new InterviewSummaryResult(
+                7L,
+                LocalDate.of(2026, 8, 7),
+                Category.NETWORK,
+                "TCP 흐름 제어",
+                3,
+                2,
+                LocalDateTime.of(2026, 8, 7, 9, 16, 41)
+        )));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .when()
+                .get("/api/interviews")
+                .then()
+                .statusCode(200)
+                .body("[0].interviewId", Matchers.equalTo(7))
+                .body("[0].category", Matchers.equalTo("NETWORK"))
+                .body("[0].title", Matchers.equalTo("TCP 흐름 제어"))
+                .body("[0].totalCount", Matchers.equalTo(3))
+                .body("[0].correctCount", Matchers.equalTo(2));
+    }
+
+    @Test
+    @DisplayName("완료된 면접이 없으면 빈 목록을 반환한다.")
+    void findAllWhenEmpty() {
+        given(interviewService.findAll(10L)).willReturn(List.of());
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .when()
+                .get("/api/interviews")
+                .then()
+                .statusCode(200)
+                .body("size()", Matchers.equalTo(0));
     }
 
     private String completeBody() {

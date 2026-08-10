@@ -7,10 +7,12 @@ import com.neogul.whynago.interview.presentation.dto.AnswerInterviewResponse;
 import com.neogul.whynago.interview.presentation.dto.CompleteInterviewRequest;
 import com.neogul.whynago.interview.presentation.dto.CompleteInterviewResponse;
 import com.neogul.whynago.interview.presentation.dto.InterviewResultResponse;
+import com.neogul.whynago.interview.presentation.dto.InterviewSummaryResponse;
 import com.neogul.whynago.interview.presentation.dto.StartInterviewResponse;
 import com.neogul.whynago.interview.presentation.dto.TodayInterviewResponse;
 import com.neogul.whynago.interview.service.InterviewService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -79,5 +81,13 @@ public class InterviewController {
         return ResponseEntity.ok(InterviewResultResponse.from(
                 interviewService.findResult(authContext.id(), interviewId)
         ));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<InterviewSummaryResponse>> findAll(@LoginUser AuthContext authContext) {
+        List<InterviewSummaryResponse> responses = interviewService.findAll(authContext.id()).stream()
+                .map(InterviewSummaryResponse::from)
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 }

@@ -26,8 +26,12 @@ public final class DailyInterviewFixture {
     }
 
     public static DailyInterview completed(Long userId) {
-        DailyInterview interview = inProgress(userId);
-        interview.complete(100L, 2, LocalDateTime.of(2026, 8, 7, 9, 31, 40));
+        return completed(userId, LocalDate.of(2026, 8, 7));
+    }
+
+    public static DailyInterview completed(Long userId, LocalDate interviewDate) {
+        DailyInterview interview = inProgress(userId, interviewDate);
+        interview.complete(100L, 2, interviewDate.atTime(9, 31, 40));
         return interview;
     }
 }

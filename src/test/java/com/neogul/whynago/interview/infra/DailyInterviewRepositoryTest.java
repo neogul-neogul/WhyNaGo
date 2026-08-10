@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.neogul.whynago.fixture.DailyInterviewFixture;
 import com.neogul.whynago.interview.domain.DailyInterview;
+import com.neogul.whynago.interview.domain.InterviewStatus;
 import com.neogul.whynago.support.RepositoryTestSupport;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,5 +56,28 @@ class DailyInterviewRepositoryTest extends RepositoryTestSupport {
 
         assertThat(dailyInterviewRepository.existsByUserIdAndInterviewDate(10L, INTERVIEW_DATE)).isTrue();
         assertThat(dailyInterviewRepository.existsByUserIdAndInterviewDate(11L, INTERVIEW_DATE)).isTrue();
+    }
+
+    @Test
+    @DisplayName("완료된 면접만 최신 날짜순으로 조회한다.")
+    void findByUserIdAndStatusOrderByInterviewDateDesc() {
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(10L, INTERVIEW_DATE.minusDays(1)));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE.plusDays(1)));
+
+        List<DailyInterview> found = dailyInterviewRepository
+                .findByUserIdAndStatusOrderByInterviewDateDesc(10L, InterviewStatus.COMPLETED);
+
+        assertThat(found).extracting(DailyInterview::getInterviewDate)
+                .containsExactly(INTERVIEW_DATE, INTERVIEW_DATE.minusDays(1));
+    }
+
+    @Test
+    @DisplayName("완료된 면접이 없으면 빈 목록을 반환한다.")
+    void findByUserIdAndStatusOrderByInterviewDateDescWhenEmpty() {
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE));
+
+        assertThat(dailyInterviewRepository
+                .findByUserIdAndStatusOrderByInterviewDateDesc(10L, InterviewStatus.COMPLETED)).isEmpty();
     }
 }
