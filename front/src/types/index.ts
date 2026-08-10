@@ -260,6 +260,109 @@ export interface CreateEssaySolvedSessionRequest {
   startedAt: string;
 }
 
+// ===== 1일 1면접 API (백엔드 interview 도메인) =====
+// 문답 흐름은 서술형과 같아 채점 응답 타입(EssayGradingResponse·EssayFollowupResponse)을 재사용한다.
+// 다른 점: conversationId·startedAt·본질문 ID를 서버가 소유하므로 요청에 담지 않는다 (docs/API.md Interview API).
+
+/** 오늘의 면접 상태. AVAILABLE은 DB 상태가 아니라 "오늘 면접 행이 없음"을 뜻한다 */
+export type InterviewStatusCode = "AVAILABLE" | "IN_PROGRESS" | "COMPLETED";
+
+/** 문항 유형 (본질문/꼬리질문) */
+export type InterviewItemType = "MAIN" | "FOLLOWUP";
+
+/** 오늘의 면접 상태 조회 응답 — GET /api/interviews/today */
+export interface TodayInterviewResponse {
+  status: InterviewStatusCode;
+  /** AVAILABLE이면 null */
+  interviewId: number | null;
+}
+
+/** 오늘의 면접 질문 (그날 모든 사용자에게 동일) */
+export interface InterviewQuestionResponse {
+  id: number;
+  title: string;
+  content: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+}
+
+/** 면접 시작 응답 — POST /api/interviews (요청 본문 없음: 질문은 서버가 정한다) */
+export interface StartInterviewResponse {
+  interviewId: number;
+  question: InterviewQuestionResponse;
+  /** 총 문항 수 (본질문 + 꼬리질문 2) */
+  totalQuestionCount: number;
+  /** 문항당 제한 시간(초). 서버는 강제하지 않으며 화면이 표시·강제한다 */
+  timeLimitSeconds: number;
+  startedAt: string;
+}
+
+/** 면접 답변 채점 요청 — POST /api/interviews/{id}/answers (conversationId는 서버가 소유) */
+export interface InterviewAnswerRequest {
+  question: string;
+  /** 제한 시간 내 미작성을 인정해 빈 문자열을 허용한다 */
+  answer: string;
+}
+
+/** 면접 답변 채점 응답 (서술형과 동일 형태) */
+export interface InterviewAnswerResponse {
+  grading: EssayGradingResponse;
+  /** 마지막 문항(3턴째)이면 null → 면접 종료 */
+  nextFollowup: EssayFollowupResponse | null;
+}
+
+/** 완료 요청의 문항 하나 (문답 스냅샷). 본질문 ID는 서버가 채우므로 담지 않는다 */
+export interface InterviewAnswerSnapshotRequest {
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  isCorrect: boolean;
+}
+
+/** 면접 완료 요청 — POST /api/interviews/{id}/complete */
+export interface CompleteInterviewRequest {
+  rootQuestion: InterviewAnswerSnapshotRequest;
+  /** 정확히 2개 */
+  followupQuestions: InterviewAnswerSnapshotRequest[];
+  /** 화면 이탈 횟수 (클라이언트 집계값) */
+  focusLossCount: number;
+}
+
+/** 면접 완료 응답 */
+export interface CompleteInterviewResponse {
+  interviewId: number;
+  /** 생성된 풀이 세션 ID (학습 기록·오답노트가 이 세션으로 잡힌다) */
+  solvedSessionId: number;
+}
+
+/** 면접 결과의 문항 하나 */
+export interface InterviewResultItemResponse {
+  sequence: number;
+  type: InterviewItemType;
+  questionText: string;
+  userAnswer: string;
+  feedback: string;
+  modelAnswer: string;
+  isCorrect: boolean;
+}
+
+/** 면접 결과 조회 응답 — GET /api/interviews/{id} (완료된 면접만) */
+export interface InterviewResultResponse {
+  interviewId: number;
+  interviewDate: string;
+  status: InterviewStatusCode;
+  category: QuestionCategory;
+  totalCount: number;
+  correctCount: number;
+  focusLossCount: number;
+  startedAt: string;
+  completedAt: string;
+  /** 소요 시간(초). 서버가 제한 시간을 강제하지 않아 180을 넘을 수 있다 */
+  durationSeconds: number;
+  items: InterviewResultItemResponse[];
+}
+
 // ===== 오답노트 API (백엔드 wrongnote 도메인) =====
 // 오답노트는 상태·반복 횟수·출처를 두지 않는다 (docs/DOMAIN.md 결정 사항) — 목록 필터는 북마크 여부뿐.
 
@@ -324,15 +427,6 @@ export interface WrongNoteDetailResponse {
 /** 오답노트 북마크 변경 응답 — PATCH /api/wrong-notes/{id}/bookmark */
 export interface WrongNoteBookmarkResponse {
   isBookmarked: boolean;
-}
-
-/** 1일 1면접 문항 (카테고리별) */
-export interface InterviewItem {
-  q: string;
-  feedback: string;
-  followup: string;
-  improved: string;
-  keywords: string[];
 }
 
 /** 모의진단 카테고리별 통계 */

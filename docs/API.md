@@ -969,6 +969,357 @@ GET /api/learning-records/daily-counts
 
 ---
 
+# **Interview API**
+
+하루에 한 번 진행하는 **1일 1면접**을 담당한다. 관련 도메인은 `interview`다.
+
+풀이 흐름 자체는 서술형과 같다 — 본 질문 + AI 꼬리질문 2개(총 3문항), 답변마다 LLM 채점. 차이는 다음과 같다(→ `docs/DOMAIN.md` 1일 1면접 정책).
+
+- **하루 1회**다. 오늘 이미 시작했으면 다시 시작할 수 없다. 하루 경계는 KST(Asia/Seoul) 자정이다.
+- **날짜를 요청으로 받지 않는다.** 서버가 KST 기준으로 판단한다.
+- **오늘의 질문은 전역 고정**이다. 그날 모든 사용자가 같은 질문을 받으며, 시작 API로만 공개된다(상태 조회에는 노출하지 않는다).
+- **`conversationId`를 서버가 소유한다.** 서술형과 달리 클라이언트가 대화 식별자를 보관하지 않고 `interviewId`만 보낸다.
+- **제한 시간(180초)은 서버가 강제하지 않는다.** 클라이언트가 표시·강제한다.
+
+모든 엔드포인트는 인증이 필요하며 **본인의 면접만** 다룬다. 남의 `interviewId`를 조회·조작하면 존재 여부를 노출하지 않기 위해 `INTERVIEW_NOT_FOUND`(404)로 응답한다.
+
+## **오늘의 면접 상태 조회**
+
+면접 안내 화면 진입 시 호출한다. 오늘 면접을 시작할 수 있는지, 진행 중인지, 이미 마쳤는지를 반환한다. **오늘의 질문은 노출하지 않는다.**
+
+### **Endpoint**
+
+```
+GET /api/interviews/today
+```
+
+- 요청 본문·쿼리 파라미터가 없다. 사용자와 날짜 모두 서버가 해석한다.
+
+### **Response Body**
+
+```json
+{
+  "status": "AVAILABLE",
+  "interviewId": null
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `status` | String | `AVAILABLE`(오늘 아직 안 봄) \| `IN_PROGRESS`(시작했으나 미완료) \| `COMPLETED`(완료). |
+| `interviewId` | Long | `AVAILABLE`이면 `null`, 그 외엔 오늘 면접 ID. |
+
+`AVAILABLE`은 `InterviewStatus`에 없는 값이다. "오늘 면접 행이 존재하지 않음"을 API 레벨에서 표현한 것이다.
+
+### **에러**
+
+없음.
+
+---
+
+## **면접 시작**
+
+오늘의 면접을 시작하고 그날의 질문을 반환한다. 이 시점에 `DailyInterview` 행이 `IN_PROGRESS`로 생성되며 **오늘 자리가 소진된다**. 그날 첫 요청이면 서버가 서술형 문제 중 하나를 뽑아 오늘의 질문으로 고정한다.
+
+### **Endpoint**
+
+```
+POST /api/interviews
+```
+
+- 요청 본문이 없다. 질문은 서버가 정하므로 클라이언트가 고를 수 없다.
+- 성공 시 `201 Created`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "interviewId": 7,
+  "question": {
+    "id": 17,
+    "title": "TCP 흐름 제어",
+    "content": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
+    "category": "NETWORK",
+    "difficulty": "MEDIUM"
+  },
+  "totalQuestionCount": 3,
+  "timeLimitSeconds": 180,
+  "startedAt": "2026-08-07T09:14:02"
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `interviewId` | Long | 생성된 면접 ID. 이후 모든 요청에 사용한다. |
+| `question` | Object | 오늘의 본 질문. **그날 모든 사용자에게 동일하다.** |
+| `question.id` | Long | `Question.id`. |
+| `question.title` | String | 문제 제목. |
+| `question.content` | String | 발문. 첫 답변 요청의 `question`에 그대로 담는다. |
+| `question.category` | String | `Category`. |
+| `question.difficulty` | String | `Difficulty`. |
+| `totalQuestionCount` | int | 총 문항 수. 현재 `3` 고정(본 질문 + 꼬리질문 2개). |
+| `timeLimitSeconds` | int | 제한 시간(초). 현재 `180` 고정. **서버가 강제하지 않는다.** |
+| `startedAt` | LocalDateTime | 서버가 기록한 시작 시각. 소요시간의 기준이다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 409 | `INTERVIEW_ALREADY_STARTED_TODAY` | 오늘 이미 면접을 시작함(진행 중·완료 무관). |
+| 404 | `INTERVIEW_QUESTION_NOT_AVAILABLE` | 서술형(`ESSAY`) 문제가 하나도 없어 오늘의 질문을 정할 수 없음. |
+
+---
+
+## **면접 답변 채점·꼬리질문 생성**
+
+면접 한 턴을 처리한다. 동작은 서술형 채점 API와 같고 응답 형태도 동일하다(`{grading, nextFollowup}`) — 프런트가 같은 파싱을 쓸 수 있다. **차이는 `conversationId`를 보내지 않는다는 것**이다. 서버가 `interviewId`로 대화 식별자를 찾는다.
+
+이 API는 **아무것도 저장하지 않는다.** 클라이언트가 3턴 결과를 모아 완료 API로 올린다.
+
+### **Endpoint**
+
+```
+POST /api/interviews/{interviewId}/answers
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "question": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
+  "answer": "수신자가 광고한 윈도우 크기만큼만 데이터를 보내..."
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `question` | String | O | 이번에 채점할 문항 발문. 1턴은 시작 API의 `question.content`, 이후는 직전 응답의 `nextFollowup.question`. 공백 불가. |
+| `answer` | String | O | 사용자가 작성한 답변. **공백을 허용한다**(제한 시간 안에 못 쓴 경우를 인정) — `null`만 거부한다. |
+
+### **Response Body**
+
+```json
+{
+  "grading": {
+    "feedback": "흐름 제어와 혼잡 제어의 목적 차이를 명확히 구분하면 더 좋습니다.",
+    "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 조절합니다.",
+    "isCorrect": true
+  },
+  "nextFollowup": {
+    "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
+  }
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `grading.feedback` | String | AI 피드백. |
+| `grading.modelAnswer` | String | 모범답안·해설. |
+| `grading.isCorrect` | boolean | 통과 여부(→ `docs/DOMAIN.md` 서술형 정답 판정 정책). |
+| `nextFollowup` | Object | 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`. |
+| `nextFollowup.question` | String | 생성된 꼬리질문 발문. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `question`이 공백이거나 `answer`가 누락됨. |
+| 404 | `INTERVIEW_NOT_FOUND` | 면접이 없거나 본인 것이 아님. |
+| 400 | `INTERVIEW_NOT_IN_PROGRESS` | 이미 완료된 면접임. |
+| 503 | `ESSAY_AI_UNAVAILABLE` | AI 호출 실패(LLM 장애 등). 즉시 재시도 가능. |
+| 429 | `ESSAY_AI_QUOTA_EXCEEDED` | AI 분당 요청 한도 초과. 잠시 후 재시도. |
+| 429 | `ESSAY_AI_DAILY_QUOTA_EXCEEDED` | AI 일일 요청 한도 초과. 한도 초기화 전에는 재시도해도 실패한다. |
+
+한 문항도 채점받지 못한 상태에서 AI 오류가 계속되면 **면접 취소 API**로 오늘 자리를 돌려받을 수 있다.
+
+---
+
+## **면접 완료**
+
+3문항 문답을 학습 기록으로 저장하고 면접을 종료한다. `SolvedSession`(`type = ESSAY`) 1건 + `EssaySolved` 3행이 생성되며, 오답이 있으면 오답노트도 자동 생성된다. 동시에 `DailyInterview`가 `COMPLETED`로 전이된다.
+
+서술형 세션 저장 API(`POST /api/solved-sessions/essay`)와 본문 모양이 거의 같지만 **`startedAt`과 본 질문 ID를 받지 않는다** — 둘 다 서버가 소유한 값이다.
+
+### **Endpoint**
+
+```
+POST /api/interviews/{interviewId}/complete
+```
+
+- 성공 시 `201 Created`를 반환한다.
+
+### **Request Body**
+
+```json
+{
+  "rootQuestion": {
+    "questionText": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
+    "userAnswer": "수신자가 광고한 윈도우 크기만큼만...",
+    "feedback": "목적 차이를 구분하면 더 좋습니다.",
+    "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만...",
+    "isCorrect": true
+  },
+  "followupQuestions": [
+    {
+      "questionText": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?",
+      "userAnswer": "",
+      "feedback": "답변이 없어 평가할 수 없습니다.",
+      "modelAnswer": "혼잡 윈도우를 줄이고 느린 시작으로 되돌아갑니다.",
+      "isCorrect": false
+    },
+    {
+      "questionText": "빠른 재전송은 언제 발생하나요?",
+      "userAnswer": "중복 ACK 3번이면...",
+      "feedback": "정확합니다.",
+      "modelAnswer": "중복 ACK 3회 수신 시 타임아웃을 기다리지 않고 재전송합니다.",
+      "isCorrect": true
+    }
+  ],
+  "focusLossCount": 1
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `rootQuestion` | Object | O | 본 질문 문답 스냅샷. `sequence = 1`, `type = MAIN`으로 저장된다. 본 질문 ID는 서버가 채운다. |
+| `followupQuestions` | Array | O | 꼬리질문 문답 스냅샷. **정확히 2개**여야 한다. `type = FOLLOWUP`으로 저장되며 `questionId`는 `null`이다. |
+| `focusLossCount` | int | O | 면접 중 화면 이탈 횟수. `0` 이상. 서버는 검증 없이 저장한다. |
+
+각 문답 스냅샷의 필드는 다음과 같다.
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `questionText` | String | O | 발문. 공백 불가. |
+| `userAnswer` | String | O | 사용자 답변. **공백 허용**, `null` 불가. |
+| `feedback` | String | O | 채점 API가 반환한 피드백. 공백 불가. |
+| `modelAnswer` | String | O | 채점 API가 반환한 모범답안. 공백 불가. |
+| `isCorrect` | boolean | O | 채점 API가 반환한 통과 여부. 세션 `correctCount` 집계에 쓰인다. |
+
+### **Response Body**
+
+```json
+{
+  "interviewId": 7,
+  "solvedSessionId": 128
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `interviewId` | Long | 완료된 면접 ID. |
+| `solvedSessionId` | Long | 생성된 풀이 세션 ID. 학습 기록·오답노트에서 이 세션으로 조회된다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | 필수값 누락·공백, 또는 `followupQuestions`가 2개가 아님. |
+| 404 | `INTERVIEW_NOT_FOUND` | 면접이 없거나 본인 것이 아님. |
+| 400 | `INTERVIEW_NOT_IN_PROGRESS` | 이미 완료된 면접임. |
+
+---
+
+## **면접 취소**
+
+**서버 사유로 한 문항도 채점받지 못했을 때** 면접을 취소해 오늘 자리를 돌려준다. AI 장애·쿼터 초과는 사용자 잘못이 아닌데 하루를 통째로 날리는 것이 과하기 때문이다.
+
+취소는 `DailyInterview` **행 삭제**로 처리한다(취소 상태를 두지 않는다). 삭제 후 같은 날 다시 시작할 수 있으며, 오늘의 질문은 이미 고정돼 있으므로 같은 질문을 받는다.
+
+### **Endpoint**
+
+```
+DELETE /api/interviews/{interviewId}
+```
+
+- 성공 시 `204 No Content`를 반환한다.
+
+### **취소 가능 조건**
+
+`status = IN_PROGRESS` **이고** 채점 성공 턴 수가 `0`일 때만 가능하다. 턴 수는 클라이언트 주장이 아니라 **서버의 대화 이력**에서 읽으므로, 채점을 받고 나서 마음에 안 들어 취소·재시작하는 우회가 불가능하다.
+
+> ⚠️ 대화 이력은 인메모리라 서버가 재시작되면 턴 수가 `0`으로 리셋된다. 그 경우 이미 채점받은 면접도 취소 가능해진다(수용된 트레이드오프).
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `INTERVIEW_NOT_FOUND` | 면접이 없거나 본인 것이 아님. |
+| 400 | `INTERVIEW_NOT_CANCELABLE` | 이미 완료됐거나, 한 문항 이상 채점받음. |
+
+---
+
+## **면접 결과 조회**
+
+완료된 면접의 결과를 조회한다. 문답 내역은 `SolvedSession`·`EssaySolved`에서, 이탈 횟수·소요시간 같은 면접 고유 값은 `DailyInterview`에서 조립한다.
+
+### **Endpoint**
+
+```
+GET /api/interviews/{interviewId}
+```
+
+- **완료된 면접만** 조회할 수 있다. 진행 중인 면접은 `INTERVIEW_NOT_COMPLETED`다.
+
+### **Response Body**
+
+```json
+{
+  "interviewId": 7,
+  "interviewDate": "2026-08-07",
+  "status": "COMPLETED",
+  "category": "NETWORK",
+  "totalCount": 3,
+  "correctCount": 2,
+  "focusLossCount": 1,
+  "startedAt": "2026-08-07T09:14:02",
+  "completedAt": "2026-08-07T09:16:41",
+  "durationSeconds": 159,
+  "items": [
+    {
+      "sequence": 1,
+      "type": "MAIN",
+      "questionText": "슬라이딩 윈도우가 흐름 제어에서 어떻게 동작하나요?",
+      "userAnswer": "수신자가 광고한 윈도우 크기만큼만...",
+      "feedback": "목적 차이를 구분하면 더 좋습니다.",
+      "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만...",
+      "isCorrect": true
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `interviewId` | Long | 면접 ID. |
+| `interviewDate` | LocalDate | 면접 날짜(KST). |
+| `status` | String | 항상 `COMPLETED`. |
+| `category` | String | 오늘의 질문 카테고리(`Category`). |
+| `totalCount` | int | 전체 문항 수. |
+| `correctCount` | int | 통과 문항 수. |
+| `focusLossCount` | int | 화면 이탈 횟수. |
+| `startedAt` | LocalDateTime | 시작 시각. |
+| `completedAt` | LocalDateTime | 완료 시각. |
+| `durationSeconds` | long | 소요 시간(초). `completedAt - startedAt`. 제한 시간을 초과한 값일 수 있다(서버 미강제). |
+| `items` | Array | 문항별 결과. `sequence` 오름차순. |
+| `items[].sequence` | int | 세션 내 순서. 본 질문이 1. |
+| `items[].type` | String | `MAIN`(본 질문) \| `FOLLOWUP`(꼬리질문). |
+| `items[].questionText` | String | 발문 스냅샷. |
+| `items[].userAnswer` | String | 사용자 답변. 미작성이면 빈 문자열. |
+| `items[].feedback` | String | AI 피드백. |
+| `items[].modelAnswer` | String | 모범답안. |
+| `items[].isCorrect` | boolean | 통과 여부. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `INTERVIEW_NOT_FOUND` | 면접이 없거나 본인 것이 아님. |
+| 400 | `INTERVIEW_NOT_COMPLETED` | 아직 완료되지 않은 면접임. |
+
+---
+
 # **User API**
 
 로그인한 사용자 본인의 프로필 조회·수정을 담당한다. 관련 도메인은 `user`다.

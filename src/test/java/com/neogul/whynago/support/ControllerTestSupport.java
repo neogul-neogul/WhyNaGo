@@ -5,6 +5,8 @@ import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.presentation.AuthController;
 import com.neogul.whynago.auth.presentation.interceptor.TokenExtractor;
 import com.neogul.whynago.auth.service.AuthService;
+import com.neogul.whynago.interview.presentation.InterviewController;
+import com.neogul.whynago.interview.service.InterviewService;
 import com.neogul.whynago.learningrecord.presentation.LearningRecordController;
 import com.neogul.whynago.learningrecord.service.LearningRecordService;
 import com.neogul.whynago.notification.presentation.NotificationSettingController;
@@ -35,6 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
         EssaySolvedSessionController.class,
         WrongNoteController.class,
         LearningRecordController.class,
+        InterviewController.class,
         UserController.class,
         NotificationSettingController.class
 })
@@ -67,6 +70,9 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected LearningRecordService learningRecordService;
+
+    @MockitoBean
+    protected InterviewService interviewService;
 
     @MockitoBean
     protected UserService userService;
