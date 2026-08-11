@@ -10,18 +10,18 @@ import org.junit.jupiter.api.Test;
 class ScorePolicyTest {
 
     @Test
-    @DisplayName("객관식은 난이도별로 하 3점, 중 4점, 상 5점이다.")
+    @DisplayName("객관식은 난이도별로 하 1점, 중 2점, 상 3점이다.")
     void score_multipleChoice() {
-        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.LOW)).isEqualTo(3);
-        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.MEDIUM)).isEqualTo(4);
-        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.HIGH)).isEqualTo(5);
+        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.LOW)).isEqualTo(1);
+        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.MEDIUM)).isEqualTo(2);
+        assertThat(ScorePolicy.score(QuestionType.MULTIPLE_CHOICE, Difficulty.HIGH)).isEqualTo(3);
     }
 
     @Test
-    @DisplayName("서술형은 같은 난이도의 객관식 점수보다 3배 높다.")
+    @DisplayName("서술형은 같은 난이도의 객관식 점수보다 4배 높다.")
     void score_essay() {
-        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.LOW)).isEqualTo(9);
-        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.MEDIUM)).isEqualTo(12);
-        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.HIGH)).isEqualTo(15);
+        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.LOW)).isEqualTo(4);
+        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.MEDIUM)).isEqualTo(8);
+        assertThat(ScorePolicy.score(QuestionType.ESSAY, Difficulty.HIGH)).isEqualTo(12);
     }
 }

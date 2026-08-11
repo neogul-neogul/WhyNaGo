@@ -11,22 +11,22 @@ class TierTest {
     @DisplayName("점수 구간에 맞는 티어를 반환한다.")
     void from() {
         assertThat(Tier.from(0)).isEqualTo(Tier.BRONZE);
-        assertThat(Tier.from(224)).isEqualTo(Tier.BRONZE);
-        assertThat(Tier.from(225)).isEqualTo(Tier.SILVER);
-        assertThat(Tier.from(764)).isEqualTo(Tier.SILVER);
-        assertThat(Tier.from(765)).isEqualTo(Tier.GOLD);
-        assertThat(Tier.from(1619)).isEqualTo(Tier.GOLD);
-        assertThat(Tier.from(1620)).isEqualTo(Tier.PLATINUM);
-        assertThat(Tier.from(2609)).isEqualTo(Tier.PLATINUM);
-        assertThat(Tier.from(2610)).isEqualTo(Tier.DIAMOND);
+        assertThat(Tier.from(57)).isEqualTo(Tier.BRONZE);
+        assertThat(Tier.from(58)).isEqualTo(Tier.SILVER);
+        assertThat(Tier.from(197)).isEqualTo(Tier.SILVER);
+        assertThat(Tier.from(198)).isEqualTo(Tier.GOLD);
+        assertThat(Tier.from(419)).isEqualTo(Tier.GOLD);
+        assertThat(Tier.from(420)).isEqualTo(Tier.PLATINUM);
+        assertThat(Tier.from(676)).isEqualTo(Tier.PLATINUM);
+        assertThat(Tier.from(677)).isEqualTo(Tier.DIAMOND);
         assertThat(Tier.from(9999)).isEqualTo(Tier.DIAMOND);
     }
 
     @Test
     @DisplayName("다음 티어까지 필요한 점수를 계산한다.")
     void scoreToNext() {
-        assertThat(Tier.BRONZE.scoreToNext(0)).isEqualTo(225);
-        assertThat(Tier.SILVER.scoreToNext(500)).isEqualTo(265);
+        assertThat(Tier.BRONZE.scoreToNext(0)).isEqualTo(58);
+        assertThat(Tier.SILVER.scoreToNext(100)).isEqualTo(98);
     }
 
     @Test

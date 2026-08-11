@@ -20,13 +20,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * 본질문+꼬리질문을 모두 맞힌(correctCount == totalCount) 세션만 점수 대상이다.
- * 객관식은 세션에 등장한 문항(본질문·꼬리질문)이 전부 실제 독립된 Question이라 문항마다 자기 난이도로 점수를 받고,
- * 서술형은 꼬리질문이 AI가 그때그때 생성하는 스냅샷이라 실제 Question이 없어 본질문 하나로만 점수를 받는다
- * (→ docs/DOMAIN.md 꼬리질문 분기·서술형 꼬리질문 생성 정책). 같은 Question은 유저 인생 전체에서 최초로
- * 만점을 받은 시점에만 점수를 지급한다.
- */
+
 @Component
 @RequiredArgsConstructor
 public class UserScoreCalculator {

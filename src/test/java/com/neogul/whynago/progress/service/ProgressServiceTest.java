@@ -43,14 +43,14 @@ class ProgressServiceTest extends IntegrationTestSupport {
     private SolvedMultipleChoiceRepository solvedMultipleChoiceRepository;
 
     @Test
-    @DisplayName("풀이 기록이 없으면 브론즈 티어이고 다음 티어까지 225점이 필요하다.")
+    @DisplayName("풀이 기록이 없으면 브론즈 티어이고 다음 티어까지 58점이 필요하다.")
     void getDetail_noRecords() {
         ProgressDetailResult result = progressService.getDetail(USER_ID);
 
         assertThat(result.score()).isZero();
         assertThat(result.tier()).isEqualTo(Tier.BRONZE);
         assertThat(result.nextTier()).isEqualTo(Tier.SILVER);
-        assertThat(result.scoreToNextTier()).isEqualTo(225);
+        assertThat(result.scoreToNextTier()).isEqualTo(58);
         assertThat(result.totalQuestionCount()).isZero();
         assertThat(result.categoryQuestionCounts()).isEmpty();
     }
@@ -67,10 +67,10 @@ class ProgressServiceTest extends IntegrationTestSupport {
 
         ProgressDetailResult result = progressService.getDetail(USER_ID);
 
-        assertThat(result.score()).isEqualTo(4);
+        assertThat(result.score()).isEqualTo(2);
         assertThat(result.tier()).isEqualTo(Tier.BRONZE);
         assertThat(result.nextTier()).isEqualTo(Tier.SILVER);
-        assertThat(result.scoreToNextTier()).isEqualTo(221);
+        assertThat(result.scoreToNextTier()).isEqualTo(56);
         assertThat(result.totalQuestionCount()).isEqualTo(1);
     }
 }

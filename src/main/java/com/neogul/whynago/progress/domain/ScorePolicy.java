@@ -7,11 +7,11 @@ import java.util.Map;
 public final class ScorePolicy {
 
     private static final Map<Difficulty, Integer> MULTIPLE_CHOICE_SCORE = Map.of(
-            Difficulty.LOW, 3,
-            Difficulty.MEDIUM, 4,
-            Difficulty.HIGH, 5
+            Difficulty.LOW, 1,
+            Difficulty.MEDIUM, 2,
+            Difficulty.HIGH, 3
     );
-    private static final int ESSAY_MULTIPLIER = 3;
+    private static final int ESSAY_MULTIPLIER = 4;
 
     private ScorePolicy() {
     }

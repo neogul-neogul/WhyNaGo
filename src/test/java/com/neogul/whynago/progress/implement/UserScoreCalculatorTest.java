@@ -57,7 +57,7 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(4);
+        assertThat(result.totalScore()).isEqualTo(2);
         assertThat(result.totalQuestionCount()).isEqualTo(1);
         assertThat(result.totalCorrectCount()).isEqualTo(1);
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.NETWORK, 1);
@@ -84,7 +84,7 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(4);
+        assertThat(result.totalScore()).isEqualTo(2);
         assertThat(result.totalQuestionCount()).isEqualTo(2);
     }
 
@@ -97,28 +97,28 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(4);
+        assertThat(result.totalScore()).isEqualTo(2);
     }
 
     @Test
     @DisplayName("객관식 꼬리질문은 본질문과 별개로 자기 난이도만큼 점수를 받는다.")
     void calculate_followupScoredByOwnDifficulty() {
-        Question root = questionRepository.save(QuestionFixture.rootMultipleChoice()); // MEDIUM = 4점
+        Question root = questionRepository.save(QuestionFixture.rootMultipleChoice()); // MEDIUM = 2점
         Question followup = questionRepository.save(Question.create(
                 "실시간 음성 통화와 UDP", "실시간 음성 통화에 UDP가 적합한 가장 큰 이유는?",
-                QuestionType.MULTIPLE_CHOICE, Difficulty.HIGH, Category.NETWORK, "낮은 지연이 중요하다.")); // HIGH = 5점
+                QuestionType.MULTIPLE_CHOICE, Difficulty.HIGH, Category.NETWORK, "낮은 지연이 중요하다.")); // HIGH = 3점
         saveMultipleChoiceChain(List.of(root, followup), 2);
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(9);
+        assertThat(result.totalScore()).isEqualTo(5);
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.NETWORK, 2);
     }
 
     @Test
     @DisplayName("한 세션에서 꼬리질문으로 이미 점수를 받은 문항은 다른 세션에서 본질문으로 다시 나와도 점수를 받지 못한다.")
     void calculate_sameQuestionAcrossSessionsInDifferentRoles_scoredOnce() {
-        Question q1 = questionRepository.save(QuestionFixture.rootMultipleChoice()); // MEDIUM = 4점
+        Question q1 = questionRepository.save(QuestionFixture.rootMultipleChoice()); // MEDIUM = 2점
         Question q2 = questionRepository.save(Question.create(
                 "q2", "q2 content", QuestionType.MULTIPLE_CHOICE, Difficulty.MEDIUM, Category.NETWORK, ""));
         Question q3 = questionRepository.save(Question.create(
@@ -128,18 +128,18 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(12); // q1 + q2 + q3, 각 4점씩 딱 한 번
+        assertThat(result.totalScore()).isEqualTo(6); // q1 + q2 + q3, 각 2점씩 딱 한 번
     }
 
     @Test
-    @DisplayName("서술형은 난이도 점수의 3배를 지급한다.")
+    @DisplayName("서술형은 난이도 점수의 4배를 지급한다.")
     void calculate_essayFullyCorrect() {
         Question root = questionRepository.save(QuestionFixture.essayRoot());
         saveEssaySession(root, true);
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
-        assertThat(result.totalScore()).isEqualTo(15);
+        assertThat(result.totalScore()).isEqualTo(12);
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.DB, 1);
     }
 

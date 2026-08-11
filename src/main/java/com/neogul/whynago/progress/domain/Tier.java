@@ -5,10 +5,10 @@ import java.util.Optional;
 public enum Tier {
 
     BRONZE(0),
-    SILVER(225),
-    GOLD(765),
-    PLATINUM(1620),
-    DIAMOND(2610);
+    SILVER(58),
+    GOLD(198),
+    PLATINUM(420),
+    DIAMOND(677);
 
     private final int minScore;
 
