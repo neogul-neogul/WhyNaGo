@@ -1,0 +1,104 @@
+# 로컬에서 db+backend+frontend를 전부 컨테이너로 띄워 통합 테스트하기 위한 compose.
+# deploy/docker-compose.yml(EC2 운영, nginx+app+db 세트)과는 별개다.
+#
+# backend/frontend는 Dockerfile.local / front/Dockerfile.local 로 각각 소스에서 빌드한다
+# (deploy/Dockerfile은 jar를 로컬에서 미리 빌드해서 복사하는 방식이라 여기서는 안 쓴다).
+#
+# db만 따로 띄워 호스트에서 `./gradlew bootRun`으로 직접 붙여 테스트하고 싶다면
+# `docker compose -f docker-compose.local.yml up -d db`로 db만 올리면 된다
+# (SPRING_PROFILES_ACTIVE=local,local-mysql ./gradlew bootRun 로 localhost:3306에 접속).
+#
+# 실행(전체): 저장소 루트에서 `docker compose -f docker-compose.local.yml up -d --build`
+#   프론트: http://localhost:3000  /  백엔드: http://localhost:8080
+# 종료: `docker compose -f docker-compose.local.yml down` (데이터 유지)
+#       `-v`를 붙이면 볼륨째로 삭제된다.
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: whynago-db-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-whynago}
+      MYSQL_USER: ${DB_USERNAME:-whynago}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-whynago}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - whynago-mysql-local-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: whynago-backend-local
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: local,local-mysql
+      DB_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE:-whynago}?characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${DB_USERNAME:-whynago}
+      DB_PASSWORD: ${DB_PASSWORD:-whynago}
+      API_KEY: ${API_KEY:-dummy-local-dev-key}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile.local
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    container_name: whynago-frontend-local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  grafana-alloy:
+    image: grafana/alloy:latest
+    container_name: grafana-alloy
+    restart: always
+    environment:
+      - GCLOUD_HOSTED_METRICS_ID=${GCLOUD_HOSTED_METRICS_ID}
+      - GCLOUD_HOSTED_METRICS_URL=${GCLOUD_HOSTED_METRICS_URL}
+      - GCLOUD_HOSTED_LOGS_ID=${GCLOUD_HOSTED_LOGS_ID}
+      - GCLOUD_HOSTED_LOGS_URL=${GCLOUD_HOSTED_LOGS_URL}
+      - GCLOUD_FM_URL=${GCLOUD_FM_URL}
+      - GCLOUD_FM_POLL_FREQUENCY=${GCLOUD_FM_POLL_FREQUENCY}
+      - GCLOUD_FM_HOSTED_ID=${GCLOUD_FM_HOSTED_ID}
+      - GCLOUD_RW_API_KEY=${GCLOUD_RW_API_KEY}
+    volumes:
+      - ./logs:/var/log/app:ro
+      - ./grafana-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    ports:
+      - "12345:12345"
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+
+volumes:
+  whynago-mysql-local-data:

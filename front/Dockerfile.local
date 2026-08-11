@@ -1,0 +1,22 @@
+# 로컬 통합 테스트(docker-compose.local.yml)용 프론트엔드 이미지.
+# NEXT_PUBLIC_* 값은 빌드 타임에 번들에 박히므로 build arg로 받는다.
+
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/public ./public
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+
+EXPOSE 3000
+CMD ["npm", "start"]

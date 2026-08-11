@@ -1,0 +1,20 @@
+# 로컬 통합 테스트(docker-compose.local.yml)용 백엔드 이미지.
+# deploy/Dockerfile은 "jar를 로컬에서 미리 빌드해서 복사"하는 방식(운영 EC2 스펙 절약용)이라
+# 여기서는 `docker compose -f docker-compose.local.yml up --build`만으로 뜨도록 빌드 스테이지를 포함한다.
+
+FROM eclipse-temurin:21-jdk AS build
+WORKDIR /app
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle ./gradle
+RUN chmod +x gradlew && ./gradlew --no-daemon dependencies || true
+COPY src ./src
+RUN ./gradlew --no-daemon bootJar
+
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/build/libs/app.jar app.jar
+
+ENV JAVA_OPTS="-Duser.timezone=Asia/Seoul -Dfile.encoding=UTF-8"
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
