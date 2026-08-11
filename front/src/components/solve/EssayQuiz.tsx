@@ -18,6 +18,7 @@ import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
 import GradingProgress from "@/components/solve/GradingProgress";
 import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
+import SaveToProblemSetButton from "@/components/problemSets/SaveToProblemSetButton";
 
 /** 채점이 끝난 문항 (발문·내 답변 + 채점 응답 스냅샷) */
 interface GradedItem {
@@ -41,10 +42,14 @@ export default function EssayQuiz({
   question,
   onQuit,
   onFinish,
+  saved,
+  onOpenSaveModal,
 }: {
   question: QuestionResponse;
   onQuit: () => void;
   onFinish: (correct: number, total: number) => void;
+  saved: boolean;
+  onOpenSaveModal: () => void;
 }) {
   const loggedIn = useAuth();
   const [showLoginGate, setShowLoginGate] = useState(false);
@@ -171,7 +176,7 @@ export default function EssayQuiz({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-center justify-between gap-3.5">
         <button
           type="button"
           onClick={onQuit}
@@ -182,6 +187,7 @@ export default function EssayQuiz({
           </svg>
           돌아가기
         </button>
+        <SaveToProblemSetButton saved={saved} onClick={onOpenSaveModal} />
       </div>
 
       <div className="flex items-start gap-[18px]">
