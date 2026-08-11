@@ -19,6 +19,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import InterviewIntro from "@/components/interview/InterviewIntro";
 import InterviewSession from "@/components/interview/InterviewSession";
+import InterviewStartConfirmModal from "@/components/interview/InterviewStartConfirmModal";
 
 /**
  * 1일 1면접 안내 + 진행.
@@ -36,6 +37,8 @@ export default function InterviewPage() {
   const [started, setStarted] = useState<StartInterviewResponse | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [showLoginGate, setShowLoginGate] = useState(false);
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const startingRef = useRef(false);
 
   // 상태 갱신은 응답 콜백 안에서만 한다 — 이펙트 본문에서 동기 setState를 하지 않기 위해서다
@@ -85,7 +88,16 @@ export default function InterviewPage() {
 
   const body = () => {
     if (!hydrated) return <Placeholder text="불러오는 중…" />;
-    if (!loggedIn) return <LoginRequiredGate />;
+
+    // 비로그인은 안내 화면까지는 보여주고, "면접 진행" 클릭 시에만 로그인을 요구한다
+    if (!loggedIn) {
+      return (
+        <>
+          <InterviewIntro onStart={() => setShowLoginGate(true)} starting={false} error={null} />
+          {showLoginGate && <LoginRequiredGate onClose={() => setShowLoginGate(false)} />}
+        </>
+      );
+    }
 
     // 면접 진행 중 (이 세션에서 시작한 경우에만 진행 화면을 띄운다)
     if (started) {
@@ -121,12 +133,20 @@ export default function InterviewPage() {
           <div className="text-[13.5px] leading-[1.7] text-soft">
             면접은 하루에 한 번만 볼 수 있어요. 내일 새로운 질문으로 다시 만나요.
           </div>
-          <Link
-            href={`/interview/result/${today.interviewId}`}
-            className="rounded-[11px] bg-ink px-7 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
-          >
-            결과 보기
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href={`/interview/result/${today.interviewId}`}
+              className="rounded-[11px] bg-ink px-7 py-[13px] text-[15px] font-semibold text-white transition-colors hover:bg-ink-hover"
+            >
+              결과 보기
+            </Link>
+            <Link
+              href="/interview/history"
+              className="rounded-[11px] border border-line-strong bg-white px-7 py-[13px] text-[15px] font-semibold text-ink transition-colors hover:border-ink"
+            >
+              면접 기록 보기
+            </Link>
+          </div>
         </Card>
       );
     }
@@ -159,7 +179,20 @@ export default function InterviewPage() {
       );
     }
 
-    return <InterviewIntro onStart={() => void start()} starting={starting} error={startError} />;
+    return (
+      <>
+        <InterviewIntro onStart={() => setShowStartConfirm(true)} starting={starting} error={startError} />
+        {showStartConfirm && (
+          <InterviewStartConfirmModal
+            onConfirm={() => {
+              setShowStartConfirm(false);
+              void start();
+            }}
+            onClose={() => setShowStartConfirm(false)}
+          />
+        )}
+      </>
+    );
   };
 
   return (

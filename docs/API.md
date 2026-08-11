@@ -1387,6 +1387,50 @@ GET /api/interviews/{interviewId}
 
 ---
 
+## **면접 기록 목록 조회**
+
+지금까지 완료한 면접 이력을 전부 조회한다. 오답노트와 달리 정답/오답으로 필터링하지 않는다 — 3문항을 모두 맞혀 통과한 면접도 포함해 완료된 면접을 전부 반환한다. `status = IN_PROGRESS`인(아직 완료하지 못한) 면접은 제외한다.
+
+### **Endpoint**
+
+```
+GET /api/interviews
+```
+
+정렬은 `interviewDate` 내림차순(최신순)으로 고정한다. `(userId, interviewDate)`가 유니크이므로 이는 `completedAt` 내림차순과 동일하다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "interviewId": 7,
+    "interviewDate": "2026-08-07",
+    "category": "NETWORK",
+    "title": "TCP 흐름 제어",
+    "totalCount": 3,
+    "correctCount": 2,
+    "completedAt": "2026-08-07T09:16:41"
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `interviewId` | Long | 면접 ID. 결과 상세 조회(`GET /api/interviews/{interviewId}`)에 사용한다. |
+| `interviewDate` | LocalDate | 면접 날짜(KST). |
+| `category` | String | 그날 질문의 카테고리(`Category`). |
+| `title` | String | 그날 질문의 제목(`Question.title`). |
+| `totalCount` | int | 전체 문항 수. |
+| `correctCount` | int | 통과 문항 수. |
+| `completedAt` | LocalDateTime | 완료 시각. |
+
+### **에러**
+
+없음. 완료된 면접이 없으면 빈 배열을 반환한다.
+
+---
+
 # **User API**
 
 로그인한 사용자 본인의 프로필 조회·수정을 담당한다. 관련 도메인은 `user`다.

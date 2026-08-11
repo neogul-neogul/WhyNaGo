@@ -4,6 +4,7 @@ import type {
   CompleteInterviewResponse,
   InterviewAnswerRequest,
   InterviewAnswerResponse,
+  InterviewHistoryResponse,
   InterviewResultResponse,
   StartInterviewResponse,
   TodayInterviewResponse,
@@ -76,6 +77,11 @@ export function cancelInterview(interviewId: number): Promise<void> {
 /** 완료된 면접의 결과 조회 */
 export function fetchInterviewResult(interviewId: number): Promise<InterviewResultResponse> {
   return apiFetch<InterviewResultResponse>(`/api/interviews/${interviewId}`);
+}
+
+/** 완료한 면접 기록 전체 조회 — 오답노트와 달리 정답/오답으로 필터링하지 않는다 */
+export function fetchInterviewHistory(): Promise<InterviewHistoryResponse[]> {
+  return apiFetch<InterviewHistoryResponse[]>("/api/interviews");
 }
 
 /** 문항 순번(0-based) → 화면 라벨 */

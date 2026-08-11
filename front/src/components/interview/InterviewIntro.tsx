@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 
@@ -124,20 +125,28 @@ export default function InterviewIntro({
         </div>
       )}
 
-      <Button
-        variant="ai"
-        size="xl"
-        onClick={onStart}
-        disabled={starting}
-        className="flex items-center gap-2 self-start disabled:opacity-60"
-      >
-        {starting ? "면접을 준비하는 중…" : "면접 진행"}
-        {!starting && (
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        )}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ai"
+          size="xl"
+          onClick={onStart}
+          disabled={starting}
+          className="flex items-center gap-2 disabled:opacity-60"
+        >
+          {starting ? "면접을 준비하는 중…" : "면접 진행"}
+          {!starting && (
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          )}
+        </Button>
+        <Link
+          href="/interview/history"
+          className="flex items-center gap-1.5 rounded-[11px] border border-line-strong bg-white px-7 py-[13px] text-[15px] font-semibold text-ink transition-colors hover:border-ink"
+        >
+          면접 기록 보기
+        </Link>
+      </div>
     </Card>
   );
 }
