@@ -1,11 +1,18 @@
 "use client";
 
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useRef, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { requestLogin } from "@/lib/auth";
+import Script from "next/script";
+import { requestGoogleLogin, requestLogin } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import AuthCard from "@/components/auth/AuthCard";
 import Input from "@/components/ui/Input";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+// AuthCard 내부 폭(max-w-400 - px-9 양쪽)에 맞춘다. GIS 버튼은 px 단위만 받는다
+const GOOGLE_BUTTON_WIDTH = 328;
+
 
 // 외부 URL로 튕기지 않도록 앱 내부 경로만 복귀 대상으로 인정한다
 function safeRedirect(target: string | null): string {
@@ -24,6 +31,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // 백엔드에 로그인 요청 → 성공 시 세션 저장 후 원래 보던 화면으로 복귀, 실패 시 에러 표시
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -45,6 +53,46 @@ function LoginForm() {
       setLoading(false);
     }
   };
+
+  // GIS가 넘겨준 id_token을 백엔드로 보낸다. 계정 중복 등 안내 문구는 백엔드 메시지를 그대로 쓴다
+  const handleGoogleCredential = useCallback(
+    async (credential: string) => {
+      setError("");
+      try {
+        await requestGoogleLogin(credential);
+        router.replace(redirect);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setError(err.message);
+        } else {
+          setError("구글 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        }
+      }
+    },
+    [redirect, router],
+  );
+
+  // 스크립트 로드 후와 재마운트 때마다 호출된다(next/script onReady)
+  const renderGoogleButton = useCallback(() => {
+    const google = window.google;
+    if (google === undefined || googleButtonRef.current === null) return;
+
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: (response) => {
+        void handleGoogleCredential(response.credential);
+      },
+    });
+    google.accounts.id.renderButton(googleButtonRef.current, {
+      type: "standard",
+      theme: "outline",
+      size: "large",
+      text: "continue_with",
+      shape: "rectangular",
+      logo_alignment: "center",
+      width: GOOGLE_BUTTON_WIDTH,
+    });
+  }, [handleGoogleCredential]);
 
   return (
     <AuthCard subtitle="WhyNaGo에서 성장해보세요!" onSubmit={handleSubmit}>
@@ -91,6 +139,23 @@ function LoginForm() {
       >
         회원가입
       </button>
+
+      {/* 구글 로그인 — client id가 없으면 렌더하지 않는다 */}
+      {GOOGLE_CLIENT_ID !== "" && (
+        <>
+          <div className="my-[18px] flex w-full items-center gap-3">
+            <span className="h-px flex-1 bg-line-strong" />
+            <span className="text-[12.5px] text-soft">또는</span>
+            <span className="h-px flex-1 bg-line-strong" />
+          </div>
+          <div ref={googleButtonRef} className="flex w-full justify-center" />
+          <Script
+            src="https://accounts.google.com/gsi/client"
+            strategy="afterInteractive"
+            onReady={renderGoogleButton}
+          />
+        </>
+      )}
     </AuthCard>
   );
 }

@@ -10,6 +10,9 @@ jwt:
     expiration: 604800000
     grace-period: 10000
 
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
 # spring-boot-starter-mail + actuator가 함께 있으면 /actuator/health가 실제 SMTP 커넥션을
 # 테스트한다. 메일 서버 문제로 앱 전체 헬스체크가 죽는 것을 막는다.
 management:

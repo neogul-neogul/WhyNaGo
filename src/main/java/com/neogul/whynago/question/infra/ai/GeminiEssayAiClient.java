@@ -15,10 +15,8 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.retry.NonTransientAiException;
-import org.springframework.stereotype.Component;
 
 @Slf4j
-@Component
 public class GeminiEssayAiClient implements EssayAiClient {
 
     private static final String SYSTEM_PROMPT = """
