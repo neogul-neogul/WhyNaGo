@@ -10,6 +10,8 @@ public enum Tier {
     PLATINUM(420),
     DIAMOND(677);
 
+    public static final int MAX_SCORE = 700;
+
     private final int minScore;
 
     Tier(int minScore) {

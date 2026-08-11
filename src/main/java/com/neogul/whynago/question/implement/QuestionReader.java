@@ -9,6 +9,7 @@ import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
+import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -43,6 +44,14 @@ public class QuestionReader {
             throw new BusinessException(QuestionErrorCode.QUESTION_NOT_ESSAY);
         }
         return question;
+    }
+
+    public Map<Category, Integer> countByCategory() {
+        return questionRepository.countGroupByCategory().stream()
+                .collect(Collectors.toMap(
+                        CategoryQuestionCount::getCategory,
+                        count -> (int) count.getTotal()
+                ));
     }
 
     public Map<Long, List<String>> readTagNames(List<Long> questionIds) {

@@ -61,6 +61,8 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
         assertThat(result.totalQuestionCount()).isEqualTo(1);
         assertThat(result.totalCorrectCount()).isEqualTo(1);
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.NETWORK, 1);
+        assertThat(result.categoryCorrectCounts()).containsEntry(Category.NETWORK, 1);
+        assertThat(result.categoryScores()).containsEntry(Category.NETWORK, 2);
     }
 
     @Test
@@ -73,6 +75,8 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         assertThat(result.totalScore()).isZero();
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.NETWORK, 1);
+        assertThat(result.categoryCorrectCounts()).isEmpty();
+        assertThat(result.categoryScores()).isEmpty();
     }
 
     @Test
@@ -141,6 +145,27 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
 
         assertThat(result.totalScore()).isEqualTo(12);
         assertThat(result.categoryQuestionCounts()).containsEntry(Category.DB, 1);
+        assertThat(result.categoryScores()).containsEntry(Category.DB, 12);
+    }
+
+    @Test
+    @DisplayName("카테고리가 여러 개면 점수를 카테고리별로 나눠 집계한다.")
+    void calculate_scoresGroupedByCategory() {
+        Question network = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question db = questionRepository.save(Question.create(
+                "인덱스", "인덱스 설명", QuestionType.MULTIPLE_CHOICE, Difficulty.HIGH, Category.DB, ""));
+        saveMultipleChoiceChain(List.of(network), 1);
+        saveMultipleChoiceChain(List.of(db), 1);
+
+        UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
+
+        assertThat(result.totalScore()).isEqualTo(5);
+        assertThat(result.categoryScores())
+                .containsEntry(Category.NETWORK, 2)
+                .containsEntry(Category.DB, 3);
+        assertThat(result.categoryCorrectCounts())
+                .containsEntry(Category.NETWORK, 1)
+                .containsEntry(Category.DB, 1);
     }
 
     @Test
@@ -159,6 +184,7 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
         assertThat(result.totalScore()).isZero();
         assertThat(result.totalQuestionCount()).isZero();
         assertThat(result.categoryQuestionCounts()).isEmpty();
+        assertThat(result.categoryScores()).isEmpty();
     }
 
     private void saveMultipleChoiceSession(Question root, int totalCount, int correctCount) {

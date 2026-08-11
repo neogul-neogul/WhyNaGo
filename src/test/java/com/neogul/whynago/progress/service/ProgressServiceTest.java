@@ -1,6 +1,7 @@
 package com.neogul.whynago.progress.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
@@ -10,7 +11,9 @@ import com.neogul.whynago.interview.service.dto.InterviewAnswerSnapshotCommand;
 import com.neogul.whynago.progress.domain.Tier;
 import com.neogul.whynago.progress.service.dto.ProgressDetailResult;
 import com.neogul.whynago.progress.service.dto.ProgressSummaryResult;
+import com.neogul.whynago.progress.service.dto.TierRange;
 import com.neogul.whynago.question.domain.AnswerChoice;
+import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
@@ -63,7 +66,30 @@ class ProgressServiceTest extends IntegrationTestSupport {
         assertThat(result.nextTier()).isEqualTo(Tier.SILVER);
         assertThat(result.scoreToNextTier()).isEqualTo(58);
         assertThat(result.totalQuestionCount()).isZero();
-        assertThat(result.categoryQuestionCounts()).isEmpty();
+        assertThat(result.categories()).hasSize(Category.values().length);
+        assertThat(result.categories())
+                .allSatisfy(category -> {
+                    assertThat(category.solvedCount()).isZero();
+                    assertThat(category.correctCount()).isZero();
+                    assertThat(category.score()).isZero();
+                });
+    }
+
+    @Test
+    @DisplayName("티어 구간표와 표시 상한을 함께 반환한다.")
+    void getDetail_tierRanges() {
+        ProgressDetailResult result = progressService.getDetail(USER_ID);
+
+        assertThat(result.maxScore()).isEqualTo(700);
+        assertThat(result.tiers())
+                .extracting(TierRange::tier, TierRange::minScore)
+                .containsExactly(
+                        tuple(Tier.BRONZE, 0),
+                        tuple(Tier.SILVER, 58),
+                        tuple(Tier.GOLD, 198),
+                        tuple(Tier.PLATINUM, 420),
+                        tuple(Tier.DIAMOND, 677)
+                );
     }
 
     @Test
@@ -83,6 +109,15 @@ class ProgressServiceTest extends IntegrationTestSupport {
         assertThat(result.nextTier()).isEqualTo(Tier.SILVER);
         assertThat(result.scoreToNextTier()).isEqualTo(56);
         assertThat(result.totalQuestionCount()).isEqualTo(1);
+        assertThat(result.categories())
+                .filteredOn(category -> category.category() == Category.NETWORK)
+                .singleElement()
+                .satisfies(network -> {
+                    assertThat(network.totalCount()).isEqualTo(1);
+                    assertThat(network.solvedCount()).isEqualTo(1);
+                    assertThat(network.correctCount()).isEqualTo(1);
+                    assertThat(network.score()).isEqualTo(2);
+                });
     }
 
     @Test

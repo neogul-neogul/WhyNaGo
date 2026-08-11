@@ -38,6 +38,8 @@ public class UserScoreCalculator {
         int totalScore = 0;
         Set<Long> scoredQuestionIds = new HashSet<>();
         Map<Category, Set<Long>> attemptedQuestionIdsByCategory = new HashMap<>();
+        Map<Category, Integer> categoryScores = new HashMap<>();
+        Map<Category, Integer> categoryCorrectCounts = new HashMap<>();
 
         for (SolvedSession session : sessions) {
             totalQuestionCount += session.getTotalCount();
@@ -50,7 +52,10 @@ public class UserScoreCalculator {
                         .add(question.getId());
 
                 if (fullyCorrect && scoredQuestionIds.add(question.getId())) {
-                    totalScore += ScorePolicy.score(question.getType(), question.getDifficulty());
+                    int score = ScorePolicy.score(question.getType(), question.getDifficulty());
+                    totalScore += score;
+                    categoryScores.merge(question.getCategory(), score, Integer::sum);
+                    categoryCorrectCounts.merge(question.getCategory(), 1, Integer::sum);
                 }
             }
         }
@@ -58,7 +63,14 @@ public class UserScoreCalculator {
         Map<Category, Integer> categoryQuestionCounts = attemptedQuestionIdsByCategory.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
 
-        return new UserProgressAggregate(totalScore, totalQuestionCount, totalCorrectCount, categoryQuestionCounts);
+        return new UserProgressAggregate(
+                totalScore,
+                totalQuestionCount,
+                totalCorrectCount,
+                categoryQuestionCounts,
+                categoryCorrectCounts,
+                categoryScores
+        );
     }
 
     // 객관식은 본질문+꼬리질문 전부가 채점·집계 대상 Question이고, 서술형은 본질문만 실제 Question을 갖는다.

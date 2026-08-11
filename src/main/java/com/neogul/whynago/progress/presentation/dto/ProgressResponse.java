@@ -2,8 +2,7 @@ package com.neogul.whynago.progress.presentation.dto;
 
 import com.neogul.whynago.progress.domain.Tier;
 import com.neogul.whynago.progress.service.dto.ProgressDetailResult;
-import com.neogul.whynago.question.domain.Category;
-import java.util.Map;
+import java.util.List;
 
 public record ProgressResponse(
         int score,
@@ -11,7 +10,9 @@ public record ProgressResponse(
         Tier nextTier,
         int scoreToNextTier,
         int totalQuestionCount,
-        Map<Category, Integer> categoryQuestionCounts
+        List<CategoryProgressResponse> categories,
+        List<TierRangeResponse> tiers,
+        int maxScore
 ) {
 
     public static ProgressResponse from(ProgressDetailResult result) {
@@ -21,7 +22,9 @@ public record ProgressResponse(
                 result.nextTier(),
                 result.scoreToNextTier(),
                 result.totalQuestionCount(),
-                result.categoryQuestionCounts()
+                result.categories().stream().map(CategoryProgressResponse::from).toList(),
+                result.tiers().stream().map(TierRangeResponse::from).toList(),
+                result.maxScore()
         );
     }
 }
