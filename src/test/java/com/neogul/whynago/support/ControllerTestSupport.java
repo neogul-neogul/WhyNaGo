@@ -15,10 +15,8 @@ import com.neogul.whynago.question.presentation.QuestionController;
 import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
 import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionController;
-import com.neogul.whynago.solvedsession.presentation.SolvedQuestionController;
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
-import com.neogul.whynago.solvedsession.service.SolvedQuestionService;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
 import com.neogul.whynago.user.presentation.UserController;
 import com.neogul.whynago.user.service.UserService;
@@ -37,7 +35,6 @@ import org.springframework.test.web.servlet.MockMvc;
         QuestionController.class,
         SolvedSessionController.class,
         EssaySolvedSessionController.class,
-        SolvedQuestionController.class,
         WrongNoteController.class,
         LearningRecordController.class,
         InterviewController.class,
@@ -67,9 +64,6 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected EssaySolvedSessionService essaySolvedSessionService;
-
-    @MockitoBean
-    protected SolvedQuestionService solvedQuestionService;
 
     @MockitoBean
     protected WrongNoteService wrongNoteService;

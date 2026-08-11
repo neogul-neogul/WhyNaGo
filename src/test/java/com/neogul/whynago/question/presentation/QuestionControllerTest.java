@@ -2,6 +2,7 @@ package com.neogul.whynago.question.presentation;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 
 import com.neogul.whynago.common.exception.BusinessException;
@@ -32,7 +33,7 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("문제 목록을 조회한다.")
     void findQuestions() {
-        given(questionService.findQuestions(any())).willReturn(List.of(
+        given(questionService.findQuestions(eq(1L), any())).willReturn(List.of(
                 new QuestionResult(
                         1L,
                         "TCP와 UDP의 핵심 차이",
@@ -42,7 +43,8 @@ class QuestionControllerTest extends ControllerTestSupport {
                         Category.NETWORK,
                         "해설",
                         List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
-                        List.of("NETWORK")
+                        List.of("NETWORK"),
+                        true
                 )
         ));
 
@@ -58,13 +60,14 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .statusCode(200)
                 .body("[0].id", Matchers.equalTo(1))
                 .body("[0].choices[0].relatedQuestionId", Matchers.equalTo(2))
-                .body("[0].tags[0]", Matchers.equalTo("NETWORK"));
+                .body("[0].tags[0]", Matchers.equalTo("NETWORK"))
+                .body("[0].solved", Matchers.equalTo(true));
     }
 
     @Test
     @DisplayName("서술형 문제 목록을 조회하면 선택지 없이 응답한다.")
     void findQuestions_essay() {
-        given(questionService.findQuestions(any())).willReturn(List.of(
+        given(questionService.findQuestions(eq(1L), any())).willReturn(List.of(
                 new QuestionResult(
                         101L,
                         "TCP 흐름 제어 vs 혼잡 제어",
@@ -74,7 +77,8 @@ class QuestionControllerTest extends ControllerTestSupport {
                         Category.NETWORK,
                         "해설",
                         List.of(),
-                        List.of("흐름 제어")
+                        List.of("흐름 제어"),
+                        false
                 )
         ));
 
@@ -88,7 +92,47 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .body("[0].id", Matchers.equalTo(101))
                 .body("[0].type", Matchers.equalTo("ESSAY"))
                 .body("[0].choices", Matchers.empty())
-                .body("[0].tags[0]", Matchers.equalTo("흐름 제어"));
+                .body("[0].tags[0]", Matchers.equalTo("흐름 제어"))
+                .body("[0].solved", Matchers.equalTo(false));
+    }
+
+    @Test
+    @DisplayName("인증 정보 없이 문제 목록을 조회하면 푼 문제 없이 응답한다.")
+    void findQuestions_withoutToken() {
+        given(questionService.findQuestions(isNull(), any())).willReturn(List.of(
+                new QuestionResult(
+                        1L,
+                        "TCP와 UDP의 핵심 차이",
+                        "내용",
+                        QuestionType.MULTIPLE_CHOICE,
+                        Difficulty.MEDIUM,
+                        Category.NETWORK,
+                        "해설",
+                        List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
+                        List.of("NETWORK"),
+                        false
+                )
+        ));
+
+        RestAssuredMockMvc.given()
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200)
+                .body("[0].id", Matchers.equalTo(1))
+                .body("[0].solved", Matchers.equalTo(false));
+    }
+
+    @Test
+    @DisplayName("문제 목록 조회에 유효하지 않은 토큰을 보내면 401을 반환한다.")
+    void findQuestions_invalidToken() {
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, "Bearer invalid.token.value")
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(401)
+                .body("code", Matchers.equalTo("AUTH_TOKEN_INVALID"));
     }
 
     @Test
@@ -108,7 +152,8 @@ class QuestionControllerTest extends ControllerTestSupport {
                         Category.NETWORK,
                         "해설",
                         List.of(new ChoiceResult(9L, "보기", 1, "", null)),
-                        List.of("NETWORK")
+                        List.of("NETWORK"),
+                        false
                 )
         ));
 

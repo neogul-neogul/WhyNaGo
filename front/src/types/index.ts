@@ -167,6 +167,8 @@ export interface QuestionResponse {
   explanation: string | null;
   choices: ChoiceResponse[];
   tags: string[];
+  /** 이미 푼 문제인지 여부. 비로그인 조회와 꼬리질문 응답에서는 항상 false */
+  solved: boolean;
 }
 
 /** 보기 선택 결과(채점) 조회 응답 — GET /api/questions/{qid}/choices/{cid} */
@@ -201,12 +203,6 @@ export interface CreateSolvedSessionRequest {
 /** 풀이 세션 저장 응답 (객관식·서술형 공용) */
 export interface CreateSolvedSessionResponse {
   sessionId: number;
-}
-
-/** 내가 푼 문제 ID 목록 응답 — GET /api/solved-questions */
-export interface SolvedQuestionIdsResponse {
-  /** 중복 없는 문제 ID 목록. 정답/오답은 구분하지 않는다 */
-  questionIds: number[];
 }
 
 // ===== 서술형 풀이 API (백엔드 question / solvedsession 도메인) =====

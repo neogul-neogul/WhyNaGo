@@ -1,6 +1,7 @@
 package com.neogul.whynago.auth.presentation.config;
 
 import com.neogul.whynago.auth.presentation.interceptor.AuthInterceptor;
+import com.neogul.whynago.auth.presentation.interceptor.OptionalAuthInterceptor;
 import com.neogul.whynago.auth.presentation.resolver.LoginUserArgumentResolver;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final OptionalAuthInterceptor optionalAuthInterceptor;
     private final LoginUserArgumentResolver loginUserArgumentResolver;
 
     @Override
@@ -25,6 +27,9 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/auth/**",
                         "/api/questions"
                 );
+        // 문제 목록은 비로그인도 열람할 수 있고, 로그인 상태면 푼 문제를 표시한다.
+        registry.addInterceptor(optionalAuthInterceptor)
+                .addPathPatterns("/api/questions");
     }
 
     @Override

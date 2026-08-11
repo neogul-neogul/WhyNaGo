@@ -1,5 +1,7 @@
 package com.neogul.whynago.question.presentation;
 
+import com.neogul.whynago.auth.presentation.AuthContext;
+import com.neogul.whynago.auth.presentation.resolver.LoginUser;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
@@ -34,14 +36,18 @@ public class QuestionController {
     private final QuestionService questionService;
     private final EssayAnswerService essayAnswerService;
 
+    // 인증이 선택인 경로라 비로그인 요청은 authContext가 null이다.
     @GetMapping
     public ResponseEntity<List<QuestionResponse>> findQuestions(
+            @LoginUser AuthContext authContext,
             @RequestParam(required = false) QuestionType type,
             @RequestParam(required = false) Difficulty difficulty,
             @RequestParam(required = false) Category category,
             @RequestParam(required = false, name = "q") String keyword
     ) {
-        List<QuestionResponse> responses = questionService.findQuestions(new QuestionSearchCommand(type, difficulty, category, keyword)).stream()
+        Long userId = authContext == null ? null : authContext.id();
+        QuestionSearchCommand command = new QuestionSearchCommand(type, difficulty, category, keyword);
+        List<QuestionResponse> responses = questionService.findQuestions(userId, command).stream()
                 .map(QuestionResponse::from)
                 .toList();
         return ResponseEntity.ok(responses);

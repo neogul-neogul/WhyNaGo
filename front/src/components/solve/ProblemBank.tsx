@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
-import { useCurrentUser } from "@/lib/auth";
+import { useCurrentUser, useHydrated } from "@/lib/auth";
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
@@ -11,7 +11,6 @@ import {
   categoryFromLabel,
   difficultyFromLabel,
   fetchQuestions,
-  fetchSolvedQuestionIds,
   typeFromLabel,
 } from "@/lib/questions";
 import { CATEGORIES, diffColor, lvBadge } from "@/lib/badges";
@@ -22,8 +21,6 @@ const typeTone: Record<string, BadgeTone> = {
   객관식: "accent",
   서술형: "ai",
 };
-
-const NO_SOLVED_IDS: ReadonlySet<number> = new Set();
 
 // 문제은행 목록 (검색 + 필터 + 표) — GET /api/questions
 export default function ProblemBank({
@@ -37,15 +34,11 @@ export default function ProblemBank({
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const userId = useCurrentUser()?.id ?? null;
+  const hydrated = useHydrated();
 
-  // 푼 문제 표시. userId가 다르면(비로그인·다른 사용자·조회 전) 아직 표시할 것이 없다
-  const [solved, setSolved] = useState<{ userId: number | null; ids: ReadonlySet<number> }>({
-    userId: null,
-    ids: NO_SOLVED_IDS,
-  });
-
-  // 현재 필터 조합의 조회 결과. key가 현재 필터와 다르면 아직 로딩 중
-  const filtersKey = `${type}|${diff}|${cat}|${keyword}`;
+  // 현재 조회 조합의 결과. key가 지금 조합과 다르면 아직 로딩 중
+  // 푼 문제 표시(solved)가 사용자마다 다르므로 userId도 조합에 넣는다
+  const filtersKey = `${type}|${diff}|${cat}|${keyword}|${userId}`;
   const [result, setResult] = useState<{
     key: string;
     list?: QuestionResponse[];
@@ -58,23 +51,9 @@ export default function ProblemBank({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // 푼 문제 조회는 목록과 독립이다. 비로그인이거나 실패하면 표시 없이 목록만 보여준다
+  // hydration 전에는 userId가 항상 null이라, 여기서 조회하면 확정 후 한 번 더 나간다
   useEffect(() => {
-    if (userId === null) return;
-    let cancelled = false;
-    fetchSolvedQuestionIds()
-      .then((res) => {
-        if (!cancelled) setSolved({ userId, ids: new Set(res.questionIds) });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  const solvedIds = solved.userId === userId ? solved.ids : NO_SOLVED_IDS;
-
-  useEffect(() => {
+    if (!hydrated) return;
     let cancelled = false;
     fetchQuestions({
       type: typeFromLabel(type),
@@ -96,7 +75,7 @@ export default function ProblemBank({
     return () => {
       cancelled = true;
     };
-  }, [type, diff, cat, keyword, filtersKey]);
+  }, [type, diff, cat, keyword, userId, hydrated, filtersKey]);
 
   const loading = result?.key !== filtersKey;
   const questions = (!loading && result?.list) || [];
@@ -192,7 +171,7 @@ export default function ProblemBank({
                 className="flex w-full items-center gap-4 border-b border-line-soft bg-white px-[22px] py-[15px] text-left transition-colors hover:bg-subtle"
               >
                 <span className="flex min-w-0 flex-1 items-start gap-2">
-                  <SolvedMark solved={solvedIds.has(q.id)} />
+                  <SolvedMark solved={q.solved} />
                   <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
                     <span className="truncate text-[14.5px] font-semibold text-ink">
                       {q.title}
