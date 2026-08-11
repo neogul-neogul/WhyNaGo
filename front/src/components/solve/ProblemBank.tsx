@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
+import { useCurrentUser } from "@/lib/auth";
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
@@ -10,6 +11,7 @@ import {
   categoryFromLabel,
   difficultyFromLabel,
   fetchQuestions,
+  fetchSolvedQuestionIds,
   typeFromLabel,
 } from "@/lib/questions";
 import { CATEGORIES, diffColor, lvBadge } from "@/lib/badges";
@@ -20,6 +22,8 @@ const typeTone: Record<string, BadgeTone> = {
   객관식: "accent",
   서술형: "ai",
 };
+
+const NO_SOLVED_IDS: ReadonlySet<number> = new Set();
 
 // 문제은행 목록 (검색 + 필터 + 표) — GET /api/questions
 export default function ProblemBank({
@@ -32,6 +36,13 @@ export default function ProblemBank({
   const [cat, setCat] = useState("전체");
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
+  const userId = useCurrentUser()?.id ?? null;
+
+  // 푼 문제 표시. userId가 다르면(비로그인·다른 사용자·조회 전) 아직 표시할 것이 없다
+  const [solved, setSolved] = useState<{ userId: number | null; ids: ReadonlySet<number> }>({
+    userId: null,
+    ids: NO_SOLVED_IDS,
+  });
 
   // 현재 필터 조합의 조회 결과. key가 현재 필터와 다르면 아직 로딩 중
   const filtersKey = `${type}|${diff}|${cat}|${keyword}`;
@@ -46,6 +57,22 @@ export default function ProblemBank({
     const timer = setTimeout(() => setKeyword(search.trim()), 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // 푼 문제 조회는 목록과 독립이다. 비로그인이거나 실패하면 표시 없이 목록만 보여준다
+  useEffect(() => {
+    if (userId === null) return;
+    let cancelled = false;
+    fetchSolvedQuestionIds()
+      .then((res) => {
+        if (!cancelled) setSolved({ userId, ids: new Set(res.questionIds) });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const solvedIds = solved.userId === userId ? solved.ids : NO_SOLVED_IDS;
 
   useEffect(() => {
     let cancelled = false;
@@ -164,16 +191,19 @@ export default function ProblemBank({
                 onClick={() => onStart(q)}
                 className="flex w-full items-center gap-4 border-b border-line-soft bg-white px-[22px] py-[15px] text-left transition-colors hover:bg-subtle"
               >
-                <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                  <span className="truncate text-[14.5px] font-semibold text-ink">
-                    {q.title}
-                  </span>
-                  <span className="flex flex-wrap gap-1.5">
-                    {q.tags.map((tag) => (
-                      <span key={tag} className="whitespace-nowrap rounded-[5px] bg-white px-1 py-0.5 text-[10px] font-medium text-secondary">
-                        {tag}
-                      </span>
-                    ))}
+                <span className="flex min-w-0 flex-1 items-start gap-2">
+                  <SolvedMark solved={solvedIds.has(q.id)} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                    <span className="truncate text-[14.5px] font-semibold text-ink">
+                      {q.title}
+                    </span>
+                    <span className="flex flex-wrap gap-1.5">
+                      {q.tags.map((tag) => (
+                        <span key={tag} className="whitespace-nowrap rounded-[5px] bg-white px-1 py-0.5 text-[10px] font-medium text-secondary">
+                          {tag}
+                        </span>
+                      ))}
+                    </span>
                   </span>
                 </span>
                 <span className="flex w-[70px] flex-shrink-0 justify-center">
@@ -193,6 +223,23 @@ export default function ProblemBank({
           })}
       </div>
     </div>
+  );
+}
+
+// 안 푼 문제도 같은 크기의 자리를 차지해 제목 시작 위치를 맞춘다
+function SolvedMark({ solved }: { solved: boolean }) {
+  if (!solved) {
+    return <span aria-hidden className="mt-[3px] h-[15px] w-[15px] flex-shrink-0" />;
+  }
+  return (
+    <span
+      title="푼 문제"
+      className="mt-[3px] flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded-full bg-success"
+    >
+      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 13l4 4L19 7" />
+      </svg>
+    </span>
   );
 }
 

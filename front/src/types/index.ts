@@ -203,6 +203,12 @@ export interface CreateSolvedSessionResponse {
   sessionId: number;
 }
 
+/** 내가 푼 문제 ID 목록 응답 — GET /api/solved-questions */
+export interface SolvedQuestionIdsResponse {
+  /** 중복 없는 문제 ID 목록. 정답/오답은 구분하지 않는다 */
+  questionIds: number[];
+}
+
 // ===== 서술형 풀이 API (백엔드 question / solvedsession 도메인) =====
 
 /** 서술형 세션 시작 응답 — POST /api/questions/{qid}/essay/sessions */

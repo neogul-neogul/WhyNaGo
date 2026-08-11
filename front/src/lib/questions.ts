@@ -11,6 +11,7 @@ import type {
   QuestionDifficulty,
   QuestionResponse,
   QuestionTypeCode,
+  SolvedQuestionIdsResponse,
 } from "@/types";
 
 // 문제 풀이 도메인 API + 화면 라벨 매핑
@@ -75,6 +76,11 @@ export function fetchQuestions(filters: QuestionFilters = {}): Promise<QuestionR
   if (filters.keyword) params.set("q", filters.keyword);
   const query = params.toString();
   return apiFetch<QuestionResponse[]>(`/api/questions${query ? `?${query}` : ""}`);
+}
+
+/** 내가 푼 문제 ID 목록 조회 (정답/오답 구분 없이 저장된 풀이 세션 기준. 로그인 필요) */
+export function fetchSolvedQuestionIds(): Promise<SolvedQuestionIdsResponse> {
+  return apiFetch<SolvedQuestionIdsResponse>("/api/solved-questions");
 }
 
 /** 보기 선택 결과(채점) 조회 — 채점 결과와 고른 보기의 꼬리질문을 함께 받는다 */
