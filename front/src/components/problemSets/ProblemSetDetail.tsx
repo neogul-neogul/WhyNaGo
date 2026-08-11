@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import type { ProblemSetDetailResponse } from "@/types";
 import { CATEGORY_LABELS, DIFFICULTY_LABELS, TYPE_LABELS } from "@/lib/questions";
 import { diffColor, lvBadge } from "@/lib/badges";
 import Badge, { type BadgeTone } from "@/components/ui/Badge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const typeTone: Record<string, BadgeTone> = {
   객관식: "accent",
@@ -36,6 +38,7 @@ export default function ProblemSetDetail({
   onGoToSolve: () => void;
 }) {
   const hasItems = problemSet.items.length > 0;
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
     <div className="flex max-w-[1000px] flex-col gap-4">
@@ -52,12 +55,24 @@ export default function ProblemSetDetail({
         </button>
         <button
           type="button"
-          onClick={onDelete}
+          onClick={() => setConfirmOpen(true)}
           className="rounded-[9px] border border-[#F0D8D4] bg-white px-3.5 py-2 text-[13px] font-semibold text-danger"
         >
           문제집 삭제
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="문제집을 삭제할까요?"
+        description="담긴 문제 목록도 함께 사라지고, 되돌릴 수 없어요."
+        confirmLabel="삭제"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onDelete();
+        }}
+      />
 
       <div className="flex items-center gap-4 rounded-[16px] border border-line-card bg-white px-6 py-[22px]">
         <div className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-[12px] bg-accent-bg text-accent">
