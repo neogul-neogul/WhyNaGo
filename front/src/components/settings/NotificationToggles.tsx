@@ -4,16 +4,10 @@ import Card from "@/components/ui/Card";
 import Toggle from "@/components/ui/Toggle";
 import type { NotificationSettingResponse } from "@/types";
 
-type NotifField = keyof Pick<
-  NotificationSettingResponse,
-  "everyDayRemind" | "streakStopPrevention" | "interviewRemind" | "weeklyReport"
->;
+type NotifField = keyof NotificationSettingResponse;
 
 const NOTIF_DEFS: { field: NotifField; label: string; desc: string }[] = [
-  { field: "everyDayRemind", label: "매일 학습 리마인드", desc: "설정한 시간에 오늘의 학습을 알려드려요" },
-  { field: "streakStopPrevention", label: "연속 학습 중단 방지", desc: "연속 학습 중인데 당일 기록이 없으면 저녁에 알림" },
-  { field: "interviewRemind", label: "1일 1면접 알림", desc: "오늘 면접을 아직 진행하지 않았을 때 알림" },
-  { field: "weeklyReport", label: "주간 리포트 수신", desc: "매주 월요일 학습 요약 이메일을 받아요" },
+  { field: "everyDayRemind", label: "매일 학습 리마인드", desc: "오늘의 학습 기록이 없으면 알려드려요" },
 ];
 
 interface NotificationTogglesProps {

@@ -523,11 +523,6 @@ export interface Profile {
 /** 내 알림 설정 조회 응답 — GET /api/notification-settings/me */
 export interface NotificationSettingResponse {
   everyDayRemind: boolean;
-  /** "HH:mm:ss" 형식 */
-  remindTime: string;
-  streakStopPrevention: boolean;
-  interviewRemind: boolean;
-  weeklyReport: boolean;
 }
 
 /** 알림 설정 수정 요청 — PATCH /api/notification-settings/me (부분 수정이 아니라 전체 필드를 보낸다) */

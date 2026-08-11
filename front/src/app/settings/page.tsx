@@ -6,7 +6,6 @@ import { ApiError } from "@/lib/api";
 import { fetchNotificationSettings, updateNotificationSettings } from "@/lib/notification";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import NotificationToggles from "@/components/settings/NotificationToggles";
-import NotifyTimeCard from "@/components/settings/NotifyTimeCard";
 import SendConditions from "@/components/settings/SendConditions";
 
 export default function SettingsPage() {
@@ -56,16 +55,10 @@ export default function SettingsPage() {
             <div className="text-[13px] text-soft">알림 설정을 불러오는 중입니다...</div>
           )}
           {settings && (
-            <>
-              <NotificationToggles
-                settings={settings}
-                onToggle={(field) => applyChange({ ...settings, [field]: !settings[field] })}
-              />
-              <NotifyTimeCard
-                remindTime={settings.remindTime}
-                onChange={(remindTime) => applyChange({ ...settings, remindTime })}
-              />
-            </>
+            <NotificationToggles
+              settings={settings}
+              onToggle={(field) => applyChange({ ...settings, [field]: !settings[field] })}
+            />
           )}
           <SendConditions />
         </div>

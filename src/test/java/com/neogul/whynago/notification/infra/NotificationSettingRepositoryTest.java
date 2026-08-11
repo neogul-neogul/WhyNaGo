@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.neogul.whynago.notification.domain.NotificationSetting;
 import com.neogul.whynago.notification.fixture.NotificationSettingFixture;
 import com.neogul.whynago.support.RepositoryTestSupport;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,5 +35,20 @@ class NotificationSettingRepositoryTest extends RepositoryTestSupport {
         Optional<NotificationSetting> found = notificationSettingRepository.findByUserId(999L);
 
         assertThat(found).isEmpty();
+    }
+
+    @DisplayName("everyDayRemind가 true인 설정만 조회한다.")
+    @Test
+    void findAllByEveryDayRemindTrue() {
+        NotificationSetting enabled = NotificationSettingFixture.notificationSetting().userId(1L).build();
+        NotificationSetting disabled = NotificationSettingFixture.notificationSetting().userId(2L).build();
+        disabled.update(false);
+        em.persistAndFlush(enabled);
+        em.persistAndFlush(disabled);
+        em.clear();
+
+        List<NotificationSetting> found = notificationSettingRepository.findAllByEveryDayRemindTrue();
+
+        assertThat(found).extracting(NotificationSetting::getUserId).containsExactly(1L);
     }
 }

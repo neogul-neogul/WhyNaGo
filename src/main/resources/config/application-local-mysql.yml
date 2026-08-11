@@ -1,0 +1,13 @@
+# `local` 프로파일과 함께 활성화해 datasource만 docker-compose.local.yml 의 MySQL로 덮어쓴다.
+# (local 단독으로는 기존대로 H2 in-memory를 그대로 쓴다.)
+#
+# 실행: docker compose -f docker-compose.local.yml up -d
+#      SPRING_PROFILES_ACTIVE=local,local-mysql ./gradlew bootRun
+spring:
+  datasource:
+    # 호스트에서 ./gradlew bootRun 으로 돌릴 땐 localhost:3306(포트로 열린 db 컨테이너)이 기본값이다.
+    # docker-compose.local.yml 의 backend 컨테이너에서는 DB_URL을 db:3306으로 덮어쓴다.
+    url: ${DB_URL:jdbc:mysql://localhost:3306/whynago?characterEncoding=UTF-8&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:whynago}
+    password: ${DB_PASSWORD:whynago}
+    driver-class-name: com.mysql.cj.jdbc.Driver
