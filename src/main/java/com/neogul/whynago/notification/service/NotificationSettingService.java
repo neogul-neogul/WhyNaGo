@@ -25,12 +25,7 @@ public class NotificationSettingService {
     @Transactional
     public NotificationSettingResult updateSettings(Long userId, UpdateNotificationSettingCommand command) {
         NotificationSetting setting = findOrCreateDefault(userId);
-        setting.update(
-                command.everyDayRemind(),
-                command.remindTime(),
-                command.streakStopPrevention(),
-                command.interviewRemind(),
-                command.weeklyReport());
+        setting.update(command.everyDayRemind());
         return NotificationSettingResult.from(setting);
     }
 
