@@ -1689,3 +1689,242 @@ PATCH /api/notification-settings/me
 ### **에러**
 
 없음.
+
+---
+
+# **ProblemSet API**
+
+문제집 생성·목록/상세 조회·문제 담기/빼기·삭제를 담당한다. 관련 도메인은 `problemset`이다.
+
+문제집은 유튜브 재생목록과 같은 개념으로, 사용자가 원하는 문제를 모아 만드는 이름 붙은 목록이다(→ `docs/DOMAIN.md` ProblemSet). **항상 본인만 볼 수 있다** — 공개 범위 같은 필드 자체가 없다. 모든 엔드포인트는 인증된 사용자 **본인 소유의 문제집만** 조회·수정·삭제할 수 있다. 담긴 문제는 `questionId`만 참조하고 제목·카테고리·유형·난이도는 조회 시점에 문제은행에서 조인해 채운다.
+
+## **문제집 생성**
+
+### **Endpoint**
+
+```
+POST /api/problem-sets
+```
+
+- 성공 시 `201 Created`를 반환한다.
+- **항상 빈 문제집으로 생성된다** — 생성과 동시에 문제를 담는 기능은 없다. 문제 풀이 화면의 "문제집에 저장" 모달에서 새 문제집을 만들어도 마찬가지로 빈 문제집이 만들어지며, 그 문제를 담으려면 모달에서 새로 생긴 항목을 다시 체크해야 한다(→ [문제집에 문제 담기](#문제집에-문제-담기)).
+
+### **Request Body**
+
+```json
+{
+  "name": "면접 D-7 벼락치기"
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `name` | String | O | 문제집 이름. 빈 문자열 불가. |
+
+### **Response Body**
+
+```json
+{
+  "id": 1,
+  "name": "면접 D-7 벼락치기",
+  "updatedAt": "2026-06-25T10:00:00"
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `name` 누락 또는 빈 문자열. |
+
+---
+
+## **문제집 목록 조회**
+
+### **Endpoint**
+
+```
+GET /api/problem-sets
+```
+
+정렬은 문제집 ID(`ProblemSet.id`) 내림차순(생성순의 역순)으로 고정한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "면접 D-7 벼락치기",
+    "itemCount": 3,
+    "previewTitles": ["TCP와 UDP의 핵심 차이는?", "해시 테이블의 평균 탐색 시간은?"],
+    "updatedAt": "2026-06-25T10:00:00"
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. 상세 조회·삭제에 사용. |
+| `name` | String | 문제집 이름. |
+| `itemCount` | int | 담긴 문제 수. |
+| `previewTitles` | String[] | 담긴 문제 중 먼저 추가된 순서로 최대 3개의 제목. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+
+### **에러**
+
+없음. 문제집이 없으면 빈 배열을 반환한다.
+
+---
+
+## **문제집 저장 멤버십 조회**
+
+문제 풀이 화면의 "문제집에 저장" 모달용 엔드포인트다. 특정 문제 하나를 기준으로 내 모든 문제집을 조회하면서, 각 문제집에 그 문제가 이미 담겨 있는지(`saved`)까지 함께 내려준다 — 모달의 체크박스 초기 상태를 만드는 데 쓴다.
+
+### **Endpoint**
+
+```
+GET /api/problem-sets/membership
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `questionId` | Long | O | 담겨 있는지 확인할 문제 ID. |
+
+### **Response Body**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "면접 D-7 벼락치기",
+    "itemCount": 3,
+    "saved": true
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `itemCount` | int | 담긴 문제 수. |
+| `saved` | boolean | 쿼리로 넘긴 `questionId`가 이 문제집에 이미 담겨 있는지. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `questionId` 누락. |
+
+---
+
+## **문제집 상세 조회**
+
+### **Endpoint**
+
+```
+GET /api/problem-sets/{problemSetId}
+```
+
+### **Response Body**
+
+```json
+{
+  "id": 1,
+  "name": "면접 D-7 벼락치기",
+  "updatedAt": "2026-06-25T10:00:00",
+  "items": [
+    {
+      "questionId": 7,
+      "title": "TCP와 UDP의 핵심 차이는?",
+      "category": "NETWORK",
+      "type": "MULTIPLE_CHOICE",
+      "difficulty": "MEDIUM"
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+| `items` | Object[] | 담긴 문제 목록. 추가한 순서대로 정렬된다. |
+| `items[].questionId` | Long | 문제 ID. 풀이 화면(`/solve/{questionId}`) 진입에 사용. |
+| `items[].title` | String | 문제 제목. |
+| `items[].category` | String | 카테고리. |
+| `items[].type` | String | 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `items[].difficulty` | String | 난이도(`LOW` \| `MEDIUM` \| `HIGH`). |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+## **문제집에 문제 담기**
+
+체크박스를 켜는 동작에 대응한다. 이미 담겨 있으면 아무 일도 하지 않는다(멱등).
+
+### **Endpoint**
+
+```
+PUT /api/problem-sets/{problemSetId}/items/{questionId}
+```
+
+- 성공 시 `204 No Content`를 반환한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 실재하지 않는 문제. |
+
+---
+
+## **문제집에서 문제 빼기**
+
+체크박스를 끄는 동작, 또는 상세 화면의 "제거"에 대응한다. 이미 없는 문제를 빼려 해도 아무 일도 하지 않는다(멱등). 문제(`Question`) 자체나 다른 문제집에는 영향이 없다.
+
+### **Endpoint**
+
+```
+DELETE /api/problem-sets/{problemSetId}/items/{questionId}
+```
+
+- 성공 시 `204 No Content`를 반환한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+## **문제집 삭제**
+
+### **Endpoint**
+
+```
+DELETE /api/problem-sets/{problemSetId}
+```
+
+- 성공 시 `204 No Content`를 반환한다. 담겨 있던 `ProblemSetItem`도 함께 삭제된다. 문제(`Question`) 자체는 삭제하지 않는다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
