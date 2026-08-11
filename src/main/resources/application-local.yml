@@ -1,16 +1,13 @@
 spring:
-  datasource:
-    url: jdbc:h2:mem:whynago;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password: ""
-    driver-class-name: org.h2.Driver
+  config:
+    import:
+      - classpath:config/application-db-local.yml
+      - classpath:config/application-ai-local.yml
+      - classpath:config/application-email-local.yml
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    defer-datasource-initialization: true
-    show-sql: true
-
-  sql:
-    init:
-      mode: always
+jwt:
+  secret: ${JWT_SECRET:"local-dev-secret-not-a-real-secret-0123456789}
+  access:
+    expiration: 180000000
+  refresh:
+    expiration: 604800000

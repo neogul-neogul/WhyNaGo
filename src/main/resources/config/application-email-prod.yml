@@ -1,0 +1,16 @@
+# 메일 계정 정보는 환경변수로 주입한다 (deploy/.env 참고). 시크릿을 파일에 직접 적지 않는다.
+spring:
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+mail:
+  from: ${MAIL_FROM}

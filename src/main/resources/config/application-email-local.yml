@@ -1,0 +1,9 @@
+spring:
+  mail:
+    host: localhost
+    port: 2500
+    username: whynago
+    password: password
+
+mail:
+  from: test@test.com
