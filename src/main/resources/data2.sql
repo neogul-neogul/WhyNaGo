@@ -16,8 +16,8 @@
 
 -- 테스트 유저 (email: test@test.test / password: test)
 -- 비밀번호는 BCryptPasswordEncoder(기본 strength 10)로 해시. 평문 test와 매칭됨.
-# INSERT INTO users (email, password, nickname, position, daily_goal) VALUES
-# ('test@test.test', '$2a$10$QnOWMKP6UpzZHYzphdiuaOyg.Ei2ihHclJ1r5YmU0WYsvxQxSi/8q', 'test', 'BACKEND', 10);
+-- INSERT INTO users (email, password, nickname, position, daily_goal) VALUES
+-- ('test@test.test', '$2a$10$QnOWMKP6UpzZHYzphdiuaOyg.Ei2ihHclJ1r5YmU0WYsvxQxSi/8q', 'test', 'BACKEND', 10);
 
 
 -- ============================================================
