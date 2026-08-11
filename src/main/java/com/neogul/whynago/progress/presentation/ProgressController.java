@@ -3,6 +3,7 @@ package com.neogul.whynago.progress.presentation;
 import com.neogul.whynago.auth.presentation.AuthContext;
 import com.neogul.whynago.auth.presentation.resolver.LoginUser;
 import com.neogul.whynago.progress.presentation.dto.ProgressResponse;
+import com.neogul.whynago.progress.presentation.dto.ProgressSummaryResponse;
 import com.neogul.whynago.progress.service.ProgressService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,5 +21,10 @@ public class ProgressController {
     @GetMapping
     public ResponseEntity<ProgressResponse> getProgress(@LoginUser AuthContext authContext) {
         return ResponseEntity.ok(ProgressResponse.from(progressService.getDetail(authContext.id())));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<ProgressSummaryResponse> getSummary(@LoginUser AuthContext authContext) {
+        return ResponseEntity.ok(ProgressSummaryResponse.from(progressService.getSummary(authContext.id())));
     }
 }

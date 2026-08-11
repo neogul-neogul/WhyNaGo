@@ -111,4 +111,9 @@ public class InterviewService {
                 .map(InterviewSummaryResult::from)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public int countCompleted(Long userId) {
+        return dailyInterviewReader.readCompletedAll(userId).size();
+    }
 }
