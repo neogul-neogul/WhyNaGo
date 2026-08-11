@@ -55,10 +55,57 @@ class EssaySolvedRepositoryTest extends RepositoryTestSupport {
         assertThat(found.getUserAnswer()).isEqualTo(longAnswer);
     }
 
+    @Test
+    @DisplayName("사용자가 푼 서술형 본질문 ID를 중복 없이 조회한다.")
+    void findSolvedQuestionIds() {
+        // given
+        essaySolvedRepository.save(item(1L, 10L, ItemType.MAIN, 1, 100L));
+        essaySolvedRepository.save(item(2L, 10L, ItemType.MAIN, 1, 101L));
+        essaySolvedRepository.save(item(3L, 10L, ItemType.MAIN, 1, 100L));
+
+        // when
+        List<Long> questionIds = essaySolvedRepository.findSolvedQuestionIds(10L);
+
+        // then
+        assertThat(questionIds).containsExactlyInAnyOrder(100L, 101L);
+    }
+
+    @Test
+    @DisplayName("questionId가 없는 서술형 꼬리질문은 푼 문제 ID로 조회되지 않는다.")
+    void findSolvedQuestionIds_followup() {
+        // given
+        essaySolvedRepository.save(item(1L, 10L, ItemType.MAIN, 1, 100L));
+        essaySolvedRepository.save(item(1L, 10L, ItemType.FOLLOWUP, 2, null));
+
+        // when
+        List<Long> questionIds = essaySolvedRepository.findSolvedQuestionIds(10L);
+
+        // then
+        assertThat(questionIds).containsExactly(100L);
+    }
+
+    @Test
+    @DisplayName("다른 사용자가 푼 서술형 문제 ID는 조회되지 않는다.")
+    void findSolvedQuestionIds_otherUser() {
+        // given
+        essaySolvedRepository.save(item(1L, 10L, ItemType.MAIN, 1, 100L));
+        essaySolvedRepository.save(item(2L, 20L, ItemType.MAIN, 1, 200L));
+
+        // when
+        List<Long> questionIds = essaySolvedRepository.findSolvedQuestionIds(10L);
+
+        // then
+        assertThat(questionIds).containsExactly(100L);
+    }
+
     private EssaySolved item(Long solvedSessionId, ItemType type, int sequence, Long questionId) {
+        return item(solvedSessionId, 10L, type, sequence, questionId);
+    }
+
+    private EssaySolved item(Long solvedSessionId, Long userId, ItemType type, int sequence, Long questionId) {
         return EssaySolved.create(
                 solvedSessionId,
-                10L,
+                userId,
                 type,
                 sequence,
                 questionId,
