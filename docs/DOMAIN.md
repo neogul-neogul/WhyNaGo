@@ -61,6 +61,7 @@
 | correctCount | 정답 수 | 맞힌 문항 수 |
 | startedAt | 시작 시각 | 학습 기록의 소요시간(`time`)을 `solvedAt - startedAt`으로 도출하는 데 필요 → [학습 기록 집계 정책](#학습-기록-집계-정책) |
 | solvedAt | 완료 시각 | |
+| createdAt | 저장 시각 | 세션 저장(레코드 생성) 시각. 조회 API 응답에는 노출하지 않는다 |
 
 ### SolvedMultipleChoice (푼 객관식 문항)
 
@@ -110,17 +111,15 @@
 
 ### NotificationSetting (알림 설정)
 
-사용자별 알림 수신 여부를 저장한다. 사용자당 1행이며, 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**한다(get-or-create). 이 엔티티는 **설정값 저장만** 다룬다 — 실제 알림 발송(스케줄러·이메일 발송)은 이 저장소에 아직 구현되어 있지 않다.
+사용자별 알림 수신 여부를 저장한다. 사용자당 1행이며, 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**한다(get-or-create).
+
+`everyDayRemind = true`인 사용자에게는 `notification.scheduler.StudyReminderScheduler`가 매일 오후 9시(KST)에 학습 리마인드 메일을 발송한다(`notification.service.StudyReminderService`). 메일에는 "오늘 문제 풀이"(오늘자 `SolvedSession` 존재 여부 = 스트릭 유지 여부)와 "1일 1면접" 두 항목의 완료 여부가 담긴다. **1일 1면접은 아직 별도로 추적하는 도메인/컬럼이 없어 항상 "미완료"로 고정 표시**한다 — 실제 면접 기능이 생기면 `StudyReminderService`에서 이 값만 교체하면 된다. 메일 발송은 `common.mail.EmailSender`(특정 도메인에 종속되지 않는 공용 메일 발송 컴포넌트, 텍스트/HTML 모두 지원)를 이용하며, 이 기능이 첫 실사용처다. 발송 로직은 HTTP API로 노출하지 않는다 — 실제 메일 발송을 눈으로 확인하려면 `@Disabled` 처리된 `notification.service.StudyReminderManualSendTest`에 수신 이메일을 채우고 수동으로 실행한다.
 
 | 이름 | 한글 | 설명 |
 | --- | --- | --- |
 | id | | PK |
 | userId | | FK → User (unique, 사용자당 1행) |
-| everyDayRemind | 매일 리마인드 | 학습 기록이 없으면 `remindTime`에 알림 |
-| remindTime | 알림 시간 | `everyDayRemind` 발송 시각. 기본값 21:00 |
-| streakStopPrevention | 연속 학습 중단 방지 | 연속 학습 중인데 당일 기록이 없으면 저녁에 알림 |
-| interviewRemind | 1일 1면접 알림 | 면접 기능 자체가 아직 없어 필드만 미리 둔다(저장은 되나 발송 대상 없음) |
-| weeklyReport | 주간 리포트 수신 | 매주 월요일 학습 요약 알림 |
+| everyDayRemind | 매일 학습 리마인드 | 학습 기록이 없으면 알림. 기본값 true |
 
 ---
 

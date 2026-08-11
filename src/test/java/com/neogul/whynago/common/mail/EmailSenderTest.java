@@ -3,11 +3,15 @@ package com.neogul.whynago.common.mail;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 
 import com.neogul.whynago.common.exception.BusinessException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import java.util.Properties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mail.MailSendException;
@@ -36,5 +40,31 @@ class EmailSenderTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(e -> assertThat(((BusinessException) e).errorCode())
                         .isEqualTo(MailErrorCode.MAIL_SEND_FAILED));
+    }
+
+    @DisplayName("HTML 이메일을 발송한다.")
+    @Test
+    void sendHtml() {
+        given(javaMailSender.createMimeMessage()).willReturn(newMimeMessage());
+
+        emailSender.sendHtml("to@example.com", "제목", "<p>본문</p>");
+
+        then(javaMailSender).should().send(any(MimeMessage.class));
+    }
+
+    @DisplayName("HTML 이메일 발송에 실패하면 프로젝트 예외로 변환한다.")
+    @Test
+    void sendHtml_mailServerFailure() {
+        given(javaMailSender.createMimeMessage()).willReturn(newMimeMessage());
+        willThrow(new MailSendException("smtp down")).given(javaMailSender).send(any(MimeMessage.class));
+
+        assertThatThrownBy(() -> emailSender.sendHtml("to@example.com", "제목", "<p>본문</p>"))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> assertThat(((BusinessException) e).errorCode())
+                        .isEqualTo(MailErrorCode.MAIL_SEND_FAILED));
+    }
+
+    private MimeMessage newMimeMessage() {
+        return new MimeMessage(Session.getInstance(new Properties()));
     }
 }

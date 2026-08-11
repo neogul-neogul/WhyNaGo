@@ -51,6 +51,8 @@ Authorization: Bearer {accessToken}
 - **한 계정의 활성 세션은 하나다.** 다시 로그인하면 이전 기기의 refresh token이 폐기되고, 그 기기는 다음 재발급 시점에 로그아웃된다.
 - `/api/auth/**`는 모두 인증 없이 호출한다. 재발급과 로그아웃은 access token이 이미 만료된 상태에서 호출되므로 인증을 요구하지 않는다.
 
+> refresh token을 해싱하는 과정(회원가입·로그인·재발급·로그아웃 모두 해당)에서 서버 환경이 해시 알고리즘(SHA-256)을 지원하지 않으면 `500 AUTH_TOKEN_HASH_FAILED`를 반환한다. 정상 배포 환경에서는 발생하지 않는 방어적 오류다.
+
 ### **인증 실패 응답**
 
 인증이 필요한 API에서 토큰이 유효하지 않으면 모두 `401 Unauthorized`로 내려가며, `code`로 원인을 구분한다.
@@ -276,6 +278,8 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
+> **인증 범위**: `GET /api/questions`(목록 조회)만 인증 없이 호출할 수 있다. 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외한다).
+
 ## **문제 목록 조회**
 
 문제은행 화면의 목록을 조회한다. 사용자가 바로 시작할 수 있는 **진입 문제**만 반환한다. 다른 문제의 선택지에서 이어지는 객관식 꼬리질문은 목록에서 제외된다. 서술형 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책), 서술형 문제는 모두 진입 문제로 조회된다.
@@ -363,6 +367,104 @@ GET /api/questions
 조건에 맞는 문제가 없으면 에러가 아니라 빈 배열(`[]`)과 `200 OK`를 반환한다.
 
 > **알려진 문제**: 필터에 enum에 없는 값을 보내면(예: `?type=FOO`) 요청 형식 오류이므로 `400 INVALID_INPUT`이어야 하는데, 현재는 `500 SERVER_ERROR`로 응답한다. 요청 바인딩 예외(`MethodArgumentTypeMismatchException`)가 `GlobalExceptionHandler`에 등록되지 않아서다. 별도 이슈로 처리한다.
+
+---
+
+## **선택지 채점 결과 조회**
+
+객관식 문항에서 사용자가 고른 선택지를 채점한다. 정답 여부·해설과, 고른 선택지에 연결된 다음 꼬리질문(있으면 문항 전체 정보)을 함께 반환한다. 이 API는 조회일 뿐 아무것도 저장하지 않는다 — 풀이 결과 저장은 SolvedSession API를 별도로 호출해야 한다.
+
+### **Endpoint**
+
+```
+GET /api/questions/{questionId}/choices/{choiceId}
+```
+
+- `questionId`는 채점할 문항 ID, `choiceId`는 사용자가 고른 선택지 ID다.
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "correct": false,
+  "correctChoiceId": 2,
+  "explanation": "TCP는 3-way handshake로 연결을 수립하고...",
+  "choiceExplanation": "TCP를 비연결형으로 설명해 틀렸습니다...",
+  "nextQuestion": {
+    "id": 5,
+    "title": "TCP 흐름 제어",
+    "content": "...",
+    "type": "MULTIPLE_CHOICE",
+    "difficulty": "MEDIUM",
+    "category": "NETWORK",
+    "explanation": "...",
+    "choices": [],
+    "tags": []
+  }
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `correct` | boolean | 고른 선택지(`choiceId`)의 정답 여부. |
+| `correctChoiceId` | Long | 이 문항의 정답 선택지 ID. |
+| `explanation` | String | 문제 전체(정답) 해설(`Question.explanation`). |
+| `choiceExplanation` | String \| null | 고른 선택지의 오답 해설. 정답을 골랐으면 `null`. |
+| `nextQuestion` | Object \| null | 고른 선택지의 `relatedQuestionId`가 가리키는 다음 문항(문제 목록 조회 응답과 동일한 형태). 없으면 `null`(그 지점에서 세션 종료). |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
+| 404 | `CHOICE_NOT_FOUND` | `choiceId` 선택지가 존재하지 않음. |
+| 400 | `CHOICE_NOT_IN_QUESTION` | `choiceId` 선택지가 `questionId` 문제에 속하지 않음. |
+
+---
+
+## **서술형 문제 단건 조회**
+
+서술형 문제 하나를 상세 조회한다. 서술형 세션을 시작하기 전, 발문을 다시 보여줄 때 사용한다. 목록 조회 응답과 달리 `explanation`·`choices`는 내려주지 않는다 — 서술형은 선택지가 없고, 정답 해설은 매 턴 AI 채점 결과(`grading.modelAnswer`)로 대체되기 때문이다.
+
+### **Endpoint**
+
+```
+GET /api/questions/{questionId}/essay
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "id": 101,
+  "title": "TCP 흐름 제어 vs 혼잡 제어",
+  "content": "TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하시오.",
+  "type": "ESSAY",
+  "difficulty": "MEDIUM",
+  "category": "NETWORK",
+  "tags": ["흐름 제어", "혼잡 제어"]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제 ID. |
+| `title` | String | 문제 제목. |
+| `content` | String | 문제 발문. |
+| `type` | String | 항상 `ESSAY`. |
+| `difficulty` | String | 난이도. |
+| `category` | String | 카테고리. |
+| `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `QUESTION_NOT_FOUND` | `questionId` 문제가 존재하지 않음. |
+| 400 | `QUESTION_NOT_ESSAY` | `questionId` 문제가 서술형(`ESSAY`)이 아님. |
 
 ---
 
@@ -642,6 +744,8 @@ POST /api/solved-sessions/essay
 
 오답노트는 풀이 세션 저장 시 오답이 있으면 **자동 생성**되며(→ `docs/DOMAIN.md` 오답 자동 저장 정책), 별도의 생성 API는 없다. 상태·반복 횟수·출처 개념은 두지 않으므로(→ `docs/DOMAIN.md` 결정 사항) 목록 필터는 북마크 여부뿐이다. 모든 엔드포인트는 인증된 사용자 **본인 소유의 오답노트만** 조회·수정·삭제할 수 있다.
 
+> 상세 조회는 오답노트가 참조하는 `SolvedSession`을 함께 조회한다. 오답노트는 항상 유효한 세션을 참조하므로 실무에서는 발생하지 않지만, 참조된 세션이 없으면 `404 SOLVED_SESSION_NOT_FOUND`를 반환하는 방어적 코드가 존재한다.
+
 ## **오답노트 목록 조회**
 
 ### **Endpoint**
@@ -654,7 +758,7 @@ GET /api/wrong-notes
 | --- | --- | --- | --- |
 | `bookmarked` | boolean | X | `true`면 북마크한 오답노트만 반환. 생략하면 전체 반환. |
 
-정렬은 `solvedAt` 내림차순(최신순)으로 고정한다.
+정렬은 오답노트 ID(`WrongNote.id`) 내림차순(생성순의 역순)으로 고정한다. 오답노트는 세션 완료 시 자동 생성되므로 실질적으로 최신순과 같다.
 
 ### **Response Body**
 
@@ -973,6 +1077,8 @@ GET /api/learning-records/daily-counts
 
 로그인한 사용자 본인의 프로필 조회·수정을 담당한다. 관련 도메인은 `user`다.
 
+> 이 도메인의 모든 엔드포인트는 인증 토큰의 `userId`로 사용자를 조회한다. 토큰 발급 이후 해당 사용자가 삭제된 경우에만 `404 USER_NOT_FOUND`가 발생할 수 있다(현재 회원 삭제 기능이 없어 실질적으로는 발생하지 않는 방어적 오류다).
+
 ## **내 프로필 조회**
 
 ### **Endpoint**
@@ -1058,7 +1164,7 @@ PATCH /api/users/me
 
 로그인한 사용자 본인의 알림 설정 조회·수정을 담당한다. 관련 도메인은 `notification`이다.
 
-설정은 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**된다(→ `docs/DOMAIN.md` NotificationSetting). 이번 구현 범위는 **설정값 저장·조회**이며, 설정에 따른 실제 알림 발송(스케줄러·이메일 발송)은 포함하지 않는다.
+설정은 가입 시 미리 만들지 않고 **최초 조회·수정 시점에 기본값으로 생성**된다(→ `docs/DOMAIN.md` NotificationSetting). `everyDayRemind = true`인 사용자에게는 매일 오후 9시(KST)에 학습 리마인드 메일이 발송된다. 이 발송은 HTTP API로 노출하지 않는다 — 수동 확인은 테스트 코드(`StudyReminderManualSendTest`)로 한다.
 
 ## **내 알림 설정 조회**
 
@@ -1072,21 +1178,13 @@ GET /api/notification-settings/me
 
 ```json
 {
-  "everyDayRemind": true,
-  "remindTime": "21:00:00",
-  "streakStopPrevention": true,
-  "interviewRemind": false,
-  "weeklyReport": true
+  "everyDayRemind": true
 }
 ```
 
 | **필드** | **타입** | **설명** |
 | --- | --- | --- |
 | `everyDayRemind` | boolean | 매일 학습 리마인드 수신 여부. |
-| `remindTime` | String (`HH:mm:ss`) | `everyDayRemind` 알림을 받을 시각. |
-| `streakStopPrevention` | boolean | 연속 학습 중단 방지 알림 수신 여부. |
-| `interviewRemind` | boolean | 1일 1면접 알림 수신 여부. 면접 기능이 아직 없어 저장만 되고 발송 대상은 없다. |
-| `weeklyReport` | boolean | 주간 리포트 수신 여부. |
 
 ### **에러**
 
@@ -1110,36 +1208,22 @@ PATCH /api/notification-settings/me
 
 ```json
 {
-  "everyDayRemind": true,
-  "remindTime": "21:00:00",
-  "streakStopPrevention": true,
-  "interviewRemind": false,
-  "weeklyReport": true
+  "everyDayRemind": true
 }
 ```
 
 | **필드** | **타입** | **필수** | **설명** |
 | --- | --- | --- | --- |
 | `everyDayRemind` | boolean | O | 매일 학습 리마인드 수신 여부. |
-| `remindTime` | String (`HH:mm:ss`) | O | 알림을 받을 시각. |
-| `streakStopPrevention` | boolean | O | 연속 학습 중단 방지 알림 수신 여부. |
-| `interviewRemind` | boolean | O | 1일 1면접 알림 수신 여부. |
-| `weeklyReport` | boolean | O | 주간 리포트 수신 여부. |
 
 ### **Response Body**
 
 ```json
 {
-  "everyDayRemind": true,
-  "remindTime": "21:00:00",
-  "streakStopPrevention": true,
-  "interviewRemind": false,
-  "weeklyReport": true
+  "everyDayRemind": true
 }
 ```
 
 ### **에러**
 
-| **HTTP** | **code** | **발생 조건** |
-| --- | --- | --- |
-| 400 | `INVALID_INPUT` | `remindTime` 누락 등 요청 형식 검증 실패. |
+없음.
