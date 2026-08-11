@@ -374,6 +374,23 @@ class InterviewServiceTest extends IntegrationTestSupport {
         assertThat(interviewService.findAll(USER_ID)).isEmpty();
     }
 
+    @Test
+    @DisplayName("완료한 면접 개수를 센다.")
+    void countCompleted() {
+        Long interviewId = interviewService.start(USER_ID).interviewId();
+        interviewService.complete(USER_ID, interviewId, completeCommand(true, true, true));
+
+        assertThat(interviewService.countCompleted(USER_ID)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("진행 중인 면접은 완료 개수에 포함하지 않는다.")
+    void countCompleted_excludesInProgress() {
+        interviewService.start(USER_ID);
+
+        assertThat(interviewService.countCompleted(USER_ID)).isZero();
+    }
+
     private CompleteInterviewCommand completeCommand(boolean first, boolean second, boolean third) {
         return new CompleteInterviewCommand(
                 snapshot("본질문", first),

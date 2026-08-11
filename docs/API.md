@@ -1752,3 +1752,39 @@ GET /api/progress
 ### **에러**
 
 없음. 풀이 기록이 없으면 `score: 0`, `tier: "BRONZE"`, `totalQuestionCount: 0`, `categoryQuestionCounts: {}`를 반환한다.
+
+## **진척도 상단 통계 조회**
+
+누적/연속 학습일, 총 풀이 문제·정답·오답, 1일1면접 참여 횟수를 조회한다. 누적/연속 학습일은 `docs/API.md` LearningRecord API의 연속·누적 학습일 조회와 동일한 값(같은 `SolvedSession.solvedAt` distinct 날짜 집계)이다.
+
+### **Endpoint**
+
+```
+GET /api/progress/summary
+```
+
+### **Response Body**
+
+```json
+{
+  "cumulativeDays": 42,
+  "streakDays": 7,
+  "totalQuestionCount": 128,
+  "totalCorrectCount": 96,
+  "totalWrongCount": 32,
+  "completedInterviewCount": 16
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `cumulativeDays` | int | 누적 학습일(학습한 날의 총 수, distinct). |
+| `streakDays` | int | 연속 학습일. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
+| `totalCorrectCount` | int | 지금까지 맞힌 전체 문항 수. |
+| `totalWrongCount` | int | 지금까지 틀린 전체 문항 수(`totalQuestionCount - totalCorrectCount`). |
+| `completedInterviewCount` | int | 완료한 1일1면접 총 횟수. |
+
+### **에러**
+
+없음. 기록이 없으면 전부 `0`을 반환한다.
