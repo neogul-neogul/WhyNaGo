@@ -1689,3 +1689,66 @@ PATCH /api/notification-settings/me
 ### **에러**
 
 없음.
+
+---
+
+# **Progress API**
+
+점수·티어와 카테고리별 풀이 현황을 담당한다. 관련 도메인은 `progress`다.
+
+별도 저장 테이블 없이 `SolvedSession`(본질문은 `learningrecord` 도메인의 본질문 조회 로직을 재사용)을 조회 시점에 집계해 응답한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책과 동일한 원칙). 모든 엔드포인트는 인증된 사용자 **본인의 진척도만** 조회한다.
+
+## **점수 산정 규칙**
+
+- 한 풀이 세션이 **본질문+꼬리질문을 전부 맞혔을 때만**(`correctCount == totalCount`) 점수를 받는다. 세션이 이 조건을 만족하지 못하면 그 세션에 포함된 문항은 전부 0점이다.
+- 객관식과 서술형은 점수를 매기는 단위가 다르다(→ `docs/DOMAIN.md` 꼬리질문 분기·서술형 꼬리질문 생성 정책).
+  - **객관식**: 본질문·꼬리질문 모두 문제은행의 실제 독립된 `Question`이므로, 세션에 등장한 **문항 하나하나(본질문 1개)가 각자 자기 `difficulty`로** 점수를 받는다(하 1점, 중 2점, 상 3점). 예를 들어 본질문(중, 2점)에 꼬리질문(상, 3점)이 이어져 둘 다 맞혔다면 그 세션은 총 5점이다.
+  - **서술형**: 꼬리질문은 AI가 그때그때 생성하는 스냅샷이라 실제 `Question`(난이도)이 없으므로, **본질문 하나(본질문 1개 + 꼬리질문 2개, 총 3문항)의 `difficulty`로만** 점수를 매긴다. 점수는 같은 난이도의 객관식 점수의 4배(하 4점, 중 8점, 상 12점) — 3문항을 전부 맞혀야 이 점수를 받는다.
+- **같은 `Question`은 유저가 살면서 최초로 만점 세션에 포함되어 맞힌 시점에만 점수를 지급한다.** 그 이후 같은 문항을 다시 풀면(본질문으로 나오든 다른 세션의 꼬리질문으로 나오든) 점수가 다시 오르지 않는다. 최초 성공 전의 실패한 시도는 점수 없이 지나갈 뿐, 이후 성공 기회를 막지 않는다.
+
+## **티어**
+
+| 티어 | 최소 누적 점수 |
+| --- | --- |
+| `BRONZE` | 0 |
+| `SILVER` | 58 |
+| `GOLD` | 198 |
+| `PLATINUM` | 420 |
+| `DIAMOND` | 677 |
+
+## **진척도 조회**
+
+### **Endpoint**
+
+```
+GET /api/progress
+```
+
+### **Response Body**
+
+```json
+{
+  "score": 90,
+  "tier": "SILVER",
+  "nextTier": "GOLD",
+  "scoreToNextTier": 108,
+  "totalQuestionCount": 15,
+  "categoryQuestionCounts": {
+    "NETWORK": 5,
+    "DB": 10
+  }
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `score` | int | 누적 점수. |
+| `tier` | String | 현재 티어(`BRONZE` \| `SILVER` \| `GOLD` \| `PLATINUM` \| `DIAMOND`). |
+| `nextTier` | String \| null | 다음 티어. 이미 `DIAMOND`이면 `null`. |
+| `scoreToNextTier` | int | 다음 티어까지 필요한 점수. 이미 `DIAMOND`이면 `0`. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
+| `categoryQuestionCounts` | Object | 카테고리별 **풀어본 본질문 수**(distinct, 정답/오답 무관). 한 번도 풀지 않은 카테고리는 키 자체가 없다. |
+
+### **에러**
+
+없음. 풀이 기록이 없으면 `score: 0`, `tier: "BRONZE"`, `totalQuestionCount: 0`, `categoryQuestionCounts: {}`를 반환한다.
