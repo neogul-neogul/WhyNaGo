@@ -1,6 +1,7 @@
 package com.neogul.whynago.question.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
@@ -10,6 +11,7 @@ import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
 import com.neogul.whynago.question.domain.QuestionType;
+import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
 import com.neogul.whynago.support.RepositoryTestSupport;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +83,26 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         // then
         assertThat(result).extracting(Question::getId).containsExactly(essay.getId());
         assertThat(result).extracting(Question::getType).containsOnly(QuestionType.ESSAY);
+    }
+
+    @Test
+    @DisplayName("카테고리별 전체 문항 수를 세고, 문항이 없는 카테고리는 결과에 없다.")
+    void countGroupByCategory() {
+        // given — NETWORK 2개(꼬리질문 포함), DB 1개
+        questionRepository.save(QuestionFixture.rootMultipleChoice());
+        questionRepository.save(QuestionFixture.followupMultipleChoice());
+        questionRepository.save(QuestionFixture.essayRoot());
+
+        // when
+        List<CategoryQuestionCount> result = questionRepository.countGroupByCategory();
+
+        // then
+        assertThat(result)
+                .extracting(CategoryQuestionCount::getCategory, CategoryQuestionCount::getTotal)
+                .containsExactlyInAnyOrder(
+                        tuple(Category.NETWORK, 2L),
+                        tuple(Category.DB, 1L)
+                );
     }
 
     @Test

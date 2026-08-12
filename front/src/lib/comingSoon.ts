@@ -1,6 +1,5 @@
 export const COMING_SOON_ROUTES = [
   "/mock",
-  "/progress",
   "/weekly",
 ] as const;
 

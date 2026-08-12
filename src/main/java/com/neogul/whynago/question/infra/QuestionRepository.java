@@ -4,6 +4,7 @@ import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionType;
+import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -29,4 +30,11 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             @Param("category") Category category,
             @Param("keyword") String keyword
     );
+
+    @Query("""
+            select q.category as category, count(q) as total
+            from Question q
+            group by q.category
+            """)
+    List<CategoryQuestionCount> countGroupByCategory();
 }

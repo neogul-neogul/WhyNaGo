@@ -7,6 +7,8 @@ public record UserProgressAggregate(
         int totalScore,
         int totalQuestionCount,
         int totalCorrectCount,
-        Map<Category, Integer> categoryQuestionCounts
+        Map<Category, Integer> categoryQuestionCounts,
+        Map<Category, Integer> categoryCorrectCounts,
+        Map<Category, Integer> categoryScores
 ) {
 }

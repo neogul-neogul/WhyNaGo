@@ -546,6 +546,51 @@ export interface DailyRecordCountResponse {
   questionCount: number;
 }
 
+// ===== 진척도 API (백엔드 progress 도메인) =====
+
+/** 티어 (백엔드 Tier enum) */
+export type ProgressTier = "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "DIAMOND";
+
+/** 티어 구간 하한. 진행 바의 구간 비율을 그리는 데 쓴다 */
+export interface TierRangeResponse {
+  tier: ProgressTier;
+  minScore: number;
+}
+
+/** 카테고리 한 칸의 진척도. 기록이 없는 카테고리도 0으로 채워 항상 전부 내려온다 */
+export interface CategoryProgressResponse {
+  category: QuestionCategory;
+  /** 문제은행에 있는 그 카테고리 전체 문항 수 */
+  totalCount: number;
+  /** 풀어본 문항 수 (정답/오답 무관) */
+  solvedCount: number;
+  /** 점수를 받은(세션 전부 정답) 문항 수 */
+  correctCount: number;
+  score: number;
+}
+
+/** 점수·티어·카테고리별 현황 — GET /api/progress */
+export interface ProgressResponse {
+  score: number;
+  tier: ProgressTier;
+  nextTier: ProgressTier | null;
+  scoreToNextTier: number;
+  totalQuestionCount: number;
+  categories: CategoryProgressResponse[];
+  tiers: TierRangeResponse[];
+  maxScore: number;
+}
+
+/** 진척도 상단 통계 — GET /api/progress/summary */
+export interface ProgressSummaryResponse {
+  cumulativeDays: number;
+  streakDays: number;
+  totalQuestionCount: number;
+  totalCorrectCount: number;
+  totalWrongCount: number;
+  completedInterviewCount: number;
+}
+
 /** 진척도 지표 카드 */
 export interface ProgressMetric {
   label: string;

@@ -1741,10 +1741,18 @@ GET /api/progress
   "nextTier": "GOLD",
   "scoreToNextTier": 108,
   "totalQuestionCount": 15,
-  "categoryQuestionCounts": {
-    "NETWORK": 5,
-    "DB": 10
-  }
+  "categories": [
+    { "category": "NETWORK", "totalCount": 40, "solvedCount": 12, "correctCount": 5, "score": 30 },
+    { "category": "LANGUAGE", "totalCount": 100, "solvedCount": 5, "correctCount": 3, "score": 8 }
+  ],
+  "tiers": [
+    { "tier": "BRONZE", "minScore": 0 },
+    { "tier": "SILVER", "minScore": 58 },
+    { "tier": "GOLD", "minScore": 198 },
+    { "tier": "PLATINUM", "minScore": 420 },
+    { "tier": "DIAMOND", "minScore": 677 }
+  ],
+  "maxScore": 700
 }
 ```
 
@@ -1754,12 +1762,23 @@ GET /api/progress
 | `tier` | String | 현재 티어(`BRONZE` \| `SILVER` \| `GOLD` \| `PLATINUM` \| `DIAMOND`). |
 | `nextTier` | String \| null | 다음 티어. 이미 `DIAMOND`이면 `null`. |
 | `scoreToNextTier` | int | 다음 티어까지 필요한 점수. 이미 `DIAMOND`이면 `0`. |
-| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
-| `categoryQuestionCounts` | Object | 카테고리별 **풀어본 본질문 수**(distinct, 정답/오답 무관). 한 번도 풀지 않은 카테고리는 키 자체가 없다. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). 같은 문항을 여러 번 풀면 각각 더해진다. |
+| `categories` | Array | 카테고리별 진척도. **`Category` enum 전체가 항상 내려간다** — 기록이 없는 카테고리도 0으로 채운다. 순서는 enum 선언 순서 고정. |
+| `categories[].category` | String | 카테고리. |
+| `categories[].totalCount` | int | 문제은행에 있는 그 카테고리 **전체 문항 수**. 객관식 꼬리질문도 독립된 `Question`이므로 포함된다(→ `docs/DOMAIN.md` 문제은행 표시 정책). 서술형 꼬리질문은 `Question`이 아니라 제외된다. |
+| `categories[].solvedCount` | int | **풀어본 문항 수**(distinct `Question`, 정답/오답 무관). |
+| `categories[].correctCount` | int | **맞힌 문항 수**(distinct `Question`). 위 산정 규칙대로 점수를 받은 문항 수와 같다 — 세션 전체가 정답이어야 하므로, 그 문항 자체는 맞혔어도 같은 세션의 다른 문항을 틀렸다면 포함되지 않는다. |
+| `categories[].score` | int | 카테고리별 **획득 점수**. |
+| `tiers` | Array | 티어 구간표. 클라이언트가 티어 진행 바의 구간 비율을 그리는 데 사용한다. 순서는 `minScore` 오름차순 고정. |
+| `tiers[].tier` | String | 티어 이름. |
+| `tiers[].minScore` | int | 그 티어의 진입 점수(구간 하한). |
+| `maxScore` | int | 티어 진행 바의 표시 상한(현재 `700`). 프로덕트가 정한 값이며 획득 가능한 실제 최대 점수와는 별개다. |
+
+> 임계값을 응답에 담는 이유: 진행 바가 구간 비율을 그리려면 경계값이 필요한데, 클라이언트가 같은 수치를 따로 들고 있으면 정책이 바뀔 때 조용히 어긋난다. 티어 구간은 도메인 정책이므로 서버를 단일 소스로 둔다.
 
 ### **에러**
 
-없음. 풀이 기록이 없으면 `score: 0`, `tier: "BRONZE"`, `totalQuestionCount: 0`, `categoryQuestionCounts: {}`를 반환한다.
+없음. 풀이 기록이 없으면 `score: 0`, `tier: "BRONZE"`, `totalQuestionCount: 0`을 반환하고, `categories`의 `solvedCount`·`correctCount`·`score`가 모두 `0`이 된다(`totalCount`·`tiers`·`maxScore`는 사용자 기록과 무관하게 항상 채워진다).
 
 ## **진척도 상단 통계 조회**
 
@@ -1788,8 +1807,8 @@ GET /api/progress/summary
 | --- | --- | --- |
 | `cumulativeDays` | int | 누적 학습일(학습한 날의 총 수, distinct). |
 | `streakDays` | int | 연속 학습일. |
-| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
-| `totalCorrectCount` | int | 지금까지 맞힌 전체 문항 수. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). **같은 문항을 여러 번 풀면 각각 더해진다** — distinct 문항 수가 아니라 풀이 횟수다(카테고리별 `solvedCount`는 distinct라 값이 다르다). |
+| `totalCorrectCount` | int | 지금까지 맞힌 전체 문항 수. 위와 같이 중복을 포함한다. |
 | `totalWrongCount` | int | 지금까지 틀린 전체 문항 수(`totalQuestionCount - totalCorrectCount`). |
 | `completedInterviewCount` | int | 완료한 1일1면접 총 횟수. |
 

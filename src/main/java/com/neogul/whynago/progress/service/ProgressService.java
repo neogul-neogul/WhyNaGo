@@ -3,6 +3,7 @@ package com.neogul.whynago.progress.service;
 import com.neogul.whynago.interview.service.InterviewService;
 import com.neogul.whynago.learningrecord.service.LearningRecordService;
 import com.neogul.whynago.progress.domain.Tier;
+import com.neogul.whynago.progress.implement.CategoryProgressAssembler;
 import com.neogul.whynago.progress.implement.UserScoreCalculator;
 import com.neogul.whynago.progress.implement.dto.UserProgressAggregate;
 import com.neogul.whynago.progress.service.dto.ProgressDetailResult;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProgressService {
 
     private final UserScoreCalculator userScoreCalculator;
+    private final CategoryProgressAssembler categoryProgressAssembler;
     private final LearningRecordService learningRecordService;
     private final InterviewService interviewService;
 
@@ -23,7 +25,7 @@ public class ProgressService {
     public ProgressDetailResult getDetail(Long userId) {
         UserProgressAggregate aggregate = userScoreCalculator.calculate(userId);
         Tier tier = Tier.from(aggregate.totalScore());
-        return ProgressDetailResult.of(aggregate, tier);
+        return ProgressDetailResult.of(aggregate, tier, categoryProgressAssembler.assemble(aggregate));
     }
 
     @Transactional(readOnly = true)

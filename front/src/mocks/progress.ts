@@ -1,15 +1,5 @@
-import type { ProgressMetric, WeeklyCard } from "@/types";
+import type { WeeklyCard } from "@/types";
 import { palette } from "@/lib/tokens";
-
-// 진척도 지표 카드 — 더미
-export const progressMetrics: ProgressMetric[] = [
-  { label: "누적 학습일", value: "42", unit: "일", color: palette.ink },
-  { label: "연속 학습일", value: "7", unit: "일", color: palette.streak },
-  { label: "총 풀이 문제", value: "487", unit: "문제", color: palette.ink },
-  { label: "총 정답", value: "342", unit: "개", color: palette.success },
-  { label: "총 오답", value: "145", unit: "개", color: palette.danger },
-  { label: "1일 1면접", value: "16", unit: "회", color: palette.ai },
-];
 
 // 주간 리포트 — 더미
 export const weekRange = "2026.06.16 — 06.22";
