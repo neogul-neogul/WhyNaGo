@@ -167,6 +167,8 @@ export interface QuestionResponse {
   explanation: string | null;
   choices: ChoiceResponse[];
   tags: string[];
+  /** 이미 푼 문제인지 여부. 비로그인 조회와 꼬리질문 응답에서는 항상 false */
+  solved: boolean;
 }
 
 /** 보기 선택 결과(채점) 조회 응답 — GET /api/questions/{qid}/choices/{cid} */

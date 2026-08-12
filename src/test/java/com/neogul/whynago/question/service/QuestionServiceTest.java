@@ -2,6 +2,7 @@ package com.neogul.whynago.question.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
@@ -21,7 +22,13 @@ import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.solvedsession.domain.EssaySolved;
+import com.neogul.whynago.solvedsession.domain.ItemType;
+import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
+import com.neogul.whynago.solvedsession.infra.EssaySolvedRepository;
+import com.neogul.whynago.solvedsession.infra.SolvedMultipleChoiceRepository;
 import com.neogul.whynago.support.IntegrationTestSupport;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +47,12 @@ class QuestionServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private QuestionTagRepository questionTagRepository;
+
+    @Autowired
+    private SolvedMultipleChoiceRepository solvedMultipleChoiceRepository;
+
+    @Autowired
+    private EssaySolvedRepository essaySolvedRepository;
 
     @Test
     @DisplayName("정답 보기를 고르면 정답으로 채점되고 고른 보기에 연결된 꼬리질문을 함께 반환한다.")
@@ -123,6 +136,7 @@ class QuestionServiceTest extends IntegrationTestSupport {
 
         // when
         List<QuestionResult> results = questionService.findQuestions(
+                10L,
                 new QuestionSearchCommand(QuestionType.ESSAY, null, null, null)
         );
 
@@ -132,6 +146,83 @@ class QuestionServiceTest extends IntegrationTestSupport {
         assertThat(results.getFirst().type()).isEqualTo(QuestionType.ESSAY);
         assertThat(results.getFirst().choices()).isEmpty();
         assertThat(results.getFirst().tags()).containsExactly("트랜잭션");
+    }
+
+    @Test
+    @DisplayName("이미 푼 문제는 solved가 true이고 풀지 않은 문제는 false다.")
+    void findQuestions_solved() {
+        // given
+        Question solvedQuestion = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question unsolvedQuestion = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, solvedQuestion.getId()));
+
+        // when
+        List<QuestionResult> results = questionService.findQuestions(
+                10L,
+                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+        );
+
+        // then
+        assertThat(results)
+                .extracting(QuestionResult::id, QuestionResult::solved)
+                .containsExactlyInAnyOrder(
+                        tuple(solvedQuestion.getId(), true),
+                        tuple(unsolvedQuestion.getId(), false)
+                );
+    }
+
+    @Test
+    @DisplayName("서술형으로 푼 문제도 solved가 true다.")
+    void findQuestions_solvedByEssay() {
+        // given
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+        essaySolvedRepository.save(essaySolved(10L, essay.getId()));
+
+        // when
+        List<QuestionResult> results = questionService.findQuestions(
+                10L,
+                new QuestionSearchCommand(QuestionType.ESSAY, null, null, null)
+        );
+
+        // then
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().solved()).isTrue();
+    }
+
+    @Test
+    @DisplayName("다른 사용자가 푼 문제는 solved가 false다.")
+    void findQuestions_solvedByOtherUser() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        solvedMultipleChoiceRepository.save(solvedMultipleChoice(20L, question.getId()));
+
+        // when
+        List<QuestionResult> results = questionService.findQuestions(
+                10L,
+                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+        );
+
+        // then
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().solved()).isFalse();
+    }
+
+    @Test
+    @DisplayName("비로그인으로 조회하면 푼 문제여도 solved가 false다.")
+    void findQuestions_withoutUser() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, question.getId()));
+
+        // when
+        List<QuestionResult> results = questionService.findQuestions(
+                null,
+                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+        );
+
+        // then
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().solved()).isFalse();
     }
 
     @Test
@@ -175,5 +266,35 @@ class QuestionServiceTest extends IntegrationTestSupport {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(QuestionErrorCode.QUESTION_NOT_ESSAY));
+    }
+
+    private SolvedMultipleChoice solvedMultipleChoice(Long userId, Long questionId) {
+        return SolvedMultipleChoice.create(
+                1L,
+                userId,
+                questionId,
+                ItemType.MAIN,
+                1,
+                1L,
+                1L,
+                true,
+                LocalDateTime.now()
+        );
+    }
+
+    private EssaySolved essaySolved(Long userId, Long questionId) {
+        return EssaySolved.create(
+                1L,
+                userId,
+                ItemType.MAIN,
+                1,
+                questionId,
+                "질문",
+                "답변",
+                "피드백",
+                "모범답안",
+                true,
+                LocalDateTime.now()
+        );
     }
 }

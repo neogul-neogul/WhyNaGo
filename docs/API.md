@@ -345,13 +345,15 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
-> **인증 범위**: `GET /api/questions`(목록 조회)만 인증 없이 호출할 수 있다. 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외한다).
+> **인증 범위**: `GET /api/questions`(목록 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다).
 
 ## **문제 목록 조회**
 
 문제은행 화면의 목록을 조회한다. 사용자가 바로 시작할 수 있는 **진입 문제**만 반환한다. 다른 문제의 선택지에서 이어지는 객관식 꼬리질문은 목록에서 제외된다. 서술형 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책), 서술형 문제는 모두 진입 문제로 조회된다.
 
 객관식과 서술형이 한 목록에 함께 내려간다. 유형을 구분해야 하면 `type` 필터를 쓰거나 응답의 `type` 필드로 분기한다.
+
+문항마다 이미 푼 문제인지를 `solved`로 함께 내려준다. 객관식 풀이 이력(`SolvedMultipleChoice`)과 서술형 풀이 이력(`EssaySolved`)을 함께 보며, 정답/오답은 구분하지 않는다. 완료된 풀이 세션만 저장되므로(→ 세션 저장) `solved = true`는 "끝까지 풀어 저장한 문제"를 뜻한다. 서술형 꼬리질문은 세션마다 AI가 생성해 참조할 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책) 이력에서 제외된다.
 
 ### **Endpoint**
 
@@ -386,7 +388,8 @@ GET /api/questions
     "category": "NETWORK",
     "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
     "choices": [],
-    "tags": ["흐름 제어", "혼잡 제어"]
+    "tags": ["흐름 제어", "혼잡 제어"],
+    "solved": true
   },
   {
     "id": 1,
@@ -405,7 +408,8 @@ GET /api/questions
         "relatedQuestionId": 2
       }
     ],
-    "tags": ["NETWORK"]
+    "tags": ["NETWORK"],
+    "solved": false
   }
 ]
 ```
@@ -426,8 +430,9 @@ GET /api/questions
 | `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값이다. |
 | `choices[].relatedQuestionId` | Long | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`(그 지점에서 종료). |
 | `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+| `solved` | boolean | 요청한 사용자가 이미 푼 문제인지 여부. 비로그인 요청이면 항상 `false`. |
 
-> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다.
+> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다. `solved`도 정답/오답과 무관하며, 풀어서 저장했는지만 나타낸다.
 
 ### **에러**
 
@@ -467,7 +472,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
     "category": "NETWORK",
     "explanation": "...",
     "choices": [],
-    "tags": []
+    "tags": [],
+    "solved": false
   }
 }
 ```
@@ -479,6 +485,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
 | `explanation` | String | 문제 전체(정답) 해설(`Question.explanation`). |
 | `choiceExplanation` | String \| null | 고른 선택지의 오답 해설. 정답을 골랐으면 `null`. |
 | `nextQuestion` | Object \| null | 고른 선택지의 `relatedQuestionId`가 가리키는 다음 문항(문제 목록 조회 응답과 동일한 형태). 없으면 `null`(그 지점에서 세션 종료). |
+
+> `nextQuestion.solved`는 목록 조회와 형태를 맞추느라 딸려 나올 뿐 **항상 `false`**다. 완료 표시는 문제 목록 조회에서만 의미가 있다.
 
 ### **에러**
 

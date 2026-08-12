@@ -15,10 +15,11 @@ public record QuestionResult(
         Category category,
         String explanation,
         List<ChoiceResult> choices,
-        List<String> tags
+        List<String> tags,
+        boolean solved
 ) {
 
-    public static QuestionResult from(Question question, List<ChoiceResult> choices, List<String> tags) {
+    public static QuestionResult from(Question question, List<ChoiceResult> choices, List<String> tags, boolean solved) {
         return new QuestionResult(
                 question.getId(),
                 question.getTitle(),
@@ -28,7 +29,8 @@ public record QuestionResult(
                 question.getCategory(),
                 question.getExplanation(),
                 choices,
-                tags
+                tags,
+                solved
         );
     }
 }
