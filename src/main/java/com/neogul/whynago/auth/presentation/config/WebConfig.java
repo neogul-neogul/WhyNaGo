@@ -25,11 +25,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/**",
-                        "/api/questions"
+                        "/api/questions",
+                        "/api/questions/*"
                 );
-        // 문제 목록은 비로그인도 열람할 수 있고, 로그인 상태면 푼 문제를 표시한다.
+        // 문제 목록·단건 조회는 비로그인도 열람할 수 있고, 로그인 상태면 푼 문제를 표시한다.
         registry.addInterceptor(optionalAuthInterceptor)
-                .addPathPatterns("/api/questions");
+                .addPathPatterns("/api/questions", "/api/questions/*");
     }
 
     @Override

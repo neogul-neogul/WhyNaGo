@@ -2,6 +2,7 @@ package com.neogul.whynago.question.presentation;
 
 import com.neogul.whynago.auth.presentation.AuthContext;
 import com.neogul.whynago.auth.presentation.resolver.LoginUser;
+import com.neogul.whynago.common.presentation.dto.PageResponse;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
@@ -15,6 +16,7 @@ import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.question.service.dto.QuestionsResult;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -38,19 +40,32 @@ public class QuestionController {
 
     // 인증이 선택인 경로라 비로그인 요청은 authContext가 null이다.
     @GetMapping
-    public ResponseEntity<List<QuestionResponse>> findQuestions(
+    public ResponseEntity<PageResponse<QuestionResponse>> findQuestions(
             @LoginUser AuthContext authContext,
             @RequestParam(required = false) QuestionType type,
             @RequestParam(required = false) Difficulty difficulty,
             @RequestParam(required = false) Category category,
-            @RequestParam(required = false, name = "q") String keyword
+            @RequestParam(required = false, name = "q") String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
     ) {
         Long userId = authContext == null ? null : authContext.id();
-        QuestionSearchCommand command = new QuestionSearchCommand(type, difficulty, category, keyword);
-        List<QuestionResponse> responses = questionService.findQuestions(userId, command).stream()
+        QuestionSearchCommand command = QuestionSearchCommand.of(type, difficulty, category, keyword, page, size);
+        QuestionsResult result = questionService.findQuestions(userId, command);
+        List<QuestionResponse> responses = result.questions().stream()
                 .map(QuestionResponse::from)
                 .toList();
-        return ResponseEntity.ok(responses);
+
+        return ResponseEntity.ok(PageResponse.of(responses, result.page(), result.size(), result.totalElements()));
+    }
+
+    @GetMapping("/{questionId}")
+    public ResponseEntity<QuestionResponse> findQuestion(
+            @LoginUser AuthContext authContext,
+            @PathVariable Long questionId
+    ) {
+        Long userId = authContext == null ? null : authContext.id();
+        return ResponseEntity.ok(QuestionResponse.from(questionService.findQuestion(userId, questionId)));
     }
 
     @GetMapping("/{questionId}/choices/{choiceId}")

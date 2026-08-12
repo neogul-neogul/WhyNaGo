@@ -1,9 +1,11 @@
 package com.neogul.whynago.question.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.Category;
@@ -11,7 +13,6 @@ import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.service.dto.ChoiceGradingResult;
-import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
@@ -19,6 +20,8 @@ import com.neogul.whynago.question.service.dto.EssaySessionResult;
 import com.neogul.whynago.question.service.dto.GradingResult;
 import com.neogul.whynago.question.service.dto.NextFollowupResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
+import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.question.service.dto.QuestionsResult;
 import com.neogul.whynago.support.ControllerTestSupport;
 import io.restassured.http.ContentType;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
@@ -26,6 +29,7 @@ import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 
 class QuestionControllerTest extends ControllerTestSupport {
@@ -33,20 +37,9 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("문제 목록을 조회한다.")
     void findQuestions() {
-        given(questionService.findQuestions(eq(1L), any())).willReturn(List.of(
-                new QuestionResult(
-                        1L,
-                        "TCP와 UDP의 핵심 차이",
-                        "내용",
-                        QuestionType.MULTIPLE_CHOICE,
-                        Difficulty.MEDIUM,
-                        Category.NETWORK,
-                        "해설",
-                        List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
-                        List.of("NETWORK"),
-                        true
-                )
-        ));
+        given(questionService.findQuestions(eq(1L), any())).willReturn(
+                new QuestionsResult(List.of(multipleChoiceResult(true)), 0, 20, 1L)
+        );
 
         RestAssuredMockMvc.given()
                 .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
@@ -58,17 +51,143 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .get("/api/questions")
                 .then()
                 .statusCode(200)
-                .body("[0].id", Matchers.equalTo(1))
-                .body("[0].choices[0].relatedQuestionId", Matchers.equalTo(2))
-                .body("[0].tags[0]", Matchers.equalTo("NETWORK"))
-                .body("[0].solved", Matchers.equalTo(true));
+                .body("content[0].id", Matchers.equalTo(1))
+                .body("content[0].choices[0].relatedQuestionId", Matchers.equalTo(2))
+                .body("content[0].tags[0]", Matchers.equalTo("NETWORK"))
+                .body("content[0].solved", Matchers.equalTo(true));
+    }
+
+    @Test
+    @DisplayName("문제 목록 응답에 페이지 정보가 함께 담긴다.")
+    void findQuestions_pageMeta() {
+        given(questionService.findQuestions(eq(1L), any())).willReturn(
+                new QuestionsResult(List.of(multipleChoiceResult(true)), 1, 20, 137L)
+        );
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .queryParam("page", 1)
+                .queryParam("size", 20)
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200)
+                .body("page", Matchers.equalTo(1))
+                .body("size", Matchers.equalTo(20))
+                .body("totalElements", Matchers.equalTo(137))
+                .body("totalPages", Matchers.equalTo(7))
+                .body("last", Matchers.equalTo(false));
+    }
+
+    @Test
+    @DisplayName("마지막 페이지를 조회하면 last가 true다.")
+    void findQuestions_lastPage() {
+        given(questionService.findQuestions(eq(1L), any())).willReturn(
+                new QuestionsResult(List.of(multipleChoiceResult(true)), 6, 20, 137L)
+        );
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .queryParam("page", 6)
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200)
+                .body("last", Matchers.equalTo(true));
+    }
+
+    @Test
+    @DisplayName("페이지 파라미터를 생략하면 첫 페이지를 20개 크기로 조회한다.")
+    void findQuestions_defaultPaging() {
+        given(questionService.findQuestions(eq(1L), any())).willReturn(
+                new QuestionsResult(List.of(), 0, 20, 0L)
+        );
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200);
+
+        ArgumentCaptor<QuestionSearchCommand> captor = ArgumentCaptor.forClass(QuestionSearchCommand.class);
+        verify(questionService).findQuestions(eq(1L), captor.capture());
+        assertThat(captor.getValue().page()).isZero();
+        assertThat(captor.getValue().size()).isEqualTo(20);
+    }
+
+    @Test
+    @DisplayName("허용 범위를 벗어난 페이지 파라미터는 보정해서 조회한다.")
+    void findQuestions_outOfRangePaging() {
+        given(questionService.findQuestions(eq(1L), any())).willReturn(
+                new QuestionsResult(List.of(), 0, 100, 0L)
+        );
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .queryParam("page", -5)
+                .queryParam("size", 1000)
+                .when()
+                .get("/api/questions")
+                .then()
+                .statusCode(200);
+
+        ArgumentCaptor<QuestionSearchCommand> captor = ArgumentCaptor.forClass(QuestionSearchCommand.class);
+        verify(questionService).findQuestions(eq(1L), captor.capture());
+        assertThat(captor.getValue().page()).isZero();
+        assertThat(captor.getValue().size()).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("문제를 단건 조회한다.")
+    void findQuestion() {
+        given(questionService.findQuestion(1L, 1L)).willReturn(multipleChoiceResult(true));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .when()
+                .get("/api/questions/1")
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.equalTo(1))
+                .body("choices[0].relatedQuestionId", Matchers.equalTo(2))
+                .body("solved", Matchers.equalTo(true));
+    }
+
+    @Test
+    @DisplayName("인증 정보 없이 문제를 단건 조회하면 푼 문제 표시 없이 응답한다.")
+    void findQuestion_withoutToken() {
+        given(questionService.findQuestion(isNull(), eq(1L))).willReturn(multipleChoiceResult(false));
+
+        RestAssuredMockMvc.given()
+                .when()
+                .get("/api/questions/1")
+                .then()
+                .statusCode(200)
+                .body("id", Matchers.equalTo(1))
+                .body("solved", Matchers.equalTo(false));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 문제를 단건 조회하면 404를 반환한다.")
+    void findQuestion_notFound() {
+        given(questionService.findQuestion(1L, 999L))
+                .willThrow(new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(1L))
+                .when()
+                .get("/api/questions/999")
+                .then()
+                .statusCode(404)
+                .body("code", Matchers.equalTo("QUESTION_NOT_FOUND"));
     }
 
     @Test
     @DisplayName("서술형 문제 목록을 조회하면 선택지 없이 응답한다.")
     void findQuestions_essay() {
-        given(questionService.findQuestions(eq(1L), any())).willReturn(List.of(
-                new QuestionResult(
+        given(questionService.findQuestions(eq(1L), any())).willReturn(new QuestionsResult(
+                List.of(new QuestionResult(
                         101L,
                         "TCP 흐름 제어 vs 혼잡 제어",
                         "TCP의 흐름 제어와 혼잡 제어의 차이를 설명하시오.",
@@ -79,7 +198,10 @@ class QuestionControllerTest extends ControllerTestSupport {
                         List.of(),
                         List.of("흐름 제어"),
                         false
-                )
+                )),
+                0,
+                20,
+                1L
         ));
 
         RestAssuredMockMvc.given()
@@ -89,38 +211,27 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .get("/api/questions")
                 .then()
                 .statusCode(200)
-                .body("[0].id", Matchers.equalTo(101))
-                .body("[0].type", Matchers.equalTo("ESSAY"))
-                .body("[0].choices", Matchers.empty())
-                .body("[0].tags[0]", Matchers.equalTo("흐름 제어"))
-                .body("[0].solved", Matchers.equalTo(false));
+                .body("content[0].id", Matchers.equalTo(101))
+                .body("content[0].type", Matchers.equalTo("ESSAY"))
+                .body("content[0].choices", Matchers.empty())
+                .body("content[0].tags[0]", Matchers.equalTo("흐름 제어"))
+                .body("content[0].solved", Matchers.equalTo(false));
     }
 
     @Test
     @DisplayName("인증 정보 없이 문제 목록을 조회하면 푼 문제 없이 응답한다.")
     void findQuestions_withoutToken() {
-        given(questionService.findQuestions(isNull(), any())).willReturn(List.of(
-                new QuestionResult(
-                        1L,
-                        "TCP와 UDP의 핵심 차이",
-                        "내용",
-                        QuestionType.MULTIPLE_CHOICE,
-                        Difficulty.MEDIUM,
-                        Category.NETWORK,
-                        "해설",
-                        List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
-                        List.of("NETWORK"),
-                        false
-                )
-        ));
+        given(questionService.findQuestions(isNull(), any())).willReturn(
+                new QuestionsResult(List.of(multipleChoiceResult(false)), 0, 20, 1L)
+        );
 
         RestAssuredMockMvc.given()
                 .when()
                 .get("/api/questions")
                 .then()
                 .statusCode(200)
-                .body("[0].id", Matchers.equalTo(1))
-                .body("[0].solved", Matchers.equalTo(false));
+                .body("content[0].id", Matchers.equalTo(1))
+                .body("content[0].solved", Matchers.equalTo(false));
     }
 
     @Test
@@ -364,5 +475,20 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .then()
                 .statusCode(503)
                 .body("code", Matchers.equalTo("ESSAY_AI_UNAVAILABLE"));
+    }
+
+    private QuestionResult multipleChoiceResult(boolean solved) {
+        return new QuestionResult(
+                1L,
+                "TCP와 UDP의 핵심 차이",
+                "내용",
+                QuestionType.MULTIPLE_CHOICE,
+                Difficulty.MEDIUM,
+                Category.NETWORK,
+                "해설",
+                List.of(new ChoiceResult(1L, "정답", 1, "", 2L)),
+                List.of("NETWORK"),
+                solved
+        );
     }
 }

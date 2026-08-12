@@ -7,6 +7,7 @@ import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
+import com.neogul.whynago.question.implement.dto.QuestionPage;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
 import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
@@ -14,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -34,7 +38,26 @@ public class QuestionReader {
             Category category,
             String keyword
     ) {
-        return questionRepository.findQuestions(type, difficulty, category, normalize(keyword));
+        return questionRepository.findQuestions(type, difficulty, category, normalize(keyword), Pageable.unpaged())
+                .getContent();
+    }
+
+    public QuestionPage readQuestionPage(
+            QuestionType type,
+            Difficulty difficulty,
+            Category category,
+            String keyword,
+            int page,
+            int size
+    ) {
+        Page<Question> questions = questionRepository.findQuestions(
+                type,
+                difficulty,
+                category,
+                normalize(keyword),
+                PageRequest.of(page, size)
+        );
+        return new QuestionPage(questions.getContent(), questions.getTotalElements());
     }
 
     public Question readEssayQuestion(Long questionId) {
