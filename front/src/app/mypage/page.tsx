@@ -5,10 +5,9 @@ import type { Profile, UserProfileResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { POSITION_LABELS, fetchMyProfile, positionFromLabel, updateMyProfile } from "@/lib/user";
 import { syncStoredUser } from "@/lib/auth";
-import { defaultProfile, mypageStats } from "@/mocks/mypage";
+import { defaultProfile } from "@/mocks/mypage";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProfileCard from "@/components/mypage/ProfileCard";
-import ProfileStats from "@/components/mypage/ProfileStats";
 import ProfileDetail from "@/components/mypage/ProfileDetail";
 import ProfileEditForm from "@/components/mypage/ProfileEditForm";
 
@@ -76,7 +75,6 @@ export default function MypagePage() {
       <PageBody>
         <div className="flex max-w-[720px] flex-col gap-[18px]">
           <ProfileCard profile={profile} editing={editing} onEdit={startEdit} />
-          <ProfileStats stats={mypageStats} />
           {!editing ? (
             <ProfileDetail profile={profile} />
           ) : (
