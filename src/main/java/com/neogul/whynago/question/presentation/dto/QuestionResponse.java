@@ -15,7 +15,8 @@ public record QuestionResponse(
         Category category,
         String explanation,
         List<ChoiceResponse> choices,
-        List<String> tags
+        List<String> tags,
+        boolean solved
 ) {
 
     public static QuestionResponse from(QuestionResult result) {
@@ -30,7 +31,8 @@ public record QuestionResponse(
                 result.choices().stream()
                         .map(ChoiceResponse::from)
                         .toList(),
-                result.tags()
+                result.tags(),
+                result.solved()
         );
     }
 }

@@ -345,13 +345,15 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
-> **인증 범위**: `GET /api/questions`(목록 조회)만 인증 없이 호출할 수 있다. 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외한다).
+> **인증 범위**: `GET /api/questions`(목록 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다).
 
 ## **문제 목록 조회**
 
 문제은행 화면의 목록을 조회한다. 사용자가 바로 시작할 수 있는 **진입 문제**만 반환한다. 다른 문제의 선택지에서 이어지는 객관식 꼬리질문은 목록에서 제외된다. 서술형 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책), 서술형 문제는 모두 진입 문제로 조회된다.
 
 객관식과 서술형이 한 목록에 함께 내려간다. 유형을 구분해야 하면 `type` 필터를 쓰거나 응답의 `type` 필드로 분기한다.
+
+문항마다 이미 푼 문제인지를 `solved`로 함께 내려준다. 객관식 풀이 이력(`SolvedMultipleChoice`)과 서술형 풀이 이력(`EssaySolved`)을 함께 보며, 정답/오답은 구분하지 않는다. 완료된 풀이 세션만 저장되므로(→ 세션 저장) `solved = true`는 "끝까지 풀어 저장한 문제"를 뜻한다. 서술형 꼬리질문은 세션마다 AI가 생성해 참조할 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책) 이력에서 제외된다.
 
 ### **Endpoint**
 
@@ -386,7 +388,8 @@ GET /api/questions
     "category": "NETWORK",
     "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
     "choices": [],
-    "tags": ["흐름 제어", "혼잡 제어"]
+    "tags": ["흐름 제어", "혼잡 제어"],
+    "solved": true
   },
   {
     "id": 1,
@@ -405,7 +408,8 @@ GET /api/questions
         "relatedQuestionId": 2
       }
     ],
-    "tags": ["NETWORK"]
+    "tags": ["NETWORK"],
+    "solved": false
   }
 ]
 ```
@@ -426,8 +430,9 @@ GET /api/questions
 | `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값이다. |
 | `choices[].relatedQuestionId` | Long | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`(그 지점에서 종료). |
 | `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+| `solved` | boolean | 요청한 사용자가 이미 푼 문제인지 여부. 비로그인 요청이면 항상 `false`. |
 
-> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다.
+> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다. `solved`도 정답/오답과 무관하며, 풀어서 저장했는지만 나타낸다.
 
 ### **에러**
 
@@ -467,7 +472,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
     "category": "NETWORK",
     "explanation": "...",
     "choices": [],
-    "tags": []
+    "tags": [],
+    "solved": false
   }
 }
 ```
@@ -479,6 +485,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
 | `explanation` | String | 문제 전체(정답) 해설(`Question.explanation`). |
 | `choiceExplanation` | String \| null | 고른 선택지의 오답 해설. 정답을 골랐으면 `null`. |
 | `nextQuestion` | Object \| null | 고른 선택지의 `relatedQuestionId`가 가리키는 다음 문항(문제 목록 조회 응답과 동일한 형태). 없으면 `null`(그 지점에서 세션 종료). |
+
+> `nextQuestion.solved`는 목록 조회와 형태를 맞추느라 딸려 나올 뿐 **항상 `false`**다. 완료 표시는 문제 목록 조회에서만 의미가 있다.
 
 ### **에러**
 
@@ -1689,6 +1697,105 @@ PATCH /api/notification-settings/me
 ### **에러**
 
 없음.
+
+---
+
+# **Progress API**
+
+점수·티어와 카테고리별 풀이 현황을 담당한다. 관련 도메인은 `progress`다.
+
+별도 저장 테이블 없이 `SolvedSession`(본질문은 `learningrecord` 도메인의 본질문 조회 로직을 재사용)을 조회 시점에 집계해 응답한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책과 동일한 원칙). 모든 엔드포인트는 인증된 사용자 **본인의 진척도만** 조회한다.
+
+## **점수 산정 규칙**
+
+- 한 풀이 세션이 **본질문+꼬리질문을 전부 맞혔을 때만**(`correctCount == totalCount`) 점수를 받는다. 세션이 이 조건을 만족하지 못하면 그 세션에 포함된 문항은 전부 0점이다.
+- 객관식과 서술형은 점수를 매기는 단위가 다르다(→ `docs/DOMAIN.md` 꼬리질문 분기·서술형 꼬리질문 생성 정책).
+  - **객관식**: 본질문·꼬리질문 모두 문제은행의 실제 독립된 `Question`이므로, 세션에 등장한 **문항 하나하나(본질문 1개)가 각자 자기 `difficulty`로** 점수를 받는다(하 1점, 중 2점, 상 3점). 예를 들어 본질문(중, 2점)에 꼬리질문(상, 3점)이 이어져 둘 다 맞혔다면 그 세션은 총 5점이다.
+  - **서술형**: 꼬리질문은 AI가 그때그때 생성하는 스냅샷이라 실제 `Question`(난이도)이 없으므로, **본질문 하나(본질문 1개 + 꼬리질문 2개, 총 3문항)의 `difficulty`로만** 점수를 매긴다. 점수는 같은 난이도의 객관식 점수의 4배(하 4점, 중 8점, 상 12점) — 3문항을 전부 맞혀야 이 점수를 받는다.
+- **같은 `Question`은 유저가 살면서 최초로 만점 세션에 포함되어 맞힌 시점에만 점수를 지급한다.** 그 이후 같은 문항을 다시 풀면(본질문으로 나오든 다른 세션의 꼬리질문으로 나오든) 점수가 다시 오르지 않는다. 최초 성공 전의 실패한 시도는 점수 없이 지나갈 뿐, 이후 성공 기회를 막지 않는다.
+
+## **티어**
+
+| 티어 | 최소 누적 점수 |
+| --- | --- |
+| `BRONZE` | 0 |
+| `SILVER` | 58 |
+| `GOLD` | 198 |
+| `PLATINUM` | 420 |
+| `DIAMOND` | 677 |
+
+## **진척도 조회**
+
+### **Endpoint**
+
+```
+GET /api/progress
+```
+
+### **Response Body**
+
+```json
+{
+  "score": 90,
+  "tier": "SILVER",
+  "nextTier": "GOLD",
+  "scoreToNextTier": 108,
+  "totalQuestionCount": 15,
+  "categoryQuestionCounts": {
+    "NETWORK": 5,
+    "DB": 10
+  }
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `score` | int | 누적 점수. |
+| `tier` | String | 현재 티어(`BRONZE` \| `SILVER` \| `GOLD` \| `PLATINUM` \| `DIAMOND`). |
+| `nextTier` | String \| null | 다음 티어. 이미 `DIAMOND`이면 `null`. |
+| `scoreToNextTier` | int | 다음 티어까지 필요한 점수. 이미 `DIAMOND`이면 `0`. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
+| `categoryQuestionCounts` | Object | 카테고리별 **풀어본 본질문 수**(distinct, 정답/오답 무관). 한 번도 풀지 않은 카테고리는 키 자체가 없다. |
+
+### **에러**
+
+없음. 풀이 기록이 없으면 `score: 0`, `tier: "BRONZE"`, `totalQuestionCount: 0`, `categoryQuestionCounts: {}`를 반환한다.
+
+## **진척도 상단 통계 조회**
+
+누적/연속 학습일, 총 풀이 문제·정답·오답, 1일1면접 참여 횟수를 조회한다. 누적/연속 학습일은 `docs/API.md` LearningRecord API의 연속·누적 학습일 조회와 동일한 값(같은 `SolvedSession.solvedAt` distinct 날짜 집계)이다.
+
+### **Endpoint**
+
+```
+GET /api/progress/summary
+```
+
+### **Response Body**
+
+```json
+{
+  "cumulativeDays": 42,
+  "streakDays": 7,
+  "totalQuestionCount": 128,
+  "totalCorrectCount": 96,
+  "totalWrongCount": 32,
+  "completedInterviewCount": 16
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `cumulativeDays` | int | 누적 학습일(학습한 날의 총 수, distinct). |
+| `streakDays` | int | 연속 학습일. |
+| `totalQuestionCount` | int | 지금까지 푼 전체 문항 수(완료한 세션의 `totalCount` 합, 본질문+꼬리질문 포함). |
+| `totalCorrectCount` | int | 지금까지 맞힌 전체 문항 수. |
+| `totalWrongCount` | int | 지금까지 틀린 전체 문항 수(`totalQuestionCount - totalCorrectCount`). |
+| `completedInterviewCount` | int | 완료한 1일1면접 총 횟수. |
+
+### **에러**
+
+없음. 기록이 없으면 전부 `0`을 반환한다.
 
 ---
 

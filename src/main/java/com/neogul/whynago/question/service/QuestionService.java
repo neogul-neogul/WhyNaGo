@@ -10,8 +10,10 @@ import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.solvedsession.implement.SolvedQuestionIdReader;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +26,9 @@ public class QuestionService {
     private final QuestionReader questionReader;
     private final AnswerChoiceReader answerChoiceReader;
     private final AnswerChoiceValidator answerChoiceValidator;
+    private final SolvedQuestionIdReader solvedQuestionIdReader;
 
-    public List<QuestionResult> findQuestions(QuestionSearchCommand command) {
+    public List<QuestionResult> findQuestions(Long userId, QuestionSearchCommand command) {
         List<Question> questions = questionReader.readQuestions(
                 command.type(),
                 command.difficulty(),
@@ -35,14 +38,24 @@ public class QuestionService {
         Map<Long, List<String>> tagsByQuestionId = questionReader.readTagNames(questions.stream()
                 .map(Question::getId)
                 .toList());
+        Set<Long> solvedQuestionIds = readSolvedQuestionIds(userId);
 
         return questions.stream()
                 .map(question -> QuestionResult.from(
                         question,
                         readChoices(question),
-                        tagsByQuestionId.getOrDefault(question.getId(), List.of())
+                        tagsByQuestionId.getOrDefault(question.getId(), List.of()),
+                        solvedQuestionIds.contains(question.getId())
                 ))
                 .toList();
+    }
+
+    // 비로그인은 푼 문제를 조회하지 않는다.
+    private Set<Long> readSolvedQuestionIds(Long userId) {
+        if (userId == null) {
+            return Set.of();
+        }
+        return Set.copyOf(solvedQuestionIdReader.readAll(userId));
     }
 
     // 서술형은 선택지가 없으므로 조회하지 않는다.
@@ -65,6 +78,7 @@ public class QuestionService {
         return ChoiceGradingResult.of(question, chosenChoice, correctChoice, nextQuestion);
     }
 
+    // 채점 흐름에서는 완료 표시를 쓰지 않으므로 solved는 항상 false다.
     private QuestionResult readNextQuestion(Long nextQuestionId) {
         if (nextQuestionId == null) {
             return null;
@@ -76,7 +90,8 @@ public class QuestionService {
                         .map(ChoiceResult::from)
                         .toList(),
                 questionReader.readTagNames(List.of(nextQuestion.getId()))
-                        .getOrDefault(nextQuestion.getId(), List.of())
+                        .getOrDefault(nextQuestion.getId(), List.of()),
+                false
         );
     }
 

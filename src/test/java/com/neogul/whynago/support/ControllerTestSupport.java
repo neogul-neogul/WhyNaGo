@@ -13,6 +13,8 @@ import com.neogul.whynago.notification.presentation.NotificationSettingControlle
 import com.neogul.whynago.notification.service.NotificationSettingService;
 import com.neogul.whynago.problemset.presentation.ProblemSetController;
 import com.neogul.whynago.problemset.service.ProblemSetService;
+import com.neogul.whynago.progress.presentation.ProgressController;
+import com.neogul.whynago.progress.service.ProgressService;
 import com.neogul.whynago.question.presentation.QuestionController;
 import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
@@ -42,7 +44,8 @@ import org.springframework.test.web.servlet.MockMvc;
         InterviewController.class,
         UserController.class,
         NotificationSettingController.class,
-        ProblemSetController.class
+        ProblemSetController.class,
+        ProgressController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -85,6 +88,9 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected ProblemSetService problemSetService;
+
+    @MockitoBean
+    protected ProgressService progressService;
 
     @BeforeEach
     void setUpMockMvc() {

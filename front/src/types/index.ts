@@ -169,6 +169,8 @@ export interface QuestionResponse {
   explanation: string | null;
   choices: ChoiceResponse[];
   tags: string[];
+  /** 이미 푼 문제인지 여부. 비로그인 조회와 꼬리질문 응답에서는 항상 false */
+  solved: boolean;
 }
 
 // ===== 문제집 API (백엔드 problemset 도메인) — 유튜브 재생목록과 같은 개념, 항상 본인만 볼 수 있다 =====
