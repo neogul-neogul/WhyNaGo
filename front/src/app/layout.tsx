@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import Analytics from "@/components/analytics/Analytics";
 import Header from "@/components/layout/Header";
 import AuthGate from "@/components/layout/AuthGate";
 import ComingSoonGate from "@/components/layout/ComingSoonGate";
@@ -34,6 +35,7 @@ export default function RootLayout({
         <AuthGate>
           <ComingSoonGate>{children}</ComingSoonGate>
         </AuthGate>
+        <Analytics />
       </body>
     </html>
   );
