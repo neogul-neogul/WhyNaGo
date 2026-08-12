@@ -145,6 +145,12 @@ export default function Header() {
                     : "font-medium text-secondary hover:bg-black/[0.04]"
                 }`}
               >
+                {item.icon === "playlist" && (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h11M3 12h11M3 18h7" />
+                    <path d="M17 11l5 3-5 3z" />
+                  </svg>
+                )}
                 <span>{item.label}</span>
                 {item.badge && (
                   <span className="rounded-[5px] bg-ai-bg px-1.5 py-0.5 text-[10px] font-bold tracking-[0.03em] text-ai">

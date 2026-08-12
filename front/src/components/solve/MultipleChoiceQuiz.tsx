@@ -17,6 +17,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
 import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
+import SaveToProblemSetButton from "@/components/problemSets/SaveToProblemSetButton";
 
 /** 채점이 끝난 문항 (본질문/꼬리질문 각 1개) */
 interface SolvedItem {
@@ -35,10 +36,14 @@ export default function MultipleChoiceQuiz({
   question,
   onQuit,
   onFinish,
+  saved,
+  onOpenSaveModal,
 }: {
   question: QuestionResponse;
   onQuit: () => void;
   onFinish: (correct: number, total: number) => void;
+  saved: boolean;
+  onOpenSaveModal: () => void;
 }) {
   const loggedIn = useAuth();
   const [showLoginGate, setShowLoginGate] = useState(false);
@@ -130,7 +135,7 @@ export default function MultipleChoiceQuiz({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-center justify-between gap-3.5">
         <button
           type="button"
           onClick={onQuit}
@@ -141,6 +146,7 @@ export default function MultipleChoiceQuiz({
           </svg>
           돌아가기
         </button>
+        <SaveToProblemSetButton saved={saved} onClick={onOpenSaveModal} />
       </div>
 
       <div className="flex items-start gap-[18px]">
