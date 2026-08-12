@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { QuestionResponse } from "@/types";
+import type { PageResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { useCurrentUser, useHydrated } from "@/lib/auth";
 import {
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
+  QUESTION_PAGE_SIZE,
   TYPE_LABELS,
   categoryFromLabel,
   difficultyFromLabel,
@@ -16,6 +17,7 @@ import {
 import { CATEGORIES, diffColor, lvBadge } from "@/lib/badges";
 import Chip from "@/components/ui/Chip";
 import Badge, { type BadgeTone } from "@/components/ui/Badge";
+import Pagination from "@/components/ui/Pagination";
 
 const typeTone: Record<string, BadgeTone> = {
   객관식: "accent",
@@ -33,21 +35,25 @@ export default function ProblemBank({
   const [cat, setCat] = useState("전체");
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(0);
   const userId = useCurrentUser()?.id ?? null;
   const hydrated = useHydrated();
 
   // 현재 조회 조합의 결과. key가 지금 조합과 다르면 아직 로딩 중
   // 푼 문제 표시(solved)가 사용자마다 다르므로 userId도 조합에 넣는다
-  const filtersKey = `${type}|${diff}|${cat}|${keyword}|${userId}`;
+  const filtersKey = `${type}|${diff}|${cat}|${keyword}|${userId}|${page}`;
   const [result, setResult] = useState<{
     key: string;
-    list?: QuestionResponse[];
+    page?: PageResponse<QuestionResponse>;
     error?: string;
   } | null>(null);
 
   // 검색어는 잠시 멈췄을 때만 서버에 반영
   useEffect(() => {
-    const timer = setTimeout(() => setKeyword(search.trim()), 300);
+    const timer = setTimeout(() => {
+      setKeyword(search.trim());
+      setPage(0);
+    }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
@@ -55,14 +61,17 @@ export default function ProblemBank({
   useEffect(() => {
     if (!hydrated) return;
     let cancelled = false;
-    fetchQuestions({
-      type: typeFromLabel(type),
-      difficulty: difficultyFromLabel(diff),
-      category: categoryFromLabel(cat),
-      keyword: keyword || undefined,
-    })
-      .then((list) => {
-        if (!cancelled) setResult({ key: filtersKey, list });
+    fetchQuestions(
+      {
+        type: typeFromLabel(type),
+        difficulty: difficultyFromLabel(diff),
+        category: categoryFromLabel(cat),
+        keyword: keyword || undefined,
+      },
+      { page, size: QUESTION_PAGE_SIZE },
+    )
+      .then((response) => {
+        if (!cancelled) setResult({ key: filtersKey, page: response });
       })
       .catch((e) => {
         if (!cancelled) {
@@ -75,11 +84,23 @@ export default function ProblemBank({
     return () => {
       cancelled = true;
     };
-  }, [type, diff, cat, keyword, userId, hydrated, filtersKey]);
+  }, [type, diff, cat, keyword, userId, hydrated, page, filtersKey]);
 
   const loading = result?.key !== filtersKey;
-  const questions = (!loading && result?.list) || [];
+  const questions = (!loading && result?.page?.content) || [];
   const error = !loading ? (result?.error ?? null) : null;
+  const totalElements = result?.page?.totalElements ?? 0;
+  const totalPages = result?.page?.totalPages ?? 0;
+
+  const movePage = (next: number) => {
+    setPage(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const changeFilter = (apply: (value: string) => void, value: string) => {
+    apply(value);
+    setPage(0);
+  };
 
   return (
     <div className="flex max-w-[1000px] flex-col gap-4">
@@ -103,17 +124,17 @@ export default function ProblemBank({
       <div className="flex flex-col gap-[11px]">
         <FilterRow label="유형">
           {["전체", "객관식", "서술형"].map((t) => (
-            <Chip key={t} label={t} active={type === t} onClick={() => setType(t)} />
+            <Chip key={t} label={t} active={type === t} onClick={() => changeFilter(setType, t)} />
           ))}
         </FilterRow>
         <FilterRow label="난이도">
           {["전체", "하", "중", "상"].map((d) => (
-            <Chip key={d} label={d} active={diff === d} onClick={() => setDiff(d)} />
+            <Chip key={d} label={d} active={diff === d} onClick={() => changeFilter(setDiff, d)} />
           ))}
         </FilterRow>
         <FilterRow label="카테고리" alignTop>
           {CATEGORIES.map((c) => (
-            <Chip key={c} label={c} active={cat === c} onClick={() => setCat(c)} />
+            <Chip key={c} label={c} active={cat === c} onClick={() => changeFilter(setCat, c)} />
           ))}
         </FilterRow>
       </div>
@@ -121,7 +142,7 @@ export default function ProblemBank({
       {/* 개수 + 정렬 */}
       <div className="flex items-center justify-between pt-1">
         <span className="text-[14px] font-semibold text-ink">
-          <span className="font-mono">{questions.length}</span>개 문제
+          <span className="font-mono">{totalElements}</span>개 문제
         </span>
         <span className="flex items-center gap-1.5 text-[13px] font-medium text-soft">
           최신순
@@ -201,6 +222,8 @@ export default function ProblemBank({
             );
           })}
       </div>
+
+      {!error && <Pagination page={page} totalPages={totalPages} onChange={movePage} />}
     </div>
   );
 }
