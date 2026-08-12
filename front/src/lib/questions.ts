@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { refreshStreak } from "@/lib/streakStore";
 import type {
   ChoiceGradingResponse,
   CreateEssaySolvedSessionRequest,
@@ -93,13 +94,15 @@ export function nowAsLocalDateTime(): string {
 }
 
 /** 풀이 세션 저장 (마지막 문항까지 답한 완료 세션만 저장) */
-export function saveSolvedSession(
+export async function saveSolvedSession(
   request: CreateSolvedSessionRequest,
 ): Promise<CreateSolvedSessionResponse> {
-  return apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions", {
+  const result = await apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions", {
     method: "POST",
     body: request,
   });
+  void refreshStreak();
+  return result;
 }
 
 /** 서술형 세션 시작 — 이후 채점 요청을 묶을 대화 식별자를 발급받는다 */
@@ -124,11 +127,13 @@ export function evaluateEssayAnswer(
 }
 
 /** 서술형 풀이 세션 저장 (본질문 1 + 꼬리질문 2 문답 스냅샷. 완료 세션만 저장) */
-export function saveEssaySolvedSession(
+export async function saveEssaySolvedSession(
   request: CreateEssaySolvedSessionRequest,
 ): Promise<CreateSolvedSessionResponse> {
-  return apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions/essay", {
+  const result = await apiFetch<CreateSolvedSessionResponse>("/api/solved-sessions/essay", {
     method: "POST",
     body: request,
   });
+  void refreshStreak();
+  return result;
 }

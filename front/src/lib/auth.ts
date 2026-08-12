@@ -15,6 +15,7 @@ import {
   setTokens,
   subscribeAuthChange,
 } from "@/lib/authStorage";
+import { resetStreak } from "@/lib/streakStore";
 import type {
   AuthUser,
   LoginResponse,
@@ -53,6 +54,7 @@ export function saveSession(res: LoginResponse) {
 export async function logout() {
   const refreshToken = getRefreshToken();
   clearSession();
+  resetStreak();
   notifyAuthChange();
 
   if (refreshToken === null) return;
