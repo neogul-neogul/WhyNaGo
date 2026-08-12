@@ -113,7 +113,7 @@ export interface TodayMetric {
 }
 
 /** 오늘 완료 가능한 학습 메뉴 카드 아이콘 종류 */
-export type LearningMenuIcon = "solve" | "wrong" | "interview" | "mock";
+export type LearningMenuIcon = "solve" | "collections" | "wrong" | "interview";
 
 /** 오늘 완료 가능한 학습 메뉴 카드 */
 export interface LearningMenuItem {

@@ -21,6 +21,13 @@ function MenuCardIcon({ name, color }: { name: LearningMenuIcon; color: string }
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
         </svg>
       );
+    case "collections":
+      return (
+        <svg {...common}>
+          <path d="M3 6h11M3 12h11M3 18h7" />
+          <path d="M17 11l5 3-5 3z" />
+        </svg>
+      );
     case "wrong":
       return (
         <svg {...common}>
@@ -32,12 +39,6 @@ function MenuCardIcon({ name, color }: { name: LearningMenuIcon; color: string }
       return (
         <svg {...common}>
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
-      );
-    case "mock":
-      return (
-        <svg {...common}>
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
       );
   }

@@ -7,7 +7,6 @@ export const navItems: NavItem[] = [
   { key: "collections", label: "문제집", href: "/collections", icon: "playlist" },
   { key: "wrong", label: "오답노트", href: "/wrong" },
   { key: "interview", label: "1일 1면접", href: "/interview", badge: "AI" },
-  { key: "mock", label: "모의 진단", href: "/mock" },
 ];
 
 // 프로필 드롭다운 메뉴 (더미)

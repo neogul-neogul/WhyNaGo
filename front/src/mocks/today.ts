@@ -39,6 +39,15 @@ export const learningMenu: LearningMenuItem[] = [
     accentFg: palette.accent,
   },
   {
+    key: "collections",
+    title: "문제집",
+    description: "저장한 문제 다시 풀어보기",
+    href: "/collections",
+    icon: "collections",
+    accentBg: palette.successPale,
+    accentFg: palette.success,
+  },
+  {
     key: "wrong",
     title: "오답노트 복습",
     description: "미복습 3문제 대기 중",
@@ -56,14 +65,5 @@ export const learningMenu: LearningMenuItem[] = [
     accentBg: palette.aiBg,
     accentFg: palette.ai,
     badge: "AI",
-  },
-  {
-    key: "mock",
-    title: "모의 진단",
-    description: "실력 등급 다시 확인하기",
-    href: "/mock",
-    icon: "mock",
-    accentBg: palette.successPale,
-    accentFg: palette.success,
   },
 ];
