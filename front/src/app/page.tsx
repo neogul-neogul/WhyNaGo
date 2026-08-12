@@ -6,10 +6,11 @@ import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import TodayBanner from "@/components/today/TodayBanner";
 import TodayMetrics from "@/components/today/TodayMetrics";
 import LearningMenu from "@/components/today/LearningMenu";
-import { fetchDailyCounts, fetchStreak, todayDateKey } from "@/lib/records";
+import { fetchDailyCounts, todayDateKey } from "@/lib/records";
 import { fetchWrongNotes } from "@/lib/wrongNotes";
 import { fetchMyProfile } from "@/lib/user";
 import { syncStoredUser, useAuth } from "@/lib/auth";
+import { refreshStreak, useStreak } from "@/lib/streakStore";
 import {
   guestPreviewGoal,
   guestPreviewStats,
@@ -18,7 +19,6 @@ import {
 } from "@/mocks/today";
 
 interface TodaySummary {
-  stats: LearningStats;
   /** 프로필 조회 전 잠깐 보여줄 기본값 (실패해도 화면을 막지 않기 위한 폴백) */
   dailyGoal: number;
   solvedToday: number;
@@ -29,15 +29,18 @@ interface TodaySummary {
 }
 
 const EMPTY_SUMMARY: TodaySummary = {
-  stats: { streakDays: 0, cumulativeDays: 0 },
   dailyGoal: 10,
   solvedToday: 0,
   sessionsToday: 0,
   wrongNoteCount: null,
 };
 
+// 스트릭 조회 전 배너에 잠깐 보여줄 기본값
+const EMPTY_STATS: LearningStats = { streakDays: 0, cumulativeDays: 0 };
+
 export default function Home() {
   const loggedIn = useAuth();
+  const streak = useStreak();
   const [fetched, setFetched] = useState<TodaySummary | null>(null);
 
   // 로그아웃하면 조회해둔 지표를 즉시 감춘다
@@ -47,13 +50,14 @@ export default function Home() {
     // 홈은 비로그인도 볼 수 있는 화면이라, 인증이 필요한 지표 조회는 로그인 상태에서만 한다
     if (!loggedIn) return;
 
+    void refreshStreak();
+
     let cancelled = false;
     const today = todayDateKey();
-    Promise.all([fetchStreak(), fetchDailyCounts(today, today), fetchWrongNotes(), fetchMyProfile()])
-      .then(([streak, daily, wrongNotes, profile]) => {
+    Promise.all([fetchDailyCounts(today, today), fetchWrongNotes(), fetchMyProfile()])
+      .then(([daily, wrongNotes, profile]) => {
         if (cancelled) return;
         setFetched({
-          stats: streak,
           dailyGoal: profile.dailyGoal,
           solvedToday: daily[0]?.sessionCount ?? 0,
           sessionsToday: daily[0]?.sessionCount ?? 0,
@@ -99,7 +103,7 @@ export default function Home() {
         <div className="flex flex-col gap-[22px]">
           <TodayBanner
             goal={loggedIn ? todayGoal : guestPreviewGoal}
-            stats={loggedIn ? summary.stats : guestPreviewStats}
+            stats={loggedIn ? (streak ?? EMPTY_STATS) : guestPreviewStats}
             preview={!loggedIn}
           />
           <TodayMetrics metrics={todayMetrics} />

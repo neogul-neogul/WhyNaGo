@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ProfileMenuIcon } from "@/types";
 import type { Position } from "@/types";
 import { navItems, profileMenu } from "@/mocks/navigation";
-import { fetchStreak } from "@/lib/records";
+import { refreshStreak, useStreak } from "@/lib/streakStore";
 import { logout as authLogout, useAuth, useCurrentUser, useHydrated } from "@/lib/auth";
 
 // 직무(Position)를 화면 표기용 한글 라벨로 변환
@@ -81,21 +81,11 @@ export default function Header() {
   const hydrated = useHydrated();
   const user = useCurrentUser();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [streakDays, setStreakDays] = useState(0);
+  const streak = useStreak();
 
   useEffect(() => {
     if (!loggedIn || !user) return;
-    let cancelled = false;
-    fetchStreak()
-      .then((result) => {
-        if (!cancelled) setStreakDays(result.streakDays);
-      })
-      .catch(() => {
-        // 헤더의 스트릭 배지는 조회에 실패해도 화면을 막지 않는다
-      });
-    return () => {
-      cancelled = true;
-    };
+    void refreshStreak();
   }, [loggedIn, user]);
 
   const isActive = (href: string) =>
@@ -161,7 +151,7 @@ export default function Header() {
           {!hydrated ? null : loggedIn && user ? (
             <>
           <div className="flex items-center gap-1 font-mono text-xs font-semibold text-streak">
-            🔥{streakDays}
+            🔥{streak?.streakDays ?? 0}
           </div>
 
           <button
