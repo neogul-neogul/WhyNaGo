@@ -5,11 +5,13 @@ import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.implement.AnswerChoiceReader;
 import com.neogul.whynago.question.implement.AnswerChoiceValidator;
 import com.neogul.whynago.question.implement.QuestionReader;
+import com.neogul.whynago.question.implement.dto.QuestionPage;
 import com.neogul.whynago.question.service.dto.ChoiceGradingResult;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.question.service.dto.QuestionsResult;
 import com.neogul.whynago.solvedsession.implement.SolvedQuestionIdReader;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +30,22 @@ public class QuestionService {
     private final AnswerChoiceValidator answerChoiceValidator;
     private final SolvedQuestionIdReader solvedQuestionIdReader;
 
-    public List<QuestionResult> findQuestions(Long userId, QuestionSearchCommand command) {
-        List<Question> questions = questionReader.readQuestions(
+    public QuestionsResult findQuestions(Long userId, QuestionSearchCommand command) {
+        QuestionPage questionPage = questionReader.readQuestionPage(
                 command.type(),
                 command.difficulty(),
                 command.category(),
-                command.keyword()
+                command.keyword(),
+                command.page(),
+                command.size()
         );
+        List<Question> questions = questionPage.questions();
         Map<Long, List<String>> tagsByQuestionId = questionReader.readTagNames(questions.stream()
                 .map(Question::getId)
                 .toList());
         Set<Long> solvedQuestionIds = readSolvedQuestionIds(userId);
 
-        return questions.stream()
+        List<QuestionResult> results = questions.stream()
                 .map(question -> QuestionResult.from(
                         question,
                         readChoices(question),
@@ -48,6 +53,20 @@ public class QuestionService {
                         solvedQuestionIds.contains(question.getId())
                 ))
                 .toList();
+
+        return new QuestionsResult(results, command.page(), command.size(), questionPage.totalElements());
+    }
+
+    public QuestionResult findQuestion(Long userId, Long questionId) {
+        Question question = questionReader.read(questionId);
+
+        return QuestionResult.from(
+                question,
+                readChoices(question),
+                questionReader.readTagNames(List.of(question.getId()))
+                        .getOrDefault(question.getId(), List.of()),
+                readSolvedQuestionIds(userId).contains(question.getId())
+        );
     }
 
     // 비로그인은 푼 문제를 조회하지 않는다.

@@ -345,7 +345,7 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
-> **인증 범위**: `GET /api/questions`(목록 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다).
+> **인증 범위**: `GET /api/questions`(목록 조회)와 `GET /api/questions/{questionId}`(단건 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 `/api/questions`와 한 단계 아래 경로(`/api/questions/*`)만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다. `/essay`·`/choices` 하위는 경로 깊이가 달라 제외 대상이 아니다).
 
 ## **문제 목록 조회**
 
@@ -361,8 +361,8 @@ POST /api/auth/logout
 GET /api/questions
 ```
 
-- 성공 시 `200 OK`와 문제 배열을 반환한다.
-- 정렬은 문제 ID 내림차순(최신순) 고정이다. 페이징은 없다.
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+- 정렬은 문제 ID 내림차순(최신순) 고정이다. ID가 유일해 페이지 간 순서가 흔들리지 않는다.
 
 ### **Query Parameters**
 
@@ -374,45 +374,67 @@ GET /api/questions
 | `difficulty` | String | 난이도. `LOW` \| `MEDIUM` \| `HIGH` |
 | `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
 | `q` | String | 제목·지문 키워드. 부분 일치이며 대소문자를 구분하지 않는다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 문항 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
 
 ### **Response Body**
 
+문항 배열은 `content`에 담기고, 나머지 필드는 페이지 정보다.
+
 ```json
-[
-  {
-    "id": 101,
-    "title": "TCP 흐름 제어 vs 혼잡 제어",
-    "content": "TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하시오.",
-    "type": "ESSAY",
-    "difficulty": "MEDIUM",
-    "category": "NETWORK",
-    "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
-    "choices": [],
-    "tags": ["흐름 제어", "혼잡 제어"],
-    "solved": true
-  },
-  {
-    "id": 1,
-    "title": "TCP와 UDP의 핵심 차이",
-    "content": "TCP와 UDP의 가장 핵심적인 차이로 옳은 것은?",
-    "type": "MULTIPLE_CHOICE",
-    "difficulty": "MEDIUM",
-    "category": "NETWORK",
-    "explanation": "TCP는 3-way handshake로 연결을 수립하고 순서 보장·재전송·흐름 제어를 제공한다...",
-    "choices": [
-      {
-        "id": 1,
-        "content": "TCP는 연결 지향형으로 신뢰성을 보장하고, UDP는 비연결형으로 속도를 우선한다.",
-        "sequence": 1,
-        "explanation": "",
-        "relatedQuestionId": 2
-      }
-    ],
-    "tags": ["NETWORK"],
-    "solved": false
-  }
-]
+{
+  "content": [
+    {
+      "id": 101,
+      "title": "TCP 흐름 제어 vs 혼잡 제어",
+      "content": "TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하시오.",
+      "type": "ESSAY",
+      "difficulty": "MEDIUM",
+      "category": "NETWORK",
+      "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
+      "choices": [],
+      "tags": ["흐름 제어", "혼잡 제어"],
+      "solved": true
+    },
+    {
+      "id": 1,
+      "title": "TCP와 UDP의 핵심 차이",
+      "content": "TCP와 UDP의 가장 핵심적인 차이로 옳은 것은?",
+      "type": "MULTIPLE_CHOICE",
+      "difficulty": "MEDIUM",
+      "category": "NETWORK",
+      "explanation": "TCP는 3-way handshake로 연결을 수립하고 순서 보장·재전송·흐름 제어를 제공한다...",
+      "choices": [
+        {
+          "id": 1,
+          "content": "TCP는 연결 지향형으로 신뢰성을 보장하고, UDP는 비연결형으로 속도를 우선한다.",
+          "sequence": 1,
+          "explanation": "",
+          "relatedQuestionId": 2
+        }
+      ],
+      "tags": ["NETWORK"],
+      "solved": false
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 137,
+  "totalPages": 7,
+  "last": false
+}
 ```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `content` | Array | 이 페이지의 문항 목록. |
+| `page` | int | 0부터 시작하는 현재 페이지 번호. 요청값을 보정한 결과다. |
+| `size` | int | 한 페이지 문항 수. 요청값을 보정한 결과다. |
+| `totalElements` | long | 조건에 맞는 전체 문항 수. 화면의 "N개 문제" 표시에 사용한다. |
+| `totalPages` | int | 전체 페이지 수. `totalElements`가 0이면 0이다. |
+| `last` | boolean | 마지막 페이지인지 여부. |
+
+`content` 원소의 필드는 다음과 같다.
 
 | **필드** | **타입** | **설명** |
 | --- | --- | --- |
@@ -436,9 +458,59 @@ GET /api/questions
 
 ### **에러**
 
-조건에 맞는 문제가 없으면 에러가 아니라 빈 배열(`[]`)과 `200 OK`를 반환한다.
+조건에 맞는 문제가 없으면 에러가 아니라 빈 `content`와 `200 OK`를 반환한다(`totalElements` 0, `totalPages` 0, `last` true). 범위를 넘는 `page`를 요청해도 마찬가지로 빈 `content`를 반환하며, 이때 `totalElements`는 조건에 맞는 전체 문항 수 그대로다.
 
 > **알려진 문제**: 필터에 enum에 없는 값을 보내면(예: `?type=FOO`) 요청 형식 오류이므로 `400 INVALID_INPUT`이어야 하는데, 현재는 `500 SERVER_ERROR`로 응답한다. 요청 바인딩 예외(`MethodArgumentTypeMismatchException`)가 `GlobalExceptionHandler`에 등록되지 않아서다. 별도 이슈로 처리한다.
+
+---
+
+## **문제 단건 조회**
+
+문제 하나를 조회한다. 목록이 페이지 단위라 문제 상세(풀이) 화면이 목록에서 문항을 찾아낼 수 없으므로, 화면 진입 시 이 API로 문항을 가져온다. 응답은 목록 응답의 `content` 원소와 완전히 같은 형식이며, 객관식·서술형을 가리지 않는다(서술형은 `choices`가 빈 배열).
+
+서술형 발문만 다시 보여주는 용도라면 `explanation` 없이 내려주는 **서술형 문제 조회**(`/api/questions/{questionId}/essay`)를 쓴다.
+
+### **Endpoint**
+
+```
+GET /api/questions/{questionId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 목록 조회와 동일하게 **선택적 인증**이다. 비로그인 요청이면 `solved`가 항상 `false`다.
+
+### **Response Body**
+
+```json
+{
+  "id": 1,
+  "title": "TCP와 UDP의 핵심 차이",
+  "content": "TCP와 UDP의 가장 핵심적인 차이로 옳은 것은?",
+  "type": "MULTIPLE_CHOICE",
+  "difficulty": "MEDIUM",
+  "category": "NETWORK",
+  "explanation": "TCP는 3-way handshake로 연결을 수립하고 순서 보장·재전송·흐름 제어를 제공한다...",
+  "choices": [
+    {
+      "id": 1,
+      "content": "TCP는 연결 지향형으로 신뢰성을 보장하고, UDP는 비연결형으로 속도를 우선한다.",
+      "sequence": 1,
+      "explanation": "",
+      "relatedQuestionId": 2
+    }
+  ],
+  "tags": ["NETWORK"],
+  "solved": false
+}
+```
+
+필드 설명은 목록 조회의 `content` 원소와 같다.
+
+### **에러**
+
+| **상태** | **code** | **설명** |
+| --- | --- | --- |
+| 404 | `QUESTION_NOT_FOUND` | 해당 ID의 문제가 없다. |
 
 ---
 

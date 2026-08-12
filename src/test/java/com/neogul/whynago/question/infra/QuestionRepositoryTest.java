@@ -17,6 +17,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 class QuestionRepositoryTest extends RepositoryTestSupport {
 
@@ -39,14 +41,15 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
         questionTagRepository.save(QuestionTag.create(root.getId(), "NETWORK"));
 
-        List<Question> result = questionRepository.findQuestions(
+        Page<Question> result = questionRepository.findQuestions(
                 QuestionType.MULTIPLE_CHOICE,
                 Difficulty.MEDIUM,
                 Category.NETWORK,
-                "UDP"
+                "UDP",
+                PageRequest.of(0, 20)
         );
 
-        assertThat(result).extracting(Question::getId).containsExactly(followup.getId(), root.getId());
+        assertThat(result.getContent()).extracting(Question::getId).containsExactly(followup.getId(), root.getId());
         assertThat(questionTagRepository.findByQuestionIdIn(List.of(root.getId())))
                 .extracting(QuestionTag::getName)
                 .containsExactly("NETWORK");
@@ -62,11 +65,11 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         answerChoiceRepository.save(AnswerChoiceFixture.correct(multipleChoiceRoot.getId(), 1, followup.getId()));
 
         // when
-        List<Question> result = questionRepository.findQuestions(null, null, null, null);
+        Page<Question> result = questionRepository.findQuestions(null, null, null, null, PageRequest.of(0, 20));
 
         // then
         // 꼬리질문으로 참조되는 문항도 그 자체로 독립된 문항이라 목록에서 제외되지 않는다.
-        assertThat(result).extracting(Question::getId)
+        assertThat(result.getContent()).extracting(Question::getId)
                 .containsExactlyInAnyOrder(multipleChoiceRoot.getId(), followup.getId(), essay.getId());
     }
 
@@ -78,11 +81,50 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
 
         // when
-        List<Question> result = questionRepository.findQuestions(QuestionType.ESSAY, null, null, null);
+        Page<Question> result = questionRepository.findQuestions(
+                QuestionType.ESSAY,
+                null,
+                null,
+                null,
+                PageRequest.of(0, 20)
+        );
 
         // then
-        assertThat(result).extracting(Question::getId).containsExactly(essay.getId());
-        assertThat(result).extracting(Question::getType).containsOnly(QuestionType.ESSAY);
+        assertThat(result.getContent()).extracting(Question::getId).containsExactly(essay.getId());
+        assertThat(result.getContent()).extracting(Question::getType).containsOnly(QuestionType.ESSAY);
+    }
+
+    @Test
+    @DisplayName("요청한 페이지 크기만큼만 조회하고 조건에 맞는 전체 문항 수를 함께 반환한다.")
+    void findQuestions_paged() {
+        // given
+        Question root = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+
+        // when
+        Page<Question> firstPage = questionRepository.findQuestions(null, null, null, null, PageRequest.of(0, 2));
+        Page<Question> lastPage = questionRepository.findQuestions(null, null, null, null, PageRequest.of(1, 2));
+
+        // then
+        assertThat(firstPage.getTotalElements()).isEqualTo(3);
+        assertThat(firstPage.getContent()).extracting(Question::getId)
+                .containsExactly(essay.getId(), followup.getId());
+        assertThat(lastPage.getContent()).extracting(Question::getId).containsExactly(root.getId());
+    }
+
+    @Test
+    @DisplayName("조회 범위를 벗어난 페이지를 요청하면 빈 목록과 전체 문항 수를 반환한다.")
+    void findQuestions_pageOutOfRange() {
+        // given
+        questionRepository.save(QuestionFixture.rootMultipleChoice());
+
+        // when
+        Page<Question> result = questionRepository.findQuestions(null, null, null, null, PageRequest.of(5, 20));
+
+        // then
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
     @Test

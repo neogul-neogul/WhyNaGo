@@ -22,6 +22,7 @@ import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionResult;
 import com.neogul.whynago.question.service.dto.QuestionSearchCommand;
+import com.neogul.whynago.question.service.dto.QuestionsResult;
 import com.neogul.whynago.solvedsession.domain.EssaySolved;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
@@ -135,12 +136,13 @@ class QuestionServiceTest extends IntegrationTestSupport {
         questionTagRepository.save(QuestionTag.create(essay.getId(), "트랜잭션"));
 
         // when
-        List<QuestionResult> results = questionService.findQuestions(
+        QuestionsResult result = questionService.findQuestions(
                 10L,
-                new QuestionSearchCommand(QuestionType.ESSAY, null, null, null)
+                QuestionSearchCommand.of(QuestionType.ESSAY, null, null, null, null, null)
         );
 
         // then
+        List<QuestionResult> results = result.questions();
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().id()).isEqualTo(essay.getId());
         assertThat(results.getFirst().type()).isEqualTo(QuestionType.ESSAY);
@@ -157,13 +159,13 @@ class QuestionServiceTest extends IntegrationTestSupport {
         solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, solvedQuestion.getId()));
 
         // when
-        List<QuestionResult> results = questionService.findQuestions(
+        QuestionsResult result = questionService.findQuestions(
                 10L,
-                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+                QuestionSearchCommand.of(QuestionType.MULTIPLE_CHOICE, null, null, null, null, null)
         );
 
         // then
-        assertThat(results)
+        assertThat(result.questions())
                 .extracting(QuestionResult::id, QuestionResult::solved)
                 .containsExactlyInAnyOrder(
                         tuple(solvedQuestion.getId(), true),
@@ -179,14 +181,14 @@ class QuestionServiceTest extends IntegrationTestSupport {
         essaySolvedRepository.save(essaySolved(10L, essay.getId()));
 
         // when
-        List<QuestionResult> results = questionService.findQuestions(
+        QuestionsResult result = questionService.findQuestions(
                 10L,
-                new QuestionSearchCommand(QuestionType.ESSAY, null, null, null)
+                QuestionSearchCommand.of(QuestionType.ESSAY, null, null, null, null, null)
         );
 
         // then
-        assertThat(results).hasSize(1);
-        assertThat(results.getFirst().solved()).isTrue();
+        assertThat(result.questions()).hasSize(1);
+        assertThat(result.questions().getFirst().solved()).isTrue();
     }
 
     @Test
@@ -197,14 +199,14 @@ class QuestionServiceTest extends IntegrationTestSupport {
         solvedMultipleChoiceRepository.save(solvedMultipleChoice(20L, question.getId()));
 
         // when
-        List<QuestionResult> results = questionService.findQuestions(
+        QuestionsResult result = questionService.findQuestions(
                 10L,
-                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+                QuestionSearchCommand.of(QuestionType.MULTIPLE_CHOICE, null, null, null, null, null)
         );
 
         // then
-        assertThat(results).hasSize(1);
-        assertThat(results.getFirst().solved()).isFalse();
+        assertThat(result.questions()).hasSize(1);
+        assertThat(result.questions().getFirst().solved()).isFalse();
     }
 
     @Test
@@ -215,14 +217,97 @@ class QuestionServiceTest extends IntegrationTestSupport {
         solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, question.getId()));
 
         // when
-        List<QuestionResult> results = questionService.findQuestions(
+        QuestionsResult result = questionService.findQuestions(
                 null,
-                new QuestionSearchCommand(QuestionType.MULTIPLE_CHOICE, null, null, null)
+                QuestionSearchCommand.of(QuestionType.MULTIPLE_CHOICE, null, null, null, null, null)
         );
 
         // then
-        assertThat(results).hasSize(1);
-        assertThat(results.getFirst().solved()).isFalse();
+        assertThat(result.questions()).hasSize(1);
+        assertThat(result.questions().getFirst().solved()).isFalse();
+    }
+
+    @Test
+    @DisplayName("요청한 페이지의 문제만 반환하고 전체 문항 수를 함께 반환한다.")
+    void findQuestions_paged() {
+        // given
+        questionRepository.save(QuestionFixture.rootMultipleChoice());
+        Question followup = questionRepository.save(QuestionFixture.followupMultipleChoice());
+        Question essay = questionRepository.save(QuestionFixture.essayRoot());
+
+        // when
+        QuestionsResult result = questionService.findQuestions(
+                10L,
+                QuestionSearchCommand.of(null, null, null, null, 0, 2)
+        );
+
+        // then
+        assertThat(result.questions()).extracting(QuestionResult::id)
+                .containsExactly(essay.getId(), followup.getId());
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.totalElements()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("페이지 정보를 주지 않으면 첫 페이지를 20개 크기로 조회한다.")
+    void findQuestions_defaultPaging() {
+        // given
+        questionRepository.save(QuestionFixture.rootMultipleChoice());
+
+        // when
+        QuestionsResult result = questionService.findQuestions(
+                10L,
+                QuestionSearchCommand.of(null, null, null, null, null, null)
+        );
+
+        // then
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(20);
+        assertThat(result.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("문제를 단건 조회하면 선택지·태그와 푼 문제 여부를 함께 반환한다.")
+    void findQuestion() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(question.getId(), 1, null));
+        questionTagRepository.save(QuestionTag.create(question.getId(), "NETWORK"));
+        solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, question.getId()));
+
+        // when
+        QuestionResult result = questionService.findQuestion(10L, question.getId());
+
+        // then
+        assertThat(result.id()).isEqualTo(question.getId());
+        assertThat(result.choices()).extracting(ChoiceResult::id).containsExactly(choice.getId());
+        assertThat(result.tags()).containsExactly("NETWORK");
+        assertThat(result.solved()).isTrue();
+    }
+
+    @Test
+    @DisplayName("비로그인으로 문제를 단건 조회하면 푼 문제여도 solved가 false다.")
+    void findQuestion_withoutUser() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, question.getId()));
+
+        // when
+        QuestionResult result = questionService.findQuestion(null, question.getId());
+
+        // then
+        assertThat(result.solved()).isFalse();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 문제를 단건 조회하면 예외가 발생한다.")
+    void findQuestion_questionNotFound() {
+        // when & then
+        assertThatThrownBy(() -> questionService.findQuestion(10L, Long.MAX_VALUE))
+                .isInstanceOf(BusinessException.class)
+                .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
+                        .isEqualTo(QuestionErrorCode.QUESTION_NOT_FOUND));
     }
 
     @Test

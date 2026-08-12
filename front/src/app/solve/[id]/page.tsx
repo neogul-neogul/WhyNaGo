@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { ProblemSetMembershipResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
-import { fetchQuestions } from "@/lib/questions";
+import { fetchQuestion } from "@/lib/questions";
 import { fetchProblemSetMembership } from "@/lib/problemSets";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import MultipleChoiceQuiz from "@/components/solve/MultipleChoiceQuiz";
@@ -14,8 +14,7 @@ import SaveToProblemSetModal from "@/components/problemSets/SaveToProblemSetModa
 
 type Stage = "quiz" | "result";
 
-// 문제 상세(풀이) 페이지 — GET /api/questions는 id 단건 조회가 없어
-// 목록을 조회한 뒤 해당 id의 문항을 찾는다
+// 문제 상세(풀이) 페이지 — 목록이 페이지 단위라 단건 조회 API로 문항을 가져온다
 export default function SolveDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
@@ -31,17 +30,18 @@ export default function SolveDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchQuestions()
-      .then((list) => {
+    fetchQuestion(Number(id))
+      .then((found) => {
         if (cancelled) return;
-        const found = list.find((q) => String(q.id) === id) ?? null;
         setQuestion(found);
-        setNotFound(!found);
       })
       .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof ApiError ? e.message : "문제를 불러오지 못했습니다.");
+        if (cancelled) return;
+        if (e instanceof ApiError && e.status === 404) {
+          setNotFound(true);
+          return;
         }
+        setError(e instanceof ApiError ? e.message : "문제를 불러오지 못했습니다.");
       });
     return () => {
       cancelled = true;

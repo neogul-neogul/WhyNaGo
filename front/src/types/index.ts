@@ -147,6 +147,18 @@ export type QuestionDifficulty = "LOW" | "MEDIUM" | "HIGH";
 /** 문제 유형 (백엔드 QuestionType enum) */
 export type QuestionTypeCode = "MULTIPLE_CHOICE" | "ESSAY";
 
+/** 페이지 단위 목록 응답 공통 형식 (백엔드 PageResponse) */
+export interface PageResponse<T> {
+  content: T[];
+  /** 0부터 시작하는 현재 페이지 번호 */
+  page: number;
+  size: number;
+  /** 조건에 맞는 전체 항목 수 */
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 /** 객관식 선택지 (정답 여부는 서버만 알고, 채점 API로만 확인) */
 export interface ChoiceResponse {
   id: number;

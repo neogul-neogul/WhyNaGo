@@ -8,6 +8,7 @@ import type {
   EssayAnswerRequest,
   EssayAnswerResponse,
   EssaySessionResponse,
+  PageResponse,
   QuestionCategory,
   QuestionDifficulty,
   QuestionResponse,
@@ -67,18 +68,36 @@ export interface QuestionFilters {
   keyword?: string;
 }
 
+export interface QuestionPaging {
+  /** 0부터 시작하는 페이지 번호 */
+  page?: number;
+  size?: number;
+}
+
+/** 문제은행 목록 한 페이지의 문항 수 */
+export const QUESTION_PAGE_SIZE = 20;
+
 /**
  * 문제은행 목록 조회 (본질문·꼬리질문 구분 없이 조건에 맞는 모든 문제. 서술형은 choices가 빈 배열).
  * 로그인 상태면 이미 푼 문제에 solved=true가 담겨 온다.
  */
-export function fetchQuestions(filters: QuestionFilters = {}): Promise<QuestionResponse[]> {
+export function fetchQuestions(
+  filters: QuestionFilters = {},
+  paging: QuestionPaging = {},
+): Promise<PageResponse<QuestionResponse>> {
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
   if (filters.difficulty) params.set("difficulty", filters.difficulty);
   if (filters.category) params.set("category", filters.category);
   if (filters.keyword) params.set("q", filters.keyword);
-  const query = params.toString();
-  return apiFetch<QuestionResponse[]>(`/api/questions${query ? `?${query}` : ""}`);
+  params.set("page", String(paging.page ?? 0));
+  params.set("size", String(paging.size ?? QUESTION_PAGE_SIZE));
+  return apiFetch<PageResponse<QuestionResponse>>(`/api/questions?${params.toString()}`);
+}
+
+/** 문제 단건 조회 — 목록이 페이지 단위라 상세 화면은 이 API로 문항을 가져온다 */
+export function fetchQuestion(questionId: number): Promise<QuestionResponse> {
+  return apiFetch<QuestionResponse>(`/api/questions/${questionId}`);
 }
 
 /** 보기 선택 결과(채점) 조회 — 채점 결과와 고른 보기의 꼬리질문을 함께 받는다 */
