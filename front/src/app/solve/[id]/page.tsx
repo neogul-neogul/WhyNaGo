@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { QuestionResponse } from "@/types";
+import type { ProblemSetMembershipResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { fetchQuestions } from "@/lib/questions";
+import { fetchProblemSetMembership } from "@/lib/problemSets";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import MultipleChoiceQuiz from "@/components/solve/MultipleChoiceQuiz";
 import EssayQuiz from "@/components/solve/EssayQuiz";
 import QuizResult from "@/components/solve/QuizResult";
+import SaveToProblemSetModal from "@/components/problemSets/SaveToProblemSetModal";
 
 type Stage = "quiz" | "result";
 
@@ -23,6 +25,9 @@ export default function SolveDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("quiz");
   const [result, setResult] = useState({ correct: 0, total: 0 });
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [membership, setMembership] = useState<ProblemSetMembershipResponse[]>([]);
+  const saved = membership.some((m) => m.saved);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +47,21 @@ export default function SolveDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!question) return;
+    let cancelled = false;
+    fetchProblemSetMembership(question.id)
+      .then((list) => {
+        if (!cancelled) setMembership(list);
+      })
+      .catch(() => {
+        // 저장 여부를 못 가져와도 풀이 자체는 계속할 수 있어야 하므로 조용히 무시한다
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [question]);
 
   const backToList = () => router.push("/solve");
 
@@ -91,6 +111,8 @@ export default function SolveDetailPage() {
               question={question}
               onQuit={backToList}
               onFinish={finish}
+              saved={saved}
+              onOpenSaveModal={() => setSaveModalOpen(true)}
             />
           ) : (
             <EssayQuiz
@@ -98,6 +120,8 @@ export default function SolveDetailPage() {
               question={question}
               onQuit={backToList}
               onFinish={finish}
+              saved={saved}
+              onOpenSaveModal={() => setSaveModalOpen(true)}
             />
           )
         )}
@@ -108,6 +132,17 @@ export default function SolveDetailPage() {
             correct={result.correct}
             total={result.total}
             onRestart={backToList}
+          />
+        )}
+
+        {question && (
+          <SaveToProblemSetModal
+            open={saveModalOpen}
+            onClose={() => setSaveModalOpen(false)}
+            questionId={question.id}
+            questionTitle={question.title}
+            membership={membership}
+            onMembershipChange={setMembership}
           />
         )}
       </PageBody>

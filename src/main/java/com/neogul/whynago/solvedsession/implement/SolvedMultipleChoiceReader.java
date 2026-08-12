@@ -15,4 +15,8 @@ public class SolvedMultipleChoiceReader {
     public List<SolvedMultipleChoice> readOrdered(Long solvedSessionId) {
         return solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(solvedSessionId);
     }
+
+    public List<Long> readSolvedQuestionIds(Long userId) {
+        return solvedMultipleChoiceRepository.findSolvedQuestionIds(userId);
+    }
 }

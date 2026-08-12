@@ -345,13 +345,15 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
-> **인증 범위**: `GET /api/questions`(목록 조회)만 인증 없이 호출할 수 있다. 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외한다).
+> **인증 범위**: `GET /api/questions`(목록 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 정확히 `/api/questions` 경로만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다).
 
 ## **문제 목록 조회**
 
 문제은행 화면의 목록을 조회한다. 사용자가 바로 시작할 수 있는 **진입 문제**만 반환한다. 다른 문제의 선택지에서 이어지는 객관식 꼬리질문은 목록에서 제외된다. 서술형 꼬리질문은 세션마다 AI가 생성해 재사용 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책), 서술형 문제는 모두 진입 문제로 조회된다.
 
 객관식과 서술형이 한 목록에 함께 내려간다. 유형을 구분해야 하면 `type` 필터를 쓰거나 응답의 `type` 필드로 분기한다.
+
+문항마다 이미 푼 문제인지를 `solved`로 함께 내려준다. 객관식 풀이 이력(`SolvedMultipleChoice`)과 서술형 풀이 이력(`EssaySolved`)을 함께 보며, 정답/오답은 구분하지 않는다. 완료된 풀이 세션만 저장되므로(→ 세션 저장) `solved = true`는 "끝까지 풀어 저장한 문제"를 뜻한다. 서술형 꼬리질문은 세션마다 AI가 생성해 참조할 `Question`이 없으므로(→ `docs/DOMAIN.md` 서술형 꼬리질문 생성 정책) 이력에서 제외된다.
 
 ### **Endpoint**
 
@@ -386,7 +388,8 @@ GET /api/questions
     "category": "NETWORK",
     "explanation": "흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로...",
     "choices": [],
-    "tags": ["흐름 제어", "혼잡 제어"]
+    "tags": ["흐름 제어", "혼잡 제어"],
+    "solved": true
   },
   {
     "id": 1,
@@ -405,7 +408,8 @@ GET /api/questions
         "relatedQuestionId": 2
       }
     ],
-    "tags": ["NETWORK"]
+    "tags": ["NETWORK"],
+    "solved": false
   }
 ]
 ```
@@ -426,8 +430,9 @@ GET /api/questions
 | `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값이다. |
 | `choices[].relatedQuestionId` | Long | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`(그 지점에서 종료). |
 | `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+| `solved` | boolean | 요청한 사용자가 이미 푼 문제인지 여부. 비로그인 요청이면 항상 `false`. |
 
-> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다.
+> 정답 여부(`isCorrect`)는 목록 응답에 포함하지 않는다. 객관식 채점은 보기 선택 결과 조회 API로만 확인한다. `solved`도 정답/오답과 무관하며, 풀어서 저장했는지만 나타낸다.
 
 ### **에러**
 
@@ -467,7 +472,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
     "category": "NETWORK",
     "explanation": "...",
     "choices": [],
-    "tags": []
+    "tags": [],
+    "solved": false
   }
 }
 ```
@@ -479,6 +485,8 @@ GET /api/questions/{questionId}/choices/{choiceId}
 | `explanation` | String | 문제 전체(정답) 해설(`Question.explanation`). |
 | `choiceExplanation` | String \| null | 고른 선택지의 오답 해설. 정답을 골랐으면 `null`. |
 | `nextQuestion` | Object \| null | 고른 선택지의 `relatedQuestionId`가 가리키는 다음 문항(문제 목록 조회 응답과 동일한 형태). 없으면 `null`(그 지점에서 세션 종료). |
+
+> `nextQuestion.solved`는 목록 조회와 형태를 맞추느라 딸려 나올 뿐 **항상 `false`**다. 완료 표시는 문제 목록 조회에서만 의미가 있다.
 
 ### **에러**
 
@@ -1807,3 +1815,242 @@ GET /api/progress/summary
 ### **에러**
 
 없음. 기록이 없으면 전부 `0`을 반환한다.
+
+---
+
+# **ProblemSet API**
+
+문제집 생성·목록/상세 조회·문제 담기/빼기·삭제를 담당한다. 관련 도메인은 `problemset`이다.
+
+문제집은 유튜브 재생목록과 같은 개념으로, 사용자가 원하는 문제를 모아 만드는 이름 붙은 목록이다(→ `docs/DOMAIN.md` ProblemSet). **항상 본인만 볼 수 있다** — 공개 범위 같은 필드 자체가 없다. 모든 엔드포인트는 인증된 사용자 **본인 소유의 문제집만** 조회·수정·삭제할 수 있다. 담긴 문제는 `questionId`만 참조하고 제목·카테고리·유형·난이도는 조회 시점에 문제은행에서 조인해 채운다.
+
+## **문제집 생성**
+
+### **Endpoint**
+
+```
+POST /api/problem-sets
+```
+
+- 성공 시 `201 Created`를 반환한다.
+- **항상 빈 문제집으로 생성된다** — 생성과 동시에 문제를 담는 기능은 없다. 문제 풀이 화면의 "문제집에 저장" 모달에서 새 문제집을 만들어도 마찬가지로 빈 문제집이 만들어지며, 그 문제를 담으려면 모달에서 새로 생긴 항목을 다시 체크해야 한다(→ [문제집에 문제 담기](#문제집에-문제-담기)).
+
+### **Request Body**
+
+```json
+{
+  "name": "면접 D-7 벼락치기"
+}
+```
+
+| **필드** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `name` | String | O | 문제집 이름. 빈 문자열 불가. |
+
+### **Response Body**
+
+```json
+{
+  "id": 1,
+  "name": "면접 D-7 벼락치기",
+  "updatedAt": "2026-06-25T10:00:00"
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `name` 누락 또는 빈 문자열. |
+
+---
+
+## **문제집 목록 조회**
+
+### **Endpoint**
+
+```
+GET /api/problem-sets
+```
+
+정렬은 문제집 ID(`ProblemSet.id`) 내림차순(생성순의 역순)으로 고정한다.
+
+### **Response Body**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "면접 D-7 벼락치기",
+    "itemCount": 3,
+    "previewTitles": ["TCP와 UDP의 핵심 차이는?", "해시 테이블의 평균 탐색 시간은?"],
+    "updatedAt": "2026-06-25T10:00:00"
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. 상세 조회·삭제에 사용. |
+| `name` | String | 문제집 이름. |
+| `itemCount` | int | 담긴 문제 수. |
+| `previewTitles` | String[] | 담긴 문제 중 먼저 추가된 순서로 최대 3개의 제목. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+
+### **에러**
+
+없음. 문제집이 없으면 빈 배열을 반환한다.
+
+---
+
+## **문제집 저장 멤버십 조회**
+
+문제 풀이 화면의 "문제집에 저장" 모달용 엔드포인트다. 특정 문제 하나를 기준으로 내 모든 문제집을 조회하면서, 각 문제집에 그 문제가 이미 담겨 있는지(`saved`)까지 함께 내려준다 — 모달의 체크박스 초기 상태를 만드는 데 쓴다.
+
+### **Endpoint**
+
+```
+GET /api/problem-sets/membership
+```
+
+| **Query Param** | **타입** | **필수** | **설명** |
+| --- | --- | --- | --- |
+| `questionId` | Long | O | 담겨 있는지 확인할 문제 ID. |
+
+### **Response Body**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "면접 D-7 벼락치기",
+    "itemCount": 3,
+    "saved": true
+  }
+]
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `itemCount` | int | 담긴 문제 수. |
+| `saved` | boolean | 쿼리로 넘긴 `questionId`가 이 문제집에 이미 담겨 있는지. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `INVALID_INPUT` | `questionId` 누락. |
+
+---
+
+## **문제집 상세 조회**
+
+### **Endpoint**
+
+```
+GET /api/problem-sets/{problemSetId}
+```
+
+### **Response Body**
+
+```json
+{
+  "id": 1,
+  "name": "면접 D-7 벼락치기",
+  "updatedAt": "2026-06-25T10:00:00",
+  "items": [
+    {
+      "questionId": 7,
+      "title": "TCP와 UDP의 핵심 차이는?",
+      "category": "NETWORK",
+      "type": "MULTIPLE_CHOICE",
+      "difficulty": "MEDIUM"
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제집 ID. |
+| `name` | String | 문제집 이름. |
+| `updatedAt` | LocalDateTime | 수정 시각. |
+| `items` | Object[] | 담긴 문제 목록. 추가한 순서대로 정렬된다. |
+| `items[].questionId` | Long | 문제 ID. 풀이 화면(`/solve/{questionId}`) 진입에 사용. |
+| `items[].title` | String | 문제 제목. |
+| `items[].category` | String | 카테고리. |
+| `items[].type` | String | 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `items[].difficulty` | String | 난이도(`LOW` \| `MEDIUM` \| `HIGH`). |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+## **문제집에 문제 담기**
+
+체크박스를 켜는 동작에 대응한다. 이미 담겨 있으면 아무 일도 하지 않는다(멱등).
+
+### **Endpoint**
+
+```
+PUT /api/problem-sets/{problemSetId}/items/{questionId}
+```
+
+- 성공 시 `204 No Content`를 반환한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 실재하지 않는 문제. |
+
+---
+
+## **문제집에서 문제 빼기**
+
+체크박스를 끄는 동작, 또는 상세 화면의 "제거"에 대응한다. 이미 없는 문제를 빼려 해도 아무 일도 하지 않는다(멱등). 문제(`Question`) 자체나 다른 문제집에는 영향이 없다.
+
+### **Endpoint**
+
+```
+DELETE /api/problem-sets/{problemSetId}/items/{questionId}
+```
+
+- 성공 시 `204 No Content`를 반환한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+## **문제집 삭제**
+
+### **Endpoint**
+
+```
+DELETE /api/problem-sets/{problemSetId}
+```
+
+- 성공 시 `204 No Content`를 반환한다. 담겨 있던 `ProblemSetItem`도 함께 삭제된다. 문제(`Question`) 자체는 삭제하지 않는다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |

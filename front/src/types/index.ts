@@ -51,6 +51,8 @@ export interface NavItem {
   href: string;
   /** "AI" 등 라벨 옆 배지 (없으면 미표시) */
   badge?: string;
+  /** 탭 라벨 앞에 표시할 아이콘 (없으면 미표시) */
+  icon?: "playlist";
 }
 
 /** 프로필 드롭다운 메뉴 아이콘 종류 */
@@ -167,6 +169,57 @@ export interface QuestionResponse {
   explanation: string | null;
   choices: ChoiceResponse[];
   tags: string[];
+  /** 이미 푼 문제인지 여부. 비로그인 조회와 꼬리질문 응답에서는 항상 false */
+  solved: boolean;
+}
+
+// ===== 문제집 API (백엔드 problemset 도메인) — 유튜브 재생목록과 같은 개념, 항상 본인만 볼 수 있다 =====
+
+/** 문제집 생성 요청 — 항상 빈 문제집으로 생성된다 (문제 담기는 별도 API) */
+export interface CreateProblemSetRequest {
+  name: string;
+}
+
+/** 문제집 생성 응답 */
+export interface CreateProblemSetResponse {
+  id: number;
+  name: string;
+  updatedAt: string;
+}
+
+/** 문제집 목록 조회 응답의 개별 항목 */
+export interface ProblemSetSummaryResponse {
+  id: number;
+  name: string;
+  itemCount: number;
+  /** 담긴 문제 중 먼저 추가된 순서로 최대 3개의 제목 */
+  previewTitles: string[];
+  updatedAt: string;
+}
+
+/** 문제집 상세 조회 응답에 담긴 문제 (제목·카테고리·유형·난이도는 조회 시점에 서버가 조인해 채운다) */
+export interface ProblemSetItemResponse {
+  questionId: number;
+  title: string;
+  category: QuestionCategory;
+  type: QuestionTypeCode;
+  difficulty: QuestionDifficulty;
+}
+
+/** 문제집 상세 조회 응답 */
+export interface ProblemSetDetailResponse {
+  id: number;
+  name: string;
+  updatedAt: string;
+  items: ProblemSetItemResponse[];
+}
+
+/** 문제집 저장 모달용 — 특정 문제 기준으로 내 문제집과 그 문제의 저장 여부 */
+export interface ProblemSetMembershipResponse {
+  id: number;
+  name: string;
+  itemCount: number;
+  saved: boolean;
 }
 
 /** 보기 선택 결과(채점) 조회 응답 — GET /api/questions/{qid}/choices/{cid} */

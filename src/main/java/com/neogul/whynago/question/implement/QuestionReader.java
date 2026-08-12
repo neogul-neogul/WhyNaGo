@@ -54,6 +54,13 @@ public class QuestionReader {
                 ));
     }
 
+    public List<Question> readAll(List<Long> questionIds) {
+        if (questionIds.isEmpty()) {
+            return List.of();
+        }
+        return questionRepository.findAllById(questionIds);
+    }
+
     public Map<Long, List<String>> readTagNames(List<Long> questionIds) {
         if (questionIds.isEmpty()) {
             return Map.of();

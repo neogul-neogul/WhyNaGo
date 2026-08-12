@@ -15,4 +15,8 @@ public class EssaySolvedReader {
     public List<EssaySolved> readOrdered(Long solvedSessionId) {
         return essaySolvedRepository.findBySolvedSessionIdOrderBySequence(solvedSessionId);
     }
+
+    public List<Long> readSolvedQuestionIds(Long userId) {
+        return essaySolvedRepository.findSolvedQuestionIds(userId);
+    }
 }
