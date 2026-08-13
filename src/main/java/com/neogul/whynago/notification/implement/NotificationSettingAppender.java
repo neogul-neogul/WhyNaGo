@@ -14,4 +14,11 @@ public class NotificationSettingAppender {
     public NotificationSetting appendDefault(Long userId) {
         return notificationSettingRepository.save(NotificationSetting.createDefault(userId));
     }
+
+    public void appendDefaultIfAbsent(Long userId) {
+        if (notificationSettingRepository.existsByUserId(userId)) {
+            return;
+        }
+        notificationSettingRepository.save(NotificationSetting.createDefault(userId));
+    }
 }
