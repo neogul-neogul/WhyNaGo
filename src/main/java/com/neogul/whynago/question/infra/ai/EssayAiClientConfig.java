@@ -1,7 +1,7 @@
 package com.neogul.whynago.question.infra.ai;
 
 import com.neogul.whynago.question.infra.ai.prompt.EssayPrompt;
-import com.neogul.whynago.question.infra.ai.prompt.EssayPromptV1;
+import com.neogul.whynago.question.infra.ai.prompt.EssayPromptV3;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -14,7 +14,7 @@ public class EssayAiClientConfig {
 
     @Bean
     public EssayPrompt essayPrompt() {
-        return new EssayPromptV1();
+        return new EssayPromptV3();
     }
 
     @Bean

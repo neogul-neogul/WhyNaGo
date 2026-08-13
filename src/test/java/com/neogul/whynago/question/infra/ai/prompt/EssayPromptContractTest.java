@@ -15,7 +15,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class EssayPromptContractTest {
 
-    private static final List<EssayPrompt> PROMPTS = List.of(new EssayPromptV1());
+    private static final List<EssayPrompt> PROMPTS = List.of(
+            new EssayPromptV1(),
+            new EssayPromptV2(),
+            new EssayPromptV3());
 
     private static final String QUESTION = "고유질문-a1b2c3";
     private static final String ANSWER = "고유답변-x9y8z7";
