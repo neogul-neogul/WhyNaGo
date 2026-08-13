@@ -1,13 +1,16 @@
 package com.neogul.whynago.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.mail.EmailSender;
+import com.neogul.whynago.common.mail.MailErrorCode;
 import com.neogul.whynago.notification.domain.NotificationSetting;
 import com.neogul.whynago.notification.infra.NotificationSettingRepository;
 import com.neogul.whynago.support.IntegrationTestSupport;
@@ -52,6 +55,24 @@ class StudyReminderServiceTest extends IntegrationTestSupport {
         ArgumentCaptor<String> toCaptor = ArgumentCaptor.forClass(String.class);
         then(emailSender).should().sendHtml(toCaptor.capture(), anyString(), anyString());
         assertThat(toCaptor.getValue()).isEqualTo("enabled@example.com");
+    }
+
+    @DisplayName("일부 사용자의 발송이 실패해도 나머지 사용자에게 발송한다.")
+    @Test
+    void sendDailyReminders_partialFailure() {
+        User failUser = userRepository.save(
+                UserFixture.user().email("fail@example.com").nickname("fail").build());
+        User successUser = userRepository.save(
+                UserFixture.user().email("success@example.com").nickname("success").build());
+        notificationSettingRepository.save(NotificationSetting.createDefault(failUser.getId()));
+        notificationSettingRepository.save(NotificationSetting.createDefault(successUser.getId()));
+        willThrow(new BusinessException(MailErrorCode.MAIL_SEND_FAILED))
+                .given(emailSender).sendHtml(eq("fail@example.com"), anyString(), anyString());
+
+        assertThatCode(() -> studyReminderService.sendDailyReminders())
+                .doesNotThrowAnyException();
+
+        then(emailSender).should().sendHtml(eq("success@example.com"), anyString(), anyString());
     }
 
     @DisplayName("설정과 무관하게 이메일로 지정한 사용자에게 테스트 메일을 보낸다.")
