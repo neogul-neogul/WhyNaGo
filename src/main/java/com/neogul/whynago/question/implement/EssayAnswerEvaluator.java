@@ -1,5 +1,6 @@
 package com.neogul.whynago.question.implement;
 
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
 import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
@@ -15,11 +16,11 @@ public class EssayAnswerEvaluator {
 
     private final EssayAiClient essayAiClient;
 
-    public EssayEvaluation evaluate(String conversationId, String question, String answer) {
+    public EssayEvaluation evaluate(String conversationId, String question, String answer, EssayGradingMode mode) {
         boolean lastTurn = essayAiClient.completedTurns(conversationId) >= MAX_TURNS - 1;
 
         GradeAndFollowupResult result =
-                essayAiClient.gradeAndGenerateFollowup(conversationId, question, answer, !lastTurn);
+                essayAiClient.gradeAndGenerateFollowup(conversationId, question, answer, !lastTurn, mode);
 
         if (lastTurn) {
             essayAiClient.clearSession(conversationId);
