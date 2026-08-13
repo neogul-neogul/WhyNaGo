@@ -20,6 +20,8 @@ import com.neogul.whynago.auth.service.dto.ReissueCommand;
 import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.notification.domain.NotificationSetting;
+import com.neogul.whynago.notification.infra.NotificationSettingRepository;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.user.domain.AuthProvider;
 import com.neogul.whynago.user.domain.Position;
@@ -49,6 +51,9 @@ class AuthServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private RefreshTokenHasher refreshTokenHasher;
+
+    @Autowired
+    private NotificationSettingRepository notificationSettingRepository;
 
     @MockitoBean
     private GoogleIdTokenClient googleIdTokenClient;
@@ -134,6 +139,64 @@ class AuthServiceTest extends IntegrationTestSupport {
         assertThat(result.email()).isEqualTo("member@example.com");
         assertThat(result.nickname()).isEqualTo("tester");
         assertThat(result.position()).isEqualTo(Position.BACKEND);
+    }
+
+    @DisplayName("로그인하면 알림 설정이 없던 사용자에게 기본 알림 설정이 생성된다.")
+    @Test
+    void login_createsDefaultNotificationSetting() {
+        // given
+        Long userId = authService.signup(SignUpCommandFixture.signUpCommand()
+                .email("member@example.com")
+                .password("password123")
+                .nickname("tester")
+                .build());
+        assertThat(notificationSettingRepository.findByUserId(userId)).isEmpty();
+
+        // when
+        authService.login(new LoginCommand("member@example.com", "password123"));
+
+        // then
+        NotificationSetting setting = notificationSettingRepository.findByUserId(userId).orElseThrow();
+        assertThat(setting.isEveryDayRemind()).isTrue();
+    }
+
+    @DisplayName("이미 알림 설정이 있으면 다시 로그인해도 새로 만들지 않는다.")
+    @Test
+    void login_keepsExistingNotificationSetting() {
+        // given
+        Long userId = authService.signup(SignUpCommandFixture.signUpCommand()
+                .email("member@example.com")
+                .password("password123")
+                .nickname("tester")
+                .build());
+        LoginCommand command = new LoginCommand("member@example.com", "password123");
+        authService.login(command);
+        NotificationSetting created = notificationSettingRepository.findByUserId(userId).orElseThrow();
+        created.update(false);
+        notificationSettingRepository.save(created);
+
+        // when
+        authService.login(command);
+
+        // then
+        assertThat(notificationSettingRepository.findAll()).hasSize(1);
+        assertThat(notificationSettingRepository.findByUserId(userId).orElseThrow().isEveryDayRemind())
+                .isFalse();
+    }
+
+    @DisplayName("구글 계정으로 처음 로그인해도 기본 알림 설정이 생성된다.")
+    @Test
+    void googleLogin_createsDefaultNotificationSetting() {
+        // given
+        givenGoogleAccount("google-sub-1", "member@example.com", true);
+
+        // when
+        LoginResult result = authService.googleLogin(new GoogleLoginCommand("credential"));
+
+        // then
+        NotificationSetting setting = notificationSettingRepository.findByUserId(result.userId())
+                .orElseThrow();
+        assertThat(setting.isEveryDayRemind()).isTrue();
     }
 
     @DisplayName("등록되지 않은 이메일이면 로그인에 실패한다.")

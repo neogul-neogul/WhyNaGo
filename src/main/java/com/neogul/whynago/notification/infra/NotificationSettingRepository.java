@@ -9,5 +9,7 @@ public interface NotificationSettingRepository extends JpaRepository<Notificatio
 
     Optional<NotificationSetting> findByUserId(Long userId);
 
+    boolean existsByUserId(Long userId);
+
     List<NotificationSetting> findAllByEveryDayRemindTrue();
 }

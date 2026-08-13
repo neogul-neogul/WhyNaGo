@@ -17,6 +17,7 @@ import com.neogul.whynago.auth.service.dto.ReissueCommand;
 import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.auth.service.dto.SignUpCommand;
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.notification.implement.NotificationSettingAppender;
 import com.neogul.whynago.user.domain.AuthProvider;
 import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.implement.NicknameGenerator;
@@ -42,6 +43,7 @@ public class AuthService {
     private final RefreshTokenAppender refreshTokenAppender;
     private final RefreshTokenRevoker refreshTokenRevoker;
     private final RefreshTokenRotator refreshTokenRotator;
+    private final NotificationSettingAppender notificationSettingAppender;
 
     @Transactional
     public Long signup(SignUpCommand command) {
@@ -97,6 +99,8 @@ public class AuthService {
 
     // 로그인 시 기존 refresh token을 전부 폐기하고 새로 발급한다 (1계정 1세션)
     private LoginResult issueLogin(User user) {
+        // 알림 설정 화면을 한 번도 열지 않은 사용자도 리마인더를 받도록 로그인 시점에 기본 설정을 보장한다
+        notificationSettingAppender.appendDefaultIfAbsent(user.getId());
         TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId()));
         refreshTokenRevoker.revokeAllByUserId(user.getId());
         refreshTokenAppender.append(user.getId(), tokenPair.refreshToken());
