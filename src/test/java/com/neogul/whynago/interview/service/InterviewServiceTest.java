@@ -2,6 +2,7 @@ package com.neogul.whynago.interview.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -21,6 +22,7 @@ import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
 import com.neogul.whynago.interview.service.dto.InterviewSummaryResult;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
 import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
@@ -153,7 +155,8 @@ class InterviewServiceTest extends IntegrationTestSupport {
     void answer() {
         Long interviewId = interviewService.start(USER_ID).interviewId();
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
-        given(essayAiClient.gradeAndGenerateFollowup(anyString(), anyString(), anyString(), anyBoolean()))
+        given(essayAiClient.gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 8, "꼬리질문1"));
 
         AnswerInterviewResult result = interviewService.answer(
@@ -169,7 +172,8 @@ class InterviewServiceTest extends IntegrationTestSupport {
     void answerOnLastTurn() {
         Long interviewId = interviewService.start(USER_ID).interviewId();
         given(essayAiClient.completedTurns(anyString())).willReturn(2);
-        given(essayAiClient.gradeAndGenerateFollowup(anyString(), anyString(), anyString(), anyBoolean()))
+        given(essayAiClient.gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 5, null));
 
         AnswerInterviewResult result = interviewService.answer(

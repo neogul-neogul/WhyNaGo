@@ -1,5 +1,6 @@
 package com.neogul.whynago.question.service;
 
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.implement.ConversationIdGenerator;
 import com.neogul.whynago.question.implement.EssayAnswerEvaluator;
 import com.neogul.whynago.question.implement.QuestionReader;
@@ -28,7 +29,8 @@ public class EssayAnswerService {
         EssayEvaluation evaluation = essayAnswerEvaluator.evaluate(
                 command.conversationId(),
                 command.question(),
-                command.answer()
+                command.answer(),
+                EssayGradingMode.PRACTICE
         );
         return EssayAnswerResult.from(evaluation);
     }

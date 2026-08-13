@@ -2,6 +2,7 @@ package com.neogul.whynago.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -17,6 +18,7 @@ import com.neogul.whynago.interview.service.dto.CompleteInterviewResult;
 import com.neogul.whynago.interview.service.dto.InterviewAnswerSnapshotCommand;
 import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
 import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
@@ -55,7 +57,8 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
     @DisplayName("면접을 시작해 3문항을 답하고 완료하면 결과를 조회할 수 있다.")
     void runFullInterview() {
         given(essayAiClient.completedTurns(anyString())).willReturn(0, 1, 2);
-        given(essayAiClient.gradeAndGenerateFollowup(anyString(), anyString(), anyString(), anyBoolean()))
+        given(essayAiClient.gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(
                         new GradeAndFollowupResult("피드백1", "모범답안1", 9, "꼬리질문1"),
                         new GradeAndFollowupResult("피드백2", "모범답안2", 4, "꼬리질문2"),

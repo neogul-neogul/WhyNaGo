@@ -2,6 +2,7 @@ package com.neogul.whynago.question.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.QuestionRepository;
@@ -61,7 +63,8 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     void evaluate() {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
-        given(essayAiClient.gradeAndGenerateFollowup(anyString(), anyString(), anyString(), anyBoolean()))
+        given(essayAiClient.gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 9, "꼬리질문1"));
         EvaluateEssayAnswerCommand command =
                 new EvaluateEssayAnswerCommand("conv-1", essay.getContent(), "제 답변입니다.");
@@ -79,7 +82,8 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     void evaluate_lastTurnHasNoFollowup() {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
         given(essayAiClient.completedTurns(anyString())).willReturn(2);
-        given(essayAiClient.gradeAndGenerateFollowup(anyString(), anyString(), anyString(), anyBoolean()))
+        given(essayAiClient.gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 5, null));
         EvaluateEssayAnswerCommand command =
                 new EvaluateEssayAnswerCommand("conv-1", "꼬리질문2", "답변3");
@@ -88,7 +92,8 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
 
         assertThat(result.nextFollowup()).isNull();
         assertThat(result.grading().isCorrect()).isFalse();
-        verify(essayAiClient).gradeAndGenerateFollowup(anyString(), anyString(), anyString(), eq(false));
+        verify(essayAiClient).gradeAndGenerateFollowup(
+                anyString(), anyString(), anyString(), eq(false), eq(EssayGradingMode.PRACTICE));
     }
 
     @Test

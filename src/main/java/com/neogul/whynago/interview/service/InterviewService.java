@@ -15,6 +15,7 @@ import com.neogul.whynago.interview.service.dto.InterviewResultDetail;
 import com.neogul.whynago.interview.service.dto.InterviewSummaryResult;
 import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.implement.ConversationIdGenerator;
 import com.neogul.whynago.question.implement.EssayAnswerEvaluator;
@@ -70,7 +71,8 @@ public class InterviewService {
         EssayEvaluation evaluation = essayAnswerEvaluator.evaluate(
                 interview.getConversationId(),
                 command.question(),
-                command.answer()
+                command.answer(),
+                EssayGradingMode.INTERVIEW
         );
 
         return AnswerInterviewResult.from(evaluation);

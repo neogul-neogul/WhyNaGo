@@ -1,5 +1,6 @@
 package com.neogul.whynago.question.infra.ai;
 
+import com.neogul.whynago.question.domain.EssayGradingMode;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,7 +21,8 @@ public class MockEssayAiClient implements EssayAiClient {
             String conversationId,
             String question,
             String answer,
-            boolean generateFollowup
+            boolean generateFollowup,
+            EssayGradingMode mode
     ) {
         completedTurnsByConversation
                 .computeIfAbsent(conversationId, id -> new AtomicInteger())
