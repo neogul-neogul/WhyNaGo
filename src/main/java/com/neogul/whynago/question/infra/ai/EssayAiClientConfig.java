@@ -1,5 +1,7 @@
 package com.neogul.whynago.question.infra.ai;
 
+import com.neogul.whynago.question.infra.ai.prompt.EssayPrompt;
+import com.neogul.whynago.question.infra.ai.prompt.EssayPromptV1;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -11,9 +13,18 @@ import org.springframework.context.annotation.Configuration;
 public class EssayAiClientConfig {
 
     @Bean
+    public EssayPrompt essayPrompt() {
+        return new EssayPromptV1();
+    }
+
+    @Bean
     @ConditionalOnProperty(name = "API_KEY")
-    public EssayAiClient geminiEssayAiClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
-        return new GeminiEssayAiClient(chatClientBuilder, chatMemory);
+    public EssayAiClient geminiEssayAiClient(
+            ChatClient.Builder chatClientBuilder,
+            ChatMemory chatMemory,
+            EssayPrompt essayPrompt
+    ) {
+        return new GeminiEssayAiClient(chatClientBuilder, chatMemory, essayPrompt);
     }
 
     @Bean
