@@ -60,6 +60,10 @@ public class User {
     @Column(nullable = false)
     private int dailyGoal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
+
     private User(
             Email email,
             String password,
@@ -67,7 +71,8 @@ public class User {
             AuthProvider provider,
             String providerId,
             Position position,
-            int dailyGoal) {
+            int dailyGoal,
+            Role role) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
@@ -75,6 +80,7 @@ public class User {
         this.providerId = providerId;
         this.position = position;
         this.dailyGoal = dailyGoal;
+        this.role = role;
     }
 
     // 직무 BACKEND로 고정
@@ -82,14 +88,18 @@ public class User {
         validateNickname(nickname);
         return new User(
                 new Email(email), password, nickname,
-                AuthProvider.LOCAL, null, Position.BACKEND, DEFAULT_DAILY_GOAL);
+                AuthProvider.LOCAL, null, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER);
     }
 
     public static User createSocial(String email, String nickname, AuthProvider provider, String providerId) {
         validateNickname(nickname);
         return new User(
                 new Email(email), null, nickname,
-                provider, providerId, Position.BACKEND, DEFAULT_DAILY_GOAL);
+                provider, providerId, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER);
+    }
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
     }
 
     public boolean isLocal() {

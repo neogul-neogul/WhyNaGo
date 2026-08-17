@@ -18,6 +18,7 @@ import com.neogul.whynago.auth.service.dto.ReissueResult;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.support.ControllerTestSupport;
 import com.neogul.whynago.user.domain.Position;
+import com.neogul.whynago.user.domain.Role;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import io.restassured.http.ContentType;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
@@ -121,7 +122,8 @@ class AuthControllerTest extends ControllerTestSupport {
                         1L,
                         "test@example.com",
                         "테스터",
-                        Position.BACKEND));
+                        Position.BACKEND,
+                        Role.USER));
         LoginRequest request = LoginRequestFixture.loginRequest().build();
 
         // when & then
@@ -137,7 +139,32 @@ class AuthControllerTest extends ControllerTestSupport {
                 .body("id", equalTo(1))
                 .body("email", equalTo("test@example.com"))
                 .body("nickname", equalTo("테스터"))
-                .body("position", equalTo("BACKEND"));
+                .body("position", equalTo("BACKEND"))
+                .body("role", equalTo("USER"));
+    }
+
+    @DisplayName("관리자 계정으로 로그인하면 응답의 권한이 ADMIN이다.")
+    @Test
+    void login_admin() {
+        // given
+        given(authService.login(any()))
+                .willReturn(new LoginResult(
+                        new TokenPair("access.token", "refresh.token"),
+                        1L,
+                        "admin@example.com",
+                        "관리자",
+                        Position.BACKEND,
+                        Role.ADMIN));
+
+        // when & then
+        RestAssuredMockMvc.given()
+                .contentType(ContentType.JSON)
+                .body(LoginRequestFixture.loginRequest().build())
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(HttpStatus.OK.value())
+                .body("role", equalTo("ADMIN"));
     }
 
     @DisplayName("로그인 요청 형식이 올바르지 않으면 400 Bad Request를 응답한다.")
@@ -190,7 +217,8 @@ class AuthControllerTest extends ControllerTestSupport {
                         1L,
                         "test@example.com",
                         "u123456",
-                        Position.BACKEND));
+                        Position.BACKEND,
+                        Role.USER));
 
         // when & then
         RestAssuredMockMvc.given()

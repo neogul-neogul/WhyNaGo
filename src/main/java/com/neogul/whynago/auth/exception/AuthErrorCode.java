@@ -14,6 +14,7 @@ public enum AuthErrorCode implements ErrorCode {
     AUTH_OAUTH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "구글 인증에 실패했습니다."),
     AUTH_SOCIAL_ACCOUNT(HttpStatus.UNAUTHORIZED, "구글 계정으로 가입된 이메일입니다. 구글 계정으로 로그인해주세요."),
     AUTH_LOCAL_ACCOUNT(HttpStatus.CONFLICT, "일반 계정으로 가입된 이메일입니다. 일반 계정으로 로그인해주세요."),
+    AUTH_FORBIDDEN(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
     AUTH_TOKEN_HASH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "인증 처리 중 오류가 발생했습니다.");
 
     private final HttpStatus status;

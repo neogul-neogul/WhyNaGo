@@ -4,6 +4,7 @@ import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.domain.JwtClaim;
 import com.neogul.whynago.auth.domain.TokenPair;
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.user.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -48,6 +49,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())
                 .claim(JwtClaim.ID, claim.id())
+                .claim(JwtClaim.ROLE, claim.role().name())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expiration))
                 .signWith(key)
@@ -57,7 +59,16 @@ public class JwtProvider {
     public JwtClaim parseToken(String token) {
         Claims claims = getClaims(token);
         Long id = ((Number) claims.get(JwtClaim.ID)).longValue();
-        return new JwtClaim(id);
+        return new JwtClaim(id, parseRole(claims));
+    }
+
+    // role 도입 전에 발급된 토큰은 권한을 알 수 없으므로 무효로 보고 재로그인을 유도한다.
+    private Role parseRole(Claims claims) {
+        String role = claims.get(JwtClaim.ROLE, String.class);
+        if (role == null) {
+            throw new BusinessException(AuthErrorCode.AUTH_TOKEN_INVALID);
+        }
+        return Role.valueOf(role);
     }
 
     public boolean isExpired(String token) {

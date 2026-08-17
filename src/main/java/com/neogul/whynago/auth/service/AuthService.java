@@ -74,12 +74,14 @@ public class AuthService {
         return issueLogin(user);
     }
 
+    // 권한 변경이 늦게 반영되지 않도록 role은 토큰이 아니라 DB에서 다시 읽는다
     @Transactional
     public ReissueResult reissue(ReissueCommand command) {
         JwtClaim claim = jwtProvider.parseToken(command.refreshToken());
         refreshTokenRotator.rotate(command.refreshToken());
-        TokenPair tokenPair = jwtProvider.createTokenPair(claim);
-        refreshTokenAppender.append(claim.id(), tokenPair.refreshToken());
+        User user = userReader.read(claim.id());
+        TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId(), user.getRole()));
+        refreshTokenAppender.append(user.getId(), tokenPair.refreshToken());
         return ReissueResult.from(tokenPair);
     }
 
@@ -101,7 +103,7 @@ public class AuthService {
     private LoginResult issueLogin(User user) {
         // 알림 설정 화면을 한 번도 열지 않은 사용자도 리마인더를 받도록 로그인 시점에 기본 설정을 보장한다
         notificationSettingAppender.appendDefaultIfAbsent(user.getId());
-        TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId()));
+        TokenPair tokenPair = jwtProvider.createTokenPair(new JwtClaim(user.getId(), user.getRole()));
         refreshTokenRevoker.revokeAllByUserId(user.getId());
         refreshTokenAppender.append(user.getId(), tokenPair.refreshToken());
         return new LoginResult(
@@ -109,6 +111,7 @@ public class AuthService {
                 user.getId(),
                 user.getEmail().getValue(),
                 user.getNickname(),
-                user.getPosition());
+                user.getPosition(),
+                user.getRole());
     }
 }
