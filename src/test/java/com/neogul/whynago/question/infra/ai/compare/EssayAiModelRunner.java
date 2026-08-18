@@ -43,10 +43,21 @@ public class EssayAiModelRunner implements AutoCloseable {
                 .chatMemoryRepository(new InMemoryChatMemoryRepository())
                 .build();
         ChatClient.Builder chatClientBuilder = ChatClient.builder(chatModel(model, config));
-        return new EssayAiModelRunner(
-                model,
-                new GeminiEssayAiClient(chatClientBuilder, chatMemory, prompt),
-                new AiCallLogCaptor());
+        return new EssayAiModelRunner(model, client(config, chatClientBuilder, chatMemory, prompt), new AiCallLogCaptor());
+    }
+
+    // 기본은 Flux로 받아 조각을 바로 콘솔에 흘리는 쪽이고,
+    // -Dai.compare.stream=false 면 운영과 똑같이 다 받은 뒤 한 번에 객체로 바꾸는 클라이언트를 태운다.
+    private static EssayAiClient client(
+            EssayAiComparisonConfig config,
+            ChatClient.Builder chatClientBuilder,
+            ChatMemory chatMemory,
+            EssayPrompt prompt
+    ) {
+        if (config.streaming()) {
+            return new StreamingEssayAiClient(chatClientBuilder, chatMemory, prompt);
+        }
+        return new GeminiEssayAiClient(chatClientBuilder, chatMemory, prompt);
     }
 
     public ModelScenarioResult run(EssayComparisonScenario scenario, int attempt) {
@@ -117,7 +128,9 @@ public class EssayAiModelRunner implements AutoCloseable {
 
         OpenAiChatOptions.Builder options = OpenAiChatOptions.builder()
                 .model(model)
-                .temperature(config.temperature());
+                .temperature(config.temperature())
+                // 스트리밍은 요청하지 않으면 토큰 사용량을 안 준다. 비교 리포트의 토큰 열이 비지 않게 켠다.
+                .streamUsage(config.streaming());
         if (config.hasReasoningEffort()) {
             options.reasoningEffort(config.reasoningEffort());
         }

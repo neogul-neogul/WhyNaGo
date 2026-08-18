@@ -25,7 +25,8 @@ public record EssayAiComparisonConfig(
         String promptVersion,
         int repeatCount,
         Duration timeout,
-        int maxAttempts
+        int maxAttempts,
+        boolean streaming
 ) {
 
     /** 설정 파일을 고르지 않았을 때 쓰는 이름. 코드 기본값(Gemini)으로 돈다. */
@@ -45,6 +46,8 @@ public record EssayAiComparisonConfig(
     private static final int DEFAULT_REPEAT_COUNT = 1;
     private static final int DEFAULT_TIMEOUT_SECONDS = 120;
     private static final int DEFAULT_MAX_ATTEMPTS = 2;
+    // 응답을 Flux로 받아 도착하는 대로 콘솔에 흘린다. -Dai.compare.stream=false 면 운영과 같은 블로킹 호출.
+    private static final boolean DEFAULT_STREAMING = true;
 
     public static EssayAiComparisonConfig load() {
         String name = property(new Properties(), "config", DEFAULT_CONFIG);
@@ -62,7 +65,8 @@ public record EssayAiComparisonConfig(
                 Integer.parseInt(property(file, "repeat", String.valueOf(DEFAULT_REPEAT_COUNT))),
                 Duration.ofSeconds(
                         Long.parseLong(property(file, "timeoutSeconds", String.valueOf(DEFAULT_TIMEOUT_SECONDS)))),
-                Integer.parseInt(property(file, "maxAttempts", String.valueOf(DEFAULT_MAX_ATTEMPTS)))
+                Integer.parseInt(property(file, "maxAttempts", String.valueOf(DEFAULT_MAX_ATTEMPTS))),
+                Boolean.parseBoolean(property(file, "stream", String.valueOf(DEFAULT_STREAMING)))
         );
     }
 

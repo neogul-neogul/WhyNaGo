@@ -4,6 +4,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.neogul.whynago.question.infra.ai.GeminiEssayAiClient;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,7 +25,7 @@ public class AiCallLogCaptor implements AutoCloseable {
 
     public AiCallLogCaptor() {
         appender.start();
-        clientLogger().addAppender(appender);
+        clientLoggers().forEach(logger -> logger.addAppender(appender));
     }
 
     public void reset() {
@@ -41,7 +42,7 @@ public class AiCallLogCaptor implements AutoCloseable {
 
     @Override
     public void close() {
-        clientLogger().detachAppender(appender);
+        clientLoggers().forEach(logger -> logger.detachAppender(appender));
         appender.stop();
     }
 
@@ -63,7 +64,10 @@ public class AiCallLogCaptor implements AutoCloseable {
         return matcher.find() ? Long.parseLong(matcher.group(1)) : 0L;
     }
 
-    private static Logger clientLogger() {
-        return (Logger) LoggerFactory.getLogger(GeminiEssayAiClient.class);
+    // 블로킹·스트리밍 어느 쪽으로 호출하든 같은 형식의 완료 로그가 남으므로 둘 다 듣는다.
+    private static List<Logger> clientLoggers() {
+        return List.of(
+                (Logger) LoggerFactory.getLogger(GeminiEssayAiClient.class),
+                (Logger) LoggerFactory.getLogger(StreamingEssayAiClient.class));
     }
 }
