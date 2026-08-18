@@ -2141,3 +2141,110 @@ DELETE /api/problem-sets/{problemSetId}
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
 | 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+# **Admin API**
+
+관리자 백오피스 전용 API. 관련 도메인은 `admin`이다.
+
+모든 엔드포인트는 `/api/admin` 접두사를 쓰며, 인증을 통과했더라도 `role`이 `ADMIN`이 아니면 `403 AUTH_FORBIDDEN`을 반환한다(→ 권한, `docs/DOMAIN.md` 관리자 권한 정책). 통계 값은 별도 집계 테이블 없이 **조회 시점에 계산**한다 — 오답노트·학습 기록이 상태를 컬럼으로 저장하지 않는 원칙과 같다.
+
+---
+
+## **객관식 문제 통계 조회**
+
+객관식 문제 한 건의 전체 풀이 횟수·정답률·가장 많이 고른 선택지·보기별 선택 분포를 조회한다. 관리자 문제 상세 화면의 "통계" 탭에서 사용한다.
+
+집계 대상은 `SolvedMultipleChoice`에 남은 해당 문제의 모든 응답이다. **어떤 세션에서 본질문으로 풀렸는지 꼬리질문으로 풀렸는지 구분하지 않는다** — 모든 `Question`이 동등한 독립 문항이고 등장 위치는 세션마다 달라지기 때문이다(→ `docs/DOMAIN.md` 결정 사항: 본질문·꼬리질문 구분 없음).
+
+**서술형 문제에는 사용할 수 없다.** 선택지가 없어 분포·최다 선택지가 성립하지 않으므로 `400 QUESTION_NOT_MULTIPLE_CHOICE`를 반환한다. 서술형 통계는 지표 집합이 달라 별도 엔드포인트로 설계한다(미구현).
+
+### **Endpoint**
+
+```
+GET /api/admin/questions/{questionId}/statistics
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 아직 아무도 풀지 않은 문제도 에러가 아니다. 모든 지표가 `0`이고 `mostChosenChoice`가 `null`이며, 보기 분포는 전부 `selectedCount: 0`으로 채워진다.
+
+### **Response Body**
+
+```json
+{
+  "questionId": 12,
+  "totalSolveCount": 1842,
+  "correctCount": 1175,
+  "correctRate": 63.8,
+  "mostChosenChoice": {
+    "choiceId": 34,
+    "sequence": 2,
+    "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+    "correct": true,
+    "selectedCount": 1175,
+    "selectedRate": 63.8
+  },
+  "choiceDistribution": [
+    {
+      "choiceId": 33,
+      "sequence": 1,
+      "content": "Dirty Read — 커밋되지 않은 데이터를 읽는 현상",
+      "correct": false,
+      "selectedCount": 318,
+      "selectedRate": 17.3
+    },
+    {
+      "choiceId": 34,
+      "sequence": 2,
+      "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+      "correct": true,
+      "selectedCount": 1175,
+      "selectedRate": 63.8
+    },
+    {
+      "choiceId": 35,
+      "sequence": 3,
+      "content": "Lost Update — 동시 갱신으로 한쪽 변경이 사라지는 현상",
+      "correct": false,
+      "selectedCount": 214,
+      "selectedRate": 11.6
+    },
+    {
+      "choiceId": 36,
+      "sequence": 4,
+      "content": "Non-Repeatable Read — 재조회 시 값이 달라지는 현상",
+      "correct": false,
+      "selectedCount": 135,
+      "selectedRate": 7.3
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `questionId` | Long | 조회한 문제 ID. |
+| `totalSolveCount` | long | 이 문제에 대한 전체 응답 수. 같은 사용자가 여러 번 풀면 각각 더해지고, 꼬리질문으로 푼 응답도 포함한다. |
+| `correctCount` | long | 맞힌 응답 수. 응답 시점에 저장된 `SolvedMultipleChoice.isCorrect` 기준이다. |
+| `correctRate` | double | 정답률(%). `correctCount / totalSolveCount`를 소수점 첫째 자리로 반올림한 값. 응답이 없으면 `0.0`. |
+| `mostChosenChoice` | Object \| null | 가장 많이 선택된 보기. 원소 형식은 `choiceDistribution`과 같다. 동점이면 `sequence`가 빠른 보기다. **응답이 한 건도 없으면 `null`.** |
+| `choiceDistribution` | Object[] | 보기별 선택 분포. **현재 보기 전체**가 `sequence` 오름차순으로 담기며, 아무도 고르지 않은 보기도 `selectedCount: 0`으로 포함된다. |
+| `choiceDistribution[].choiceId` | Long | 보기 ID. |
+| `choiceDistribution[].sequence` | int | 화면의 보기 번호(1부터). |
+| `choiceDistribution[].content` | String | 보기 텍스트. |
+| `choiceDistribution[].correct` | boolean | 정답 보기 여부. 단일 정답이므로 `true`는 정확히 1개다. |
+| `choiceDistribution[].selectedCount` | long | 이 보기를 고른 응답 수. |
+| `choiceDistribution[].selectedRate` | double | 전체 응답 대비 비율(%). 분모는 `totalSolveCount`이며 소수점 첫째 자리로 반올림한다. |
+
+비율은 숫자로 내려간다. `%` 기호를 붙이는 등의 표시 형식은 클라이언트가 정한다.
+
+> **분포 비율의 합이 100%가 아닐 수 있다.** 문제 수정으로 보기가 교체·삭제되면 과거 응답이 가리키는 보기가 현재 목록에 없다. 이런 응답은 `totalSolveCount`에는 남지만 어느 보기 행에도 속하지 않으므로 분포에서 빠진다. 과거 풀이 횟수를 조용히 줄이지 않기 위한 선택이다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `QUESTION_NOT_MULTIPLE_CHOICE` | `questionId`가 서술형(`ESSAY`) 문제임. |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |

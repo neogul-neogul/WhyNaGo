@@ -1,5 +1,7 @@
 package com.neogul.whynago.support;
 
+import com.neogul.whynago.admin.presentation.AdminQuestionStatisticsController;
+import com.neogul.whynago.admin.service.AdminQuestionStatisticsService;
 import com.neogul.whynago.auth.domain.JwtClaim;
 import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.presentation.AuthController;
@@ -46,7 +48,8 @@ import org.springframework.test.web.servlet.MockMvc;
         UserController.class,
         NotificationSettingController.class,
         ProblemSetController.class,
-        ProgressController.class
+        ProgressController.class,
+        AdminQuestionStatisticsController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -92,6 +95,9 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected ProgressService progressService;
+
+    @MockitoBean
+    protected AdminQuestionStatisticsService adminQuestionStatisticsService;
 
     @BeforeEach
     void setUpMockMvc() {
