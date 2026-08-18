@@ -65,6 +65,19 @@ dependencyManagement {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    // AI 모델 비교 테스트(-Dai.compare=true) 옵션을 테스트 JVM으로 넘긴다.
+    // 켜져 있을 때는 캐시로 건너뛰지 않고 매번 실제 호출하고, 비교 리포트를 콘솔에 그대로 보여준다.
+    def comparisonEnabled = System.getProperty('ai.compare') == 'true'
+    System.properties.each { key, value ->
+        if (key.toString().startsWith('ai.compare')) {
+            systemProperty(key.toString(), value)
+        }
+    }
+    testLogging.showStandardStreams = comparisonEnabled
+    if (comparisonEnabled) {
+        outputs.upToDateWhen { false }
+    }
 }
 
 // 산출물 이름을 app.jar 로 고정
