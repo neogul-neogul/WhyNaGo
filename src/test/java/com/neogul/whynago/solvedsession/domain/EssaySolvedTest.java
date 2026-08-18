@@ -25,6 +25,7 @@ class EssaySolvedTest {
                 "READ UNCOMMITTED부터 SERIALIZABLE까지...",
                 true,
                 null,
+                null,
                 solvedAt
         );
 
@@ -53,6 +54,7 @@ class EssaySolvedTest {
                 "정확합니다.",
                 "이상 현상은 Dirty Read, Non-Repeatable Read, Phantom Read...",
                 false,
+                null,
                 null,
                 LocalDateTime.now()
         );

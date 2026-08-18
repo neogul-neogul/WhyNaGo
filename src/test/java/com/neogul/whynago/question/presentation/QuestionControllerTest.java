@@ -390,7 +390,7 @@ class QuestionControllerTest extends ControllerTestSupport {
     void evaluateEssayAnswer() {
         given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
                 new EssayAnswerResult(
-                        new GradingResult("피드백", "모범답안", true),
+                        new GradingResult("피드백", "모범답안", 8, true),
                         new NextFollowupResult("다음 꼬리질문")
                 )
         );
@@ -405,6 +405,7 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .statusCode(200)
                 .body("grading.feedback", Matchers.equalTo("피드백"))
                 .body("grading.modelAnswer", Matchers.equalTo("모범답안"))
+                .body("grading.score", Matchers.equalTo(8))
                 .body("grading.isCorrect", Matchers.equalTo(true))
                 .body("nextFollowup.question", Matchers.equalTo("다음 꼬리질문"));
     }
@@ -413,7 +414,7 @@ class QuestionControllerTest extends ControllerTestSupport {
     @DisplayName("마지막 문항 답변은 꼬리질문 없이 채점 결과만 응답한다.")
     void evaluateEssayAnswer_lastTurn() {
         given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
-                new EssayAnswerResult(new GradingResult("피드백", "모범답안", false), null)
+                new EssayAnswerResult(new GradingResult("피드백", "모범답안", 4, false), null)
         );
 
         RestAssuredMockMvc.given()

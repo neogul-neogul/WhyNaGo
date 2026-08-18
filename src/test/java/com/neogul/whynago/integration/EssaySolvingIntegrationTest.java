@@ -45,10 +45,10 @@ class EssaySolvingIntegrationTest extends IntegrationTestSupport {
     void createEssaySolvingSession() {
         Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
         CreateEssaySolvedSessionCommand command = new CreateEssaySolvedSessionCommand(
-                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, null),
+                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, null, null),
                 List.of(
-                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", false, null),
-                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, null)
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", false, null, null),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, null, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );

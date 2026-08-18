@@ -96,10 +96,10 @@ class EssaySolvedSessionServiceTest extends IntegrationTestSupport {
     void createClampsElapsedSeconds() {
         Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
         CreateEssaySolvedSessionCommand command = new CreateEssaySolvedSessionCommand(
-                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, 601),
+                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, null, 601),
                 List.of(
-                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", true, 30),
-                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, null)
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", true, null, 30),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, null, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -111,12 +111,32 @@ class EssaySolvedSessionServiceTest extends IntegrationTestSupport {
                 .containsExactly(600, 30, null);
     }
 
+    @Test
+    @DisplayName("서술형 점수를 보내지 않으면 0점이 아니라 점수 없음으로 저장한다.")
+    void createWithoutScore() {
+        Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
+        CreateEssaySolvedSessionCommand command = new CreateEssaySolvedSessionCommand(
+                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, 9, null),
+                List.of(
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", false, null, null),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, 11, null)
+                ),
+                LocalDateTime.now().minusMinutes(5)
+        );
+
+        CreateEssaySolvedSessionResult result = essaySolvedSessionService.create(10L, command);
+
+        List<EssaySolved> items = essaySolvedRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items).extracting(EssaySolved::getScore)
+                .containsExactly(9, null, 10);
+    }
+
     private CreateEssaySolvedSessionCommand command(Long rootQuestionId, boolean main, boolean followup1, boolean followup2) {
         return new CreateEssaySolvedSessionCommand(
-                new EssaySolvedQuestionCommand(rootQuestionId, "본질문", "답변1", "피드백1", "모범답안1", main, null),
+                new EssaySolvedQuestionCommand(rootQuestionId, "본질문", "답변1", "피드백1", "모범답안1", main, null, null),
                 List.of(
-                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", followup1, null),
-                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", followup2, null)
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", followup1, null, null),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", followup2, null, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );

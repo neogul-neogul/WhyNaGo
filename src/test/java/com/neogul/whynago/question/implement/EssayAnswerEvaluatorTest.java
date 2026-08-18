@@ -42,6 +42,32 @@ class EssayAnswerEvaluatorTest {
     }
 
     @Test
+    @DisplayName("AI가 매긴 점수를 버리지 않고 그대로 전달한다.")
+    void evaluate_keepsScore() {
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", true, EssayGradingMode.PRACTICE))
+                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 3, "다음 꼬리질문"));
+
+        EssayEvaluation evaluation =
+                essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
+
+        assertThat(evaluation.score()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("점수가 7점 미만이면 오답으로 판정한다.")
+    void evaluate_belowPassThreshold() {
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", true, EssayGradingMode.PRACTICE))
+                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 6, "다음 꼬리질문"));
+
+        EssayEvaluation evaluation =
+                essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
+
+        assertThat(evaluation.isCorrect()).isFalse();
+    }
+
+    @Test
     @DisplayName("마지막 턴(완료 2턴)이면 꼬리질문을 생성하지 않고 대화를 정리한다.")
     void evaluate_lastTurnNoFollowupAndClears() {
         given(essayAiClient.completedTurns("conv")).willReturn(2);

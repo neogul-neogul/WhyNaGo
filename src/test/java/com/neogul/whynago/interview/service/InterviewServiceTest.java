@@ -400,10 +400,10 @@ class InterviewServiceTest extends IntegrationTestSupport {
     void completeKeepsElapsedSeconds() {
         StartInterviewResult started = interviewService.start(USER_ID);
         CompleteInterviewCommand command = new CompleteInterviewCommand(
-                new InterviewAnswerSnapshotCommand("본질문", "답변", "피드백", "모범답안", true, 601),
+                new InterviewAnswerSnapshotCommand("본질문", "답변", "피드백", "모범답안", true, null, 601),
                 List.of(
-                        new InterviewAnswerSnapshotCommand("꼬리질문1", "답변", "피드백", "모범답안", true, 45),
-                        new InterviewAnswerSnapshotCommand("꼬리질문2", "답변", "피드백", "모범답안", true, null)
+                        new InterviewAnswerSnapshotCommand("꼬리질문1", "답변", "피드백", "모범답안", true, null, 45),
+                        new InterviewAnswerSnapshotCommand("꼬리질문2", "답변", "피드백", "모범답안", true, null, null)
                 ),
                 0
         );
@@ -424,6 +424,6 @@ class InterviewServiceTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null, null);
     }
 }

@@ -8,11 +8,12 @@ public record InterviewAnswerSnapshotCommand(
         String feedback,
         String modelAnswer,
         boolean isCorrect,
+        Integer score,
         Integer elapsedSeconds
 ) {
 
     public EssaySolvedPayload toPayload() {
         return new EssaySolvedPayload(
-                null, questionText, userAnswer, feedback, modelAnswer, isCorrect, elapsedSeconds);
+                null, questionText, userAnswer, feedback, modelAnswer, isCorrect, score, elapsedSeconds);
     }
 }
