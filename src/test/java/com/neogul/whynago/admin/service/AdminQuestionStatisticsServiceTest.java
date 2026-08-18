@@ -133,6 +133,44 @@ class AdminQuestionStatisticsServiceTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("평균 소요 시간과 그 표본 수를 조회한다.")
+    void readMultipleChoiceStatistics_averageElapsedSeconds() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        List<AnswerChoice> choices = saveChoices(question.getId());
+        solve(question.getId(), choices.get(1), true, ItemType.MAIN, 40);
+        solve(question.getId(), choices.get(1), true, ItemType.MAIN, 65);
+        solve(question.getId(), choices.get(0), false, ItemType.MAIN, null);
+
+        // when
+        MultipleChoiceStatisticsResult result =
+                adminQuestionStatisticsService.readMultipleChoiceStatistics(question.getId());
+
+        // then
+        assertThat(result.totalSolveCount()).isEqualTo(3);
+        assertThat(result.averageElapsedSeconds()).isEqualTo(53);
+        assertThat(result.elapsedSampleCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("소요 시간이 수집되지 않은 문제는 평균 소요 시간이 없다.")
+    void readMultipleChoiceStatistics_noElapsedSeconds() {
+        // given
+        Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
+        List<AnswerChoice> choices = saveChoices(question.getId());
+        solve(question.getId(), choices.get(1), true);
+
+        // when
+        MultipleChoiceStatisticsResult result =
+                adminQuestionStatisticsService.readMultipleChoiceStatistics(question.getId());
+
+        // then
+        assertThat(result.totalSolveCount()).isEqualTo(1);
+        assertThat(result.averageElapsedSeconds()).isNull();
+        assertThat(result.elapsedSampleCount()).isZero();
+    }
+
+    @Test
     @DisplayName("서술형 문제의 통계를 조회하면 예외가 발생한다.")
     void readMultipleChoiceStatistics_essayQuestion() {
         // given
@@ -169,6 +207,16 @@ class AdminQuestionStatisticsServiceTest extends IntegrationTestSupport {
     }
 
     private void solve(Long questionId, AnswerChoice userChoice, boolean isCorrect, ItemType type) {
+        solve(questionId, userChoice, isCorrect, type, null);
+    }
+
+    private void solve(
+            Long questionId,
+            AnswerChoice userChoice,
+            boolean isCorrect,
+            ItemType type,
+            Integer elapsedSeconds
+    ) {
         solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
                 1L,
                 10L,
@@ -178,7 +226,8 @@ class AdminQuestionStatisticsServiceTest extends IntegrationTestSupport {
                 userChoice.getId(),
                 userChoice.getId(),
                 isCorrect,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                elapsedSeconds
         ));
     }
 }

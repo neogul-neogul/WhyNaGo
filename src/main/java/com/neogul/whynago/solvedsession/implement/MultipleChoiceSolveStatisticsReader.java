@@ -27,7 +27,9 @@ public class MultipleChoiceSolveStatisticsReader {
         return new QuestionSolveStatistics(
                 summary.getTotalCount(),
                 normalize(summary.getCorrectCount()),
-                selectedCountByChoiceId
+                selectedCountByChoiceId,
+                summary.getAverageElapsedSeconds(),
+                summary.getElapsedSampleCount()
         );
     }
 

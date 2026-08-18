@@ -36,6 +36,8 @@ class AdminQuestionStatisticsControllerTest extends ControllerTestSupport {
                 .body("mostChosenChoice.choiceId", Matchers.equalTo(12))
                 .body("mostChosenChoice.sequence", Matchers.equalTo(2))
                 .body("mostChosenChoice.correct", Matchers.equalTo(true))
+                .body("averageElapsedSeconds", Matchers.equalTo(78))
+                .body("elapsedSampleCount", Matchers.equalTo(412))
                 .body("choiceDistribution", Matchers.hasSize(4))
                 .body("choiceDistribution[0].selectedCount", Matchers.equalTo(1))
                 .body("choiceDistribution[0].selectedRate", Matchers.equalTo(25.0f));
@@ -45,7 +47,7 @@ class AdminQuestionStatisticsControllerTest extends ControllerTestSupport {
     @DisplayName("풀이가 없는 문제를 조회하면 가장 많이 고른 선택지가 null이다.")
     void findMultipleChoiceStatistics_noRecord() {
         given(adminQuestionStatisticsService.readMultipleChoiceStatistics(1L)).willReturn(
-                new MultipleChoiceStatisticsResult(1L, 0L, 0L, 0.0, null, List.of())
+                new MultipleChoiceStatisticsResult(1L, 0L, 0L, 0.0, null, 0L, null, List.of())
         );
 
         RestAssuredMockMvc.given()
@@ -55,7 +57,9 @@ class AdminQuestionStatisticsControllerTest extends ControllerTestSupport {
                 .then()
                 .statusCode(200)
                 .body("totalSolveCount", Matchers.equalTo(0))
-                .body("mostChosenChoice", Matchers.nullValue());
+                .body("mostChosenChoice", Matchers.nullValue())
+                .body("averageElapsedSeconds", Matchers.nullValue())
+                .body("elapsedSampleCount", Matchers.equalTo(0));
     }
 
     @Test
@@ -109,6 +113,8 @@ class AdminQuestionStatisticsControllerTest extends ControllerTestSupport {
                 4L,
                 3L,
                 75.0,
+                78,
+                412L,
                 mostChosen,
                 List.of(
                         new ChoiceDistributionResult(11L, 1, "Dirty Read", false, 1L, 25.0),

@@ -16,9 +16,12 @@ public interface SolvedMultipleChoiceRepository extends JpaRepository<SolvedMult
     List<Long> findSolvedQuestionIds(@Param("userId") Long userId);
 
     // 같은 문항이 세션에 따라 본질문이기도 꼬리질문이기도 하므로 ItemType으로 나누지 않는다.
+    // avg·count(elapsedSeconds)는 null을 세지 않으므로 소요 시간 수집 전에 쌓인 응답이 평균을 희석하지 않는다.
     @Query("""
             select count(s) as totalCount,
-                   sum(case when s.isCorrect = true then 1 else 0 end) as correctCount
+                   sum(case when s.isCorrect = true then 1 else 0 end) as correctCount,
+                   avg(s.elapsedSeconds) as averageElapsedSeconds,
+                   count(s.elapsedSeconds) as elapsedSampleCount
             from SolvedMultipleChoice s
             where s.questionId = :questionId
             """)

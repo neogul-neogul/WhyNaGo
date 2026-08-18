@@ -8,6 +8,8 @@ public record MultipleChoiceStatisticsResponse(
         long totalSolveCount,
         long correctCount,
         double correctRate,
+        Integer averageElapsedSeconds,
+        long elapsedSampleCount,
         ChoiceDistributionResponse mostChosenChoice,
         List<ChoiceDistributionResponse> choiceDistribution
 ) {
@@ -18,6 +20,8 @@ public record MultipleChoiceStatisticsResponse(
                 result.totalSolveCount(),
                 result.correctCount(),
                 result.correctRate(),
+                result.averageElapsedSeconds(),
+                result.elapsedSampleCount(),
                 result.mostChosenChoice() == null ? null : ChoiceDistributionResponse.from(result.mostChosenChoice()),
                 result.choiceDistribution().stream()
                         .map(ChoiceDistributionResponse::from)

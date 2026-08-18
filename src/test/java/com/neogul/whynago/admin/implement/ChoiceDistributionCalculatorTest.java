@@ -22,7 +22,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("보기별 선택 수와 비율을 보기 순서대로 계산한다.")
     void calculate() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(4, 3, Map.of(11L, 1L, 12L, 3L));
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(4, 3, Map.of(11L, 1L, 12L, 3L), null, 0);
 
         // when
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
@@ -47,7 +47,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("아무도 고르지 않은 보기도 0건으로 채워진다.")
     void calculate_unselectedChoice() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(3, 3, Map.of(12L, 3L));
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(3, 3, Map.of(12L, 3L), null, 0);
 
         // when
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
@@ -63,7 +63,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("보기가 교체되어 현재 목록에 없는 선택지의 응답은 분포에서 제외된다.")
     void calculate_removedChoice() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 4, Map.of(12L, 4L, 99L, 6L));
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 4, Map.of(12L, 4L, 99L, 6L), null, 0);
 
         // when
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
@@ -81,7 +81,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("가장 많이 고른 선택지를 반환한다.")
     void findMostChosen() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 3, Map.of(11L, 7L, 12L, 3L));
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 3, Map.of(11L, 7L, 12L, 3L), null, 0);
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
 
         // when
@@ -97,7 +97,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("가장 많이 고른 선택지가 동점이면 보기 순서가 빠른 것을 반환한다.")
     void findMostChosen_tie() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 5, Map.of(12L, 5L, 13L, 5L));
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(10, 5, Map.of(12L, 5L, 13L, 5L), null, 0);
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
 
         // when
@@ -111,7 +111,7 @@ class ChoiceDistributionCalculatorTest {
     @DisplayName("풀이가 없으면 가장 많이 고른 선택지가 없고 비율이 모두 0이다.")
     void findMostChosen_noRecord() {
         // given
-        QuestionSolveStatistics statistics = new QuestionSolveStatistics(0, 0, Map.of());
+        QuestionSolveStatistics statistics = new QuestionSolveStatistics(0, 0, Map.of(), null, 0);
         List<ChoiceDistribution> distributions = choiceDistributionCalculator.calculate(choices(), statistics);
 
         // when

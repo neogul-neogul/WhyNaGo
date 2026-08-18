@@ -2163,7 +2163,7 @@ DELETE /api/problem-sets/{problemSetId}
 
 ## **객관식 문제 통계 조회**
 
-객관식 문제 한 건의 전체 풀이 횟수·정답률·가장 많이 고른 선택지·보기별 선택 분포를 조회한다. 관리자 문제 상세 화면의 "통계" 탭에서 사용한다.
+객관식 문제 한 건의 전체 풀이 횟수·정답률·평균 소요 시간·가장 많이 고른 선택지·보기별 선택 분포를 조회한다. 관리자 문제 상세 화면의 "통계" 탭에서 사용한다.
 
 집계 대상은 `SolvedMultipleChoice`에 남은 해당 문제의 모든 응답이다. **어떤 세션에서 본질문으로 풀렸는지 꼬리질문으로 풀렸는지 구분하지 않는다** — 모든 `Question`이 동등한 독립 문항이고 등장 위치는 세션마다 달라지기 때문이다(→ `docs/DOMAIN.md` 결정 사항: 본질문·꼬리질문 구분 없음).
 
@@ -2176,7 +2176,7 @@ GET /api/admin/questions/{questionId}/statistics
 ```
 
 - 성공 시 `200 OK`를 반환한다.
-- 아직 아무도 풀지 않은 문제도 에러가 아니다. 모든 지표가 `0`이고 `mostChosenChoice`가 `null`이며, 보기 분포는 전부 `selectedCount: 0`으로 채워진다.
+- 아직 아무도 풀지 않은 문제도 에러가 아니다. 모든 지표가 `0`이고 `mostChosenChoice`·`averageElapsedSeconds`가 `null`이며, 보기 분포는 전부 `selectedCount: 0`으로 채워진다.
 
 ### **Response Body**
 
@@ -2186,6 +2186,8 @@ GET /api/admin/questions/{questionId}/statistics
   "totalSolveCount": 1842,
   "correctCount": 1175,
   "correctRate": 63.8,
+  "averageElapsedSeconds": 78,
+  "elapsedSampleCount": 412,
   "mostChosenChoice": {
     "choiceId": 34,
     "sequence": 2,
@@ -2237,6 +2239,8 @@ GET /api/admin/questions/{questionId}/statistics
 | `totalSolveCount` | long | 이 문제에 대한 전체 응답 수. 같은 사용자가 여러 번 풀면 각각 더해지고, 꼬리질문으로 푼 응답도 포함한다. |
 | `correctCount` | long | 맞힌 응답 수. 응답 시점에 저장된 `SolvedMultipleChoice.isCorrect` 기준이다. |
 | `correctRate` | double | 정답률(%). `correctCount / totalSolveCount`를 소수점 첫째 자리로 반올림한 값. 응답이 없으면 `0.0`. |
+| `averageElapsedSeconds` | int \| null | 평균 소요 시간(초, 반올림). **소요 시간이 수집된 응답이 하나도 없으면 `0`이 아니라 `null`이다** — "아직 데이터 없음"과 "0초에 풀었다"는 다르다. |
+| `elapsedSampleCount` | long | 위 평균이 몇 건의 응답으로 계산됐는지. `totalSolveCount`보다 작을 수 있다 — 소요 시간 수집 이전에 쌓인 응답과 이상치는 집계에서 빠지기 때문이다. 평균을 신뢰할지 판단하는 근거로 함께 본다. |
 | `mostChosenChoice` | Object \| null | 가장 많이 선택된 보기. 원소 형식은 `choiceDistribution`과 같다. 동점이면 `sequence`가 빠른 보기다. **응답이 한 건도 없으면 `null`.** |
 | `choiceDistribution` | Object[] | 보기별 선택 분포. **현재 보기 전체**가 `sequence` 오름차순으로 담기며, 아무도 고르지 않은 보기도 `selectedCount: 0`으로 포함된다. |
 | `choiceDistribution[].choiceId` | Long | 보기 ID. |

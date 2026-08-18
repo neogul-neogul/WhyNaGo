@@ -115,6 +115,39 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
     }
 
     @Test
+    @DisplayName("평균 소요 시간은 소요 시간이 수집된 응답만으로 계산한다.")
+    void findSolveSummary_averageElapsedSeconds() {
+        // given
+        solvedMultipleChoiceRepository.save(item(10L, 100L, ItemType.MAIN, 1L, true, 40));
+        solvedMultipleChoiceRepository.save(item(20L, 100L, ItemType.MAIN, 1L, true, 60));
+        solvedMultipleChoiceRepository.save(item(30L, 100L, ItemType.MAIN, 1L, true, null));
+
+        // when
+        QuestionSolveSummary summary = solvedMultipleChoiceRepository.findSolveSummary(100L);
+
+        // then
+        assertThat(summary.getTotalCount()).isEqualTo(3);
+        assertThat(summary.getAverageElapsedSeconds()).isEqualTo(50.0);
+        assertThat(summary.getElapsedSampleCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("소요 시간이 수집된 응답이 없으면 평균은 null이고 표본 수는 0이다.")
+    void findSolveSummary_noElapsedSeconds() {
+        // given
+        solvedMultipleChoiceRepository.save(item(10L, 100L, ItemType.MAIN, 1L, true, null));
+        solvedMultipleChoiceRepository.save(item(20L, 100L, ItemType.MAIN, 1L, true, null));
+
+        // when
+        QuestionSolveSummary summary = solvedMultipleChoiceRepository.findSolveSummary(100L);
+
+        // then
+        assertThat(summary.getTotalCount()).isEqualTo(2);
+        assertThat(summary.getAverageElapsedSeconds()).isNull();
+        assertThat(summary.getElapsedSampleCount()).isZero();
+    }
+
+    @Test
     @DisplayName("보기별 선택 수를 사용자가 고른 보기 기준으로 집계한다.")
     void countGroupByUserChoice() {
         // given
@@ -153,6 +186,17 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
             Long userChoiceId,
             boolean isCorrect
     ) {
+        return item(userId, questionId, type, userChoiceId, isCorrect, null);
+    }
+
+    private SolvedMultipleChoice item(
+            Long userId,
+            Long questionId,
+            ItemType type,
+            Long userChoiceId,
+            boolean isCorrect,
+            Integer elapsedSeconds
+    ) {
         return SolvedMultipleChoice.create(
                 1L,
                 userId,
@@ -162,7 +206,8 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
                 userChoiceId,
                 1L,
                 isCorrect,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                elapsedSeconds
         );
     }
 }
