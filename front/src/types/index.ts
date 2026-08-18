@@ -260,6 +260,8 @@ export interface SolvedQuestionRequest {
   choiceId: number;
   /** 고른 보기의 relatedQuestionId (마지막 문항은 null) */
   relationQuestionId: number | null;
+  /** 문항이 표시된 시점부터 "정답 확인"을 누른 시점까지의 초. 해설을 읽은 시간은 포함하지 않는다 */
+  elapsedSeconds?: number;
 }
 
 /** 풀이 세션 저장 요청 — POST /api/solved-sessions */

@@ -17,6 +17,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SolvedMultipleChoice {
 
+    private static final int MAX_ELAPSED_SECONDS = 3600;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -49,6 +51,9 @@ public class SolvedMultipleChoice {
     @Column(nullable = false)
     private LocalDateTime solvedAt;
 
+    // 문항이 표시된 시점부터 채점을 누른 시점까지. 수집 전에 쌓인 기록은 null이라 집계에서 빠진다.
+    private Integer elapsedSeconds;
+
     private SolvedMultipleChoice(
             Long solvedSessionId,
             Long userId,
@@ -58,7 +63,8 @@ public class SolvedMultipleChoice {
             Long userChoiceId,
             Long answerChoiceId,
             boolean isCorrect,
-            LocalDateTime solvedAt
+            LocalDateTime solvedAt,
+            Integer elapsedSeconds
     ) {
         this.solvedSessionId = solvedSessionId;
         this.userId = userId;
@@ -69,6 +75,7 @@ public class SolvedMultipleChoice {
         this.answerChoiceId = answerChoiceId;
         this.isCorrect = isCorrect;
         this.solvedAt = solvedAt;
+        this.elapsedSeconds = elapsedSeconds;
     }
 
     public static SolvedMultipleChoice create(
@@ -82,6 +89,32 @@ public class SolvedMultipleChoice {
             boolean isCorrect,
             LocalDateTime solvedAt
     ) {
+        return create(
+                solvedSessionId,
+                userId,
+                questionId,
+                type,
+                sequence,
+                userChoiceId,
+                answerChoiceId,
+                isCorrect,
+                solvedAt,
+                null
+        );
+    }
+
+    public static SolvedMultipleChoice create(
+            Long solvedSessionId,
+            Long userId,
+            Long questionId,
+            ItemType type,
+            int sequence,
+            Long userChoiceId,
+            Long answerChoiceId,
+            boolean isCorrect,
+            LocalDateTime solvedAt,
+            Integer elapsedSeconds
+    ) {
         return new SolvedMultipleChoice(
                 solvedSessionId,
                 userId,
@@ -91,7 +124,16 @@ public class SolvedMultipleChoice {
                 userChoiceId,
                 answerChoiceId,
                 isCorrect,
-                solvedAt
+                solvedAt,
+                normalizeElapsedSeconds(elapsedSeconds)
         );
+    }
+
+    // 문제를 띄워놓고 자리를 비운 시간은 소요 시간이 아니다. 세션 저장은 살리고 지표에서만 뺀다.
+    private static Integer normalizeElapsedSeconds(Integer elapsedSeconds) {
+        if (elapsedSeconds == null || elapsedSeconds > MAX_ELAPSED_SECONDS) {
+            return null;
+        }
+        return elapsedSeconds;
     }
 }

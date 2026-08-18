@@ -760,18 +760,21 @@ POST /api/solved-sessions
   "rootQuestion": {
     "questionId": 1,
     "choiceId": 3,
-    "relationQuestionId": 5
+    "relationQuestionId": 5,
+    "elapsedSeconds": 78
   },
   "followupQuestions": [
     {
       "questionId": 5,
       "choiceId": 12,
-      "relationQuestionId": 8
+      "relationQuestionId": 8,
+      "elapsedSeconds": 45
     },
     {
       "questionId": 8,
       "choiceId": 20,
-      "relationQuestionId": null
+      "relationQuestionId": null,
+      "elapsedSeconds": 63
     }
   ],
   "startedAt": "2026-06-25T09:58:00"
@@ -785,7 +788,13 @@ POST /api/solved-sessions
 | `*.questionId` | Long | O | 푼 문제 ID. |
 | `*.choiceId` | Long | O | 사용자가 고른 선택지 ID. 해당 문제에 속한 선택지여야 한다. 정답 여부는 서버가 판정한다. |
 | `*.relationQuestionId` | Long | X | 고른 선택지가 이어지는 다음 문제 ID. 마지막 항목은 `null`(체인 종료). |
+| `*.elapsedSeconds` | int | X | 그 문항을 푸는 데 걸린 시간(초). **문항이 화면에 표시된 시점부터 "정답 확인"을 누른 시점까지**이며, 채점 후 해설을 읽은 시간은 포함하지 않는다. 관리자 문제 통계의 평균 소요 시간 집계에 쓴다(→ `docs/DOMAIN.md` 문제 통계 집계 정책). |
 | `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간(`solvedAt - startedAt`) 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
+
+`elapsedSeconds`는 선택 필드다. 보내지 않으면 소요 시간 없이 저장되고 통계 집계에서 빠질 뿐, 세션 저장은 정상 처리된다.
+
+- **음수면 `400 INVALID_INPUT`이다.** 측정 로직의 버그이지 사용자 입력이 아니므로 거절한다.
+- **3600초(1시간)를 넘으면 세션은 저장되지만 그 문항의 소요 시간은 버려진다(`null`).** 문제를 띄워둔 채 자리를 비운 시간을 "푸는 데 걸린 시간"으로 볼 수 없기 때문이며, 이것 때문에 실제로 푼 기록까지 잃게 하지는 않는다.
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 

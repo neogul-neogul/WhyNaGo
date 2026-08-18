@@ -85,13 +85,39 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
         assertThat(wrongNoteRepository.existsByUserIdAndSolvedSessionId(10L, result.sessionId())).isFalse();
     }
 
+    @Test
+    @DisplayName("문항별 소요 시간을 각 풀이 문항에 저장한다.")
+    void create_elapsedSeconds() {
+        QuizData quiz = saveQuizData();
+
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, quiz.toTimedCommand());
+
+        List<SolvedMultipleChoice> items = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items)
+                .extracting(SolvedMultipleChoice::getElapsedSeconds)
+                .containsExactly(42, 17, null);
+    }
+
+    @Test
+    @DisplayName("소요 시간 없이 제출한 세션도 저장된다.")
+    void create_withoutElapsedSeconds() {
+        QuizData quiz = saveQuizData();
+
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, quiz.toCommand());
+
+        List<SolvedMultipleChoice> items = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items)
+                .extracting(SolvedMultipleChoice::getElapsedSeconds)
+                .containsOnlyNulls();
+    }
+
     @Disabled("https://github.com/neogul-neogul/WhyNaGo/issues/33 - SolvedSessionValidator가 체인 마지막 문항의 relationQuestionId 검증을 건너뛰는 버그로 실패 중")
     @Test
     @DisplayName("꼬리질문이 다음 문제와 연결되지 않으면 예외가 발생한다.")
     void createWithBrokenChain() {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L),
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L, null),
                 List.of(),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -107,7 +133,7 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
     void createWithChoiceNotInQuestion() {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId()),
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId(), null),
                 List.of(),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -145,10 +171,21 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
 
         CreateSolvedSessionCommand toCommand() {
             return new CreateSolvedSessionCommand(
-                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), null),
                     List.of(
-                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
-                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, null)
+                    ),
+                    LocalDateTime.now().minusMinutes(5)
+            );
+        }
+
+        CreateSolvedSessionCommand toTimedCommand() {
+            return new CreateSolvedSessionCommand(
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), 42),
+                    List.of(
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), 17),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, 9999)
                     ),
                     LocalDateTime.now().minusMinutes(5)
             );
@@ -156,10 +193,10 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
 
         CreateSolvedSessionCommand toAllCorrectCommand() {
             return new CreateSolvedSessionCommand(
-                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), null),
                     List.of(
-                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
-                            new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null)
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null, null)
                     ),
                     LocalDateTime.now().minusMinutes(5)
             );
