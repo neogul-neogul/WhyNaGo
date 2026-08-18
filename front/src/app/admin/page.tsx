@@ -110,5 +110,5 @@ function SummaryMetric({ label, value, unit }: { label: string; value: string; u
         {unit && <span className="font-sans text-[13px] text-placeholder">{unit}</span>}
       </span>
     </div>
-  );
+);
 }

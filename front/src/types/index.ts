@@ -3,12 +3,19 @@
 /** 사용자 직무 (백엔드 Position enum과 대응) */
 export type Position = "BACKEND" | "FRONTEND" | "FULLSTACK";
 
+/**
+ * 사용자 권한 (백엔드 Role enum과 대응).
+ * 로그인 응답과 access token에 함께 담기며, 승격은 운영 DB에서만 한다(docs/API.md 권한).
+ */
+export type Role = "USER" | "ADMIN";
+
 /** 로그인한 사용자 정보 (백엔드 로그인 응답의 사용자 부분) */
 export interface AuthUser {
   id: number;
   email: string;
   nickname: string;
   position: Position;
+  role: Role;
 }
 
 /** 로그인 API 응답 바디 */

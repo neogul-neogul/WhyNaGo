@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { adminLogout } from "@/lib/adminAuth";
+import { logout, useCurrentUser } from "@/lib/auth";
 import Button from "@/components/ui/Button";
 import AdminLogo from "@/components/admin/AdminLogo";
 
@@ -36,6 +36,7 @@ function isActive(pathname: string, href: string) {
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const user = useCurrentUser();
 
   return (
     <div className="flex min-h-screen w-full bg-page">
@@ -68,14 +69,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <h1 className="text-[22px] font-bold tracking-[-0.4px] text-ink">{pageTitle(pathname)}</h1>
           <div className="flex flex-shrink-0 items-center gap-4">
             <span className="whitespace-nowrap text-[13.5px] font-medium text-secondary">
-              WhyNaGo 관리자
+              {user?.nickname ?? "관리자"} · 관리자
             </span>
             <Button
               variant="secondary"
               size="md"
               onClick={() => {
-                adminLogout();
-                router.push("/admin");
+                void logout();
+                router.replace("/admin");
               }}
             >
               로그아웃

@@ -23,6 +23,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(
     () =>
       subscribeSessionExpired(() => {
+        // 관리자 화면에서 만료되면 그 자리에 관리자 로그인 화면이 뜬다 (사용자 로그인으로 보내지 않는다)
+        if (isAdminRoute(pathname)) return;
         const redirect = encodeURIComponent(pathname);
         router.replace(`/login?redirect=${redirect}&reason=expired`);
       }),

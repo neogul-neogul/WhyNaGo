@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useRef, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { requestGoogleLogin, requestLogin } from "@/lib/auth";
+import { RoleMismatchError, requestGoogleLogin, requestLogin } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import AuthCard from "@/components/auth/AuthCard";
 import Input from "@/components/ui/Input";
@@ -12,6 +12,9 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 // AuthCard 내부 폭(max-w-400 - px-9 양쪽)에 맞춘다. GIS 버튼은 px 단위만 받는다
 const GOOGLE_BUTTON_WIDTH = 328;
+
+// 관리자 계정은 관리자 페이지에서만 로그인할 수 있다 (권한이 다르면 세션을 만들지 않는다)
+const ADMIN_ACCOUNT_MESSAGE = "관리자 계정입니다. 관리자 페이지에서 로그인해주세요.";
 
 
 // 외부 URL로 튕기지 않도록 앱 내부 경로만 복귀 대상으로 인정한다
@@ -39,10 +42,12 @@ function LoginForm() {
     setError("");
     setLoading(true);
     try {
-      await requestLogin(email, password);
+      await requestLogin(email, password, "USER");
       router.replace(redirect);
     } catch (err) {
-      if (err instanceof ApiError && err.code === "AUTH_LOGIN_FAILED") {
+      if (err instanceof RoleMismatchError) {
+        setError(ADMIN_ACCOUNT_MESSAGE);
+      } else if (err instanceof ApiError && err.code === "AUTH_LOGIN_FAILED") {
         setError("이메일 또는 비밀번호가 올바르지 않습니다.");
       } else if (err instanceof ApiError) {
         setError(err.message);
@@ -59,10 +64,12 @@ function LoginForm() {
     async (credential: string) => {
       setError("");
       try {
-        await requestGoogleLogin(credential);
+        await requestGoogleLogin(credential, "USER");
         router.replace(redirect);
       } catch (err) {
-        if (err instanceof ApiError) {
+        if (err instanceof RoleMismatchError) {
+          setError(ADMIN_ACCOUNT_MESSAGE);
+        } else if (err instanceof ApiError) {
           setError(err.message);
         } else {
           setError("구글 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
