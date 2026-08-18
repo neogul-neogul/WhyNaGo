@@ -1,0 +1,28 @@
+# 로컬에 설치한 ollama로 앱을 띄울 때 쓰는 AI 설정. local 프로필에서 AI_PROVIDER=ollama 로 고른다.
+#
+#   ollama serve                # 데몬 실행 (macOS 앱을 켜 두면 자동 실행된다)
+#   ollama pull gemma3:4b       # 쓸 모델을 미리 받아 둔다 (`ollama list` 로 확인)
+#   AI_PROVIDER=ollama ./gradlew bootRun --args='--spring.profiles.active=local'
+#
+# ollama가 OpenAI 호환 엔드포인트(/v1)를 제공하므로 운영과 같은 OpenAI 커넥터를 그대로 쓰고
+# 접속 정보와 모델만 로컬로 바꾼다.
+spring:
+  ai:
+    model:
+      embedding: none
+    openai:
+      # ollama는 인증을 하지 않지만, 커넥터가 Authorization 헤더를 채우므로 더미 값을 준다.
+      api-key: ollama
+      base-url: http://localhost:11434/v1
+      chat:
+        completions-path: /chat/completions
+        options:
+          model: gemma3:4b
+          temperature: 0.3
+          # 로컬 모델에는 추론 강도 옵션이 없어 reasoning-effort는 보내지 않는다.
+          reasoning-effort:
+
+# EssayAiClientConfig가 API_KEY 유무로 실제 AI 클라이언트와 Mock을 가른다.
+# ollama는 키가 필요 없지만, Mock으로 떨어지지 않게 이 값으로 조건을 만족시킨다.
+# 실제 호출에 실리는 키는 위의 spring.ai.openai.api-key라, 환경변수에 Gemini 키가 있어도 여기로 새지 않는다.
+API_KEY: ollama

@@ -1,8 +1,9 @@
+# AI_PROVIDER로 어떤 AI 설정을 쓸지 고른다. 기본은 Gemini(local), AI_PROVIDER=ollama 면 로컬 ollama.
 spring:
   config:
     import:
       - classpath:config/application-db-local.yml
-      - classpath:config/application-ai-local.yml
+      - classpath:config/application-ai-${AI_PROVIDER:local}.yml
       - classpath:config/application-email-local.yml
 
 jwt:
