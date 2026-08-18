@@ -18,6 +18,7 @@ public final class SolvedMultipleChoiceFixture {
     private Long userChoiceId = 1L;
     private Long answerChoiceId = 1L;
     private boolean isCorrect = true;
+    private Integer elapsedSeconds = null;
     private LocalDateTime solvedAt = DEFAULT_SOLVED_AT;
 
     private SolvedMultipleChoiceFixture() {
@@ -67,6 +68,11 @@ public final class SolvedMultipleChoiceFixture {
         return this;
     }
 
+    public SolvedMultipleChoiceFixture elapsedSeconds(Integer elapsedSeconds) {
+        this.elapsedSeconds = elapsedSeconds;
+        return this;
+    }
+
     public SolvedMultipleChoiceFixture solvedAt(LocalDateTime solvedAt) {
         this.solvedAt = solvedAt;
         return this;
@@ -82,6 +88,7 @@ public final class SolvedMultipleChoiceFixture {
                 userChoiceId,
                 answerChoiceId,
                 isCorrect,
+                elapsedSeconds,
                 solvedAt
         );
     }

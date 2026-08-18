@@ -91,12 +91,32 @@ class EssaySolvedSessionServiceTest extends IntegrationTestSupport {
                         .isEqualTo(QuestionErrorCode.QUESTION_NOT_ESSAY));
     }
 
+    @Test
+    @DisplayName("서술형 소요 시간이 상한을 넘게 들어오면 600초로 잘라 저장한다.")
+    void createClampsElapsedSeconds() {
+        Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
+        CreateEssaySolvedSessionCommand command = new CreateEssaySolvedSessionCommand(
+                new EssaySolvedQuestionCommand(essayRoot.getId(), "본질문", "답변1", "피드백1", "모범답안1", true, 601),
+                List.of(
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", true, 30),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", true, null)
+                ),
+                LocalDateTime.now().minusMinutes(5)
+        );
+
+        CreateEssaySolvedSessionResult result = essaySolvedSessionService.create(10L, command);
+
+        List<EssaySolved> items = essaySolvedRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items).extracting(EssaySolved::getElapsedSeconds)
+                .containsExactly(600, 30, null);
+    }
+
     private CreateEssaySolvedSessionCommand command(Long rootQuestionId, boolean main, boolean followup1, boolean followup2) {
         return new CreateEssaySolvedSessionCommand(
-                new EssaySolvedQuestionCommand(rootQuestionId, "본질문", "답변1", "피드백1", "모범답안1", main),
+                new EssaySolvedQuestionCommand(rootQuestionId, "본질문", "답변1", "피드백1", "모범답안1", main, null),
                 List.of(
-                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", followup1),
-                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", followup2)
+                        new EssaySolvedQuestionCommand(null, "꼬리질문1", "답변2", "피드백2", "모범답안2", followup1, null),
+                        new EssaySolvedQuestionCommand(null, "꼬리질문2", "답변3", "피드백3", "모범답안3", followup2, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );

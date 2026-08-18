@@ -395,6 +395,26 @@ class InterviewServiceTest extends IntegrationTestSupport {
         assertThat(interviewService.countCompleted(USER_ID)).isZero();
     }
 
+    @Test
+    @DisplayName("면접을 완료하면 문항별 소요 시간이 본질문까지 그대로 저장된다.")
+    void completeKeepsElapsedSeconds() {
+        StartInterviewResult started = interviewService.start(USER_ID);
+        CompleteInterviewCommand command = new CompleteInterviewCommand(
+                new InterviewAnswerSnapshotCommand("본질문", "답변", "피드백", "모범답안", true, 601),
+                List.of(
+                        new InterviewAnswerSnapshotCommand("꼬리질문1", "답변", "피드백", "모범답안", true, 45),
+                        new InterviewAnswerSnapshotCommand("꼬리질문2", "답변", "피드백", "모범답안", true, null)
+                ),
+                0
+        );
+
+        CompleteInterviewResult result = interviewService.complete(USER_ID, started.interviewId(), command);
+
+        List<EssaySolved> items = essaySolvedRepository.findBySolvedSessionIdOrderBySequence(result.solvedSessionId());
+        assertThat(items).extracting(EssaySolved::getElapsedSeconds)
+                .containsExactly(600, 45, null);
+    }
+
     private CompleteInterviewCommand completeCommand(boolean first, boolean second, boolean third) {
         return new CompleteInterviewCommand(
                 snapshot("본질문", first),
@@ -404,6 +424,6 @@ class InterviewServiceTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null);
     }
 }

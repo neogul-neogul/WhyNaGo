@@ -29,6 +29,7 @@ public class SolvedMultipleChoiceAppender {
                     question.userChoiceId(),
                     question.answerChoiceId(),
                     question.correct(),
+                    question.elapsedSeconds(),
                     solvedAt
             ));
         }

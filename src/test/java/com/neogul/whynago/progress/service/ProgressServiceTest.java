@@ -172,6 +172,6 @@ class ProgressServiceTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null);
     }
 }

@@ -46,6 +46,9 @@ public class SolvedMultipleChoice {
     @Column(nullable = false)
     private boolean isCorrect;
 
+    // 클라이언트가 보고한 소요 시간(초). 미전송이거나 비정상 값이면 null이며 "미측정"을 뜻한다(0초가 아니다).
+    private Integer elapsedSeconds;
+
     @Column(nullable = false)
     private LocalDateTime solvedAt;
 
@@ -58,6 +61,7 @@ public class SolvedMultipleChoice {
             Long userChoiceId,
             Long answerChoiceId,
             boolean isCorrect,
+            Integer elapsedSeconds,
             LocalDateTime solvedAt
     ) {
         this.solvedSessionId = solvedSessionId;
@@ -68,6 +72,7 @@ public class SolvedMultipleChoice {
         this.userChoiceId = userChoiceId;
         this.answerChoiceId = answerChoiceId;
         this.isCorrect = isCorrect;
+        this.elapsedSeconds = elapsedSeconds;
         this.solvedAt = solvedAt;
     }
 
@@ -80,6 +85,7 @@ public class SolvedMultipleChoice {
             Long userChoiceId,
             Long answerChoiceId,
             boolean isCorrect,
+            Integer elapsedSeconds,
             LocalDateTime solvedAt
     ) {
         return new SolvedMultipleChoice(
@@ -91,6 +97,7 @@ public class SolvedMultipleChoice {
                 userChoiceId,
                 answerChoiceId,
                 isCorrect,
+                ElapsedSecondsPolicy.normalize(elapsedSeconds),
                 solvedAt
         );
     }

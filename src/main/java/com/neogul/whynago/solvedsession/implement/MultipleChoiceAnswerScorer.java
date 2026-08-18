@@ -28,7 +28,8 @@ public class MultipleChoiceAnswerScorer {
                 question.questionId(),
                 userChoice.getId(),
                 correctChoice.getId(),
-                userChoice.correct()
+                userChoice.correct(),
+                question.elapsedSeconds()
         );
     }
 }

@@ -8,4 +8,5 @@ public enum Category {
     OS,
     DESIGN_PATTERN,
     LANGUAGE,
+    GENERAL_CS,
 }

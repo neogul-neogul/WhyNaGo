@@ -77,7 +77,8 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
                     "답변" + turn,
                     answered.grading().feedback(),
                     answered.grading().modelAnswer(),
-                    answered.grading().isCorrect()
+                    answered.grading().isCorrect(),
+                    null
             ));
             if (turn == 3) {
                 assertThat(answered.nextFollowup()).isNull();
@@ -124,6 +125,6 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null);
     }
 }

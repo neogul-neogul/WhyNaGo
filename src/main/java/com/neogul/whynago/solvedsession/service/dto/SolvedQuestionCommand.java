@@ -5,10 +5,11 @@ import com.neogul.whynago.solvedsession.implement.dto.SolvedQuestionPayload;
 public record SolvedQuestionCommand(
         Long questionId,
         Long choiceId,
-        Long relationQuestionId
+        Long relationQuestionId,
+        Integer elapsedSeconds
 ) {
 
     public SolvedQuestionPayload toPayload() {
-        return new SolvedQuestionPayload(questionId, choiceId, relationQuestionId);
+        return new SolvedQuestionPayload(questionId, choiceId, relationQuestionId, elapsedSeconds);
     }
 }

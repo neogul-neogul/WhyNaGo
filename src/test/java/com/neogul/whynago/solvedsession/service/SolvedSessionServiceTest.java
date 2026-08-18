@@ -91,7 +91,7 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
     void createWithBrokenChain() {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L),
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), 9999L, null),
                 List.of(),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -107,7 +107,7 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
     void createWithChoiceNotInQuestion() {
         QuizData quiz = saveQuizData();
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId()),
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.followup1Correct().getId(), quiz.followup1().getId(), null),
                 List.of(),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -133,6 +133,42 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
         return new QuizData(root, followup1, followup2, rootCorrect, followup1Correct, followup2Correct, followup2Wrong);
     }
 
+    @Test
+    @DisplayName("소요 시간이 상한을 넘게 들어오면 600초로 잘라 저장한다.")
+    void createClampsElapsedSeconds() {
+        QuizData quiz = saveQuizData();
+        CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), null, 601),
+                List.of(),
+                LocalDateTime.now().minusMinutes(5)
+        );
+
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, command);
+
+        List<SolvedMultipleChoice> items =
+                solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items).singleElement()
+                .satisfies(item -> assertThat(item.getElapsedSeconds()).isEqualTo(600));
+    }
+
+    @Test
+    @DisplayName("소요 시간을 보내지 않으면 미측정으로 저장한다.")
+    void createWithoutElapsedSeconds() {
+        QuizData quiz = saveQuizData();
+        CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
+                new SolvedQuestionCommand(quiz.root().getId(), quiz.rootCorrect().getId(), null, null),
+                List.of(),
+                LocalDateTime.now().minusMinutes(5)
+        );
+
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, command);
+
+        List<SolvedMultipleChoice> items =
+                solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items).singleElement()
+                .satisfies(item -> assertThat(item.getElapsedSeconds()).isNull());
+    }
+
     private record QuizData(
             Question root,
             Question followup1,
@@ -145,10 +181,10 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
 
         CreateSolvedSessionCommand toCommand() {
             return new CreateSolvedSessionCommand(
-                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), null),
                     List.of(
-                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
-                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, null)
                     ),
                     LocalDateTime.now().minusMinutes(5)
             );
@@ -156,10 +192,10 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
 
         CreateSolvedSessionCommand toAllCorrectCommand() {
             return new CreateSolvedSessionCommand(
-                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), null),
                     List.of(
-                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
-                            new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null)
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Correct.getId(), null, null)
                     ),
                     LocalDateTime.now().minusMinutes(5)
             );

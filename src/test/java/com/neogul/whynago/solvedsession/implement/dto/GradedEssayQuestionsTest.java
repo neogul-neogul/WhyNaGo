@@ -38,6 +38,6 @@ class GradedEssayQuestionsTest {
     }
 
     private EssaySolvedPayload payload(boolean isCorrect) {
-        return new EssaySolvedPayload(null, "질문", "답변", "피드백", "모범답안", isCorrect);
+        return new EssaySolvedPayload(null, "질문", "답변", "피드백", "모범답안", isCorrect, null);
     }
 }

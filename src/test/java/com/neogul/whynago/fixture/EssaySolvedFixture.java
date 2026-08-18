@@ -20,6 +20,7 @@ public final class EssaySolvedFixture {
     private String feedback = "피드백";
     private String modelAnswer = "모범답안";
     private boolean isCorrect = true;
+    private Integer elapsedSeconds = null;
     private LocalDateTime solvedAt = DEFAULT_SOLVED_AT;
 
     private EssaySolvedFixture() {
@@ -79,6 +80,11 @@ public final class EssaySolvedFixture {
         return this;
     }
 
+    public EssaySolvedFixture elapsedSeconds(Integer elapsedSeconds) {
+        this.elapsedSeconds = elapsedSeconds;
+        return this;
+    }
+
     public EssaySolvedFixture solvedAt(LocalDateTime solvedAt) {
         this.solvedAt = solvedAt;
         return this;
@@ -96,6 +102,7 @@ public final class EssaySolvedFixture {
                 feedback,
                 modelAnswer,
                 isCorrect,
+                elapsedSeconds,
                 solvedAt
         );
     }

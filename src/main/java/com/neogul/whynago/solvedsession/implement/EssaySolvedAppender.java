@@ -31,6 +31,7 @@ public class EssaySolvedAppender {
                     item.feedback(),
                     item.modelAnswer(),
                     item.isCorrect(),
+                    item.elapsedSeconds(),
                     solvedAt
             ));
         }
