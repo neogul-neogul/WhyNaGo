@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { subscribeSessionExpired } from "@/lib/api";
 import { useAuth, useHydrated } from "@/lib/auth";
-import { isGuestOnlyRoute, isPublicRoute } from "@/lib/routes";
+import { isAdminRoute, isGuestOnlyRoute, isPublicRoute } from "@/lib/routes";
 import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
 
 /**
@@ -34,6 +34,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (isGuestOnlyRoute(pathname)) router.replace("/");
   }, [hydrated, loggedIn, pathname, router]);
 
+  // 관리자 화면은 사용자 세션이 아니라 자체 관리자 게이트가 접근을 판정한다
+  if (isAdminRoute(pathname)) return <>{children}</>;
   if (isPublicRoute(pathname)) return <>{children}</>;
   if (!hydrated) return null;
   return (

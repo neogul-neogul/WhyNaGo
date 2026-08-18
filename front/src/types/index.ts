@@ -637,3 +637,143 @@ export interface NotificationSettingResponse {
 
 /** 알림 설정 수정 요청 — PATCH /api/notification-settings/me (부분 수정이 아니라 전체 필드를 보낸다) */
 export type UpdateNotificationSettingRequest = NotificationSettingResponse;
+
+// ===== 관리자 화면 (더미 전용) =====
+// 어드민 백엔드 API가 아직 없어 화면만 유지한다. 아래 타입은 전부 src/mocks/admin.ts의 더미용이며,
+// 백엔드 스펙이 나오면 위 API 응답 타입들처럼 서버 스펙 그대로 다시 정의한다.
+
+/** 어드민 회원 목록/상세 행 */
+export interface AdminMember {
+  id: string;
+  nickname: string;
+  email: string;
+  position: string;
+  tier: ProgressTier;
+  joinedAt: string;
+  lastVisitedAt: string;
+  score: number;
+  streakDays: number;
+  cumulativeDays: number;
+  solvedCount: number;
+}
+
+/** 어드민 문제 목록 행 */
+export interface AdminQuestion {
+  id: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  type: AdminQuestionTypeLabel;
+  title: string;
+  solveCount: number;
+  correctRate: string;
+  updatedAt: string;
+}
+
+/** 어드민 화면에서 쓰는 문제 유형 표기 */
+export type AdminQuestionTypeLabel = "객관식" | "서술형";
+
+/** 어드민 회원 상세 · 풀이 이력 행 */
+export interface AdminSolveRecord {
+  at: string;
+  questionId: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  title: string;
+  type: AdminQuestionTypeLabel;
+  score: number;
+  spent: string;
+  result: AdminSolveResult;
+}
+
+/** 풀이 이력 결과 표기 */
+export type AdminSolveResult = "완료" | "오답" | "복습";
+
+/** 어드민 문제 상세 (기본 정보 + 통계) */
+export interface AdminQuestionDetail {
+  title: string;
+  body: string;
+  options?: AdminQuestionOption[];
+  answerExplanation?: string;
+  wrongExplanations?: { number: number; text: string }[];
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  responseCount?: number;
+  correctRate?: string;
+  avgSpent?: string;
+  topPick?: string;
+  topPickRate?: string;
+  distribution?: AdminChoiceDistribution[];
+  sessions?: AdminQuestionSession[];
+}
+
+export interface AdminQuestionOption {
+  text: string;
+  correct: boolean;
+}
+
+/** 문제 통계 · 보기별 선택 분포 */
+export interface AdminChoiceDistribution {
+  label: string;
+  text: string;
+  count: number;
+  rate: string;
+  correct: boolean;
+}
+
+/** 문제 통계 · 최근 풀이 세션 */
+export interface AdminQuestionSession {
+  user: string;
+  pick: string;
+  correct: boolean;
+  spent: string;
+  at: string;
+}
+
+/** 문제 등록/수정 폼 상태 */
+export interface AdminQuestionForm {
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  tags: string[];
+  title: string;
+  body: string;
+  explanation: string;
+  answerIndex: number;
+  options: AdminQuestionFormOption[];
+}
+
+export interface AdminQuestionFormOption {
+  text: string;
+  explanation: string;
+}
+
+/** 1일1면접 출제 이력 행 */
+export interface AdminInterviewRecord {
+  date: string;
+  body: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  participants: number;
+  completionRate: string;
+  within3MinRate: string;
+  avgScore: string;
+  questionId: string;
+}
+
+/** 이메일 발송 이력 행 */
+export interface AdminEmailLog {
+  key: string;
+  at: string;
+  to: string;
+  succeeded: boolean;
+  reason: string;
+}
+
+/** 대시보드 KPI 카드 */
+export interface AdminKpi {
+  label: string;
+  value: string;
+  unit: string;
+  delta: string;
+  increased: boolean;
+}
