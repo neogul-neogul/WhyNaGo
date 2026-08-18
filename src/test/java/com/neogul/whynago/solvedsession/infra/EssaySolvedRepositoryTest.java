@@ -1,6 +1,7 @@
 package com.neogul.whynago.solvedsession.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.neogul.whynago.fixture.EssaySolvedFixture;
 
 import com.neogul.whynago.solvedsession.domain.EssaySolved;
 import com.neogul.whynago.solvedsession.domain.ItemType;
@@ -37,19 +38,10 @@ class EssaySolvedRepositoryTest extends RepositoryTestSupport {
     @DisplayName("긴 텍스트 스냅샷 필드를 저장하고 조회한다.")
     void saveLongText() {
         String longAnswer = "가".repeat(2000);
-        EssaySolved saved = essaySolvedRepository.save(EssaySolved.create(
-                1L,
-                10L,
-                ItemType.MAIN,
-                1,
-                100L,
-                "트랜잭션 격리 수준을 설명하라.",
-                longAnswer,
-                "피드백",
-                "모범답안",
-                true,
-                LocalDateTime.now()
-        ));
+        EssaySolved saved = essaySolvedRepository.save(EssaySolvedFixture.builder()
+                .questionText("트랜잭션 격리 수준을 설명하라.")
+                .userAnswer(longAnswer)
+                .build());
 
         EssaySolved found = essaySolvedRepository.findById(saved.getId()).orElseThrow();
         assertThat(found.getUserAnswer()).isEqualTo(longAnswer);
@@ -103,18 +95,12 @@ class EssaySolvedRepositoryTest extends RepositoryTestSupport {
     }
 
     private EssaySolved item(Long solvedSessionId, Long userId, ItemType type, int sequence, Long questionId) {
-        return EssaySolved.create(
-                solvedSessionId,
-                userId,
-                type,
-                sequence,
-                questionId,
-                "질문",
-                "답변",
-                "피드백",
-                "모범답안",
-                true,
-                LocalDateTime.now()
-        );
+        return EssaySolvedFixture.builder()
+                .solvedSessionId(solvedSessionId)
+                .userId(userId)
+                .type(type)
+                .sequence(sequence)
+                .questionId(questionId)
+                .build();
     }
 }

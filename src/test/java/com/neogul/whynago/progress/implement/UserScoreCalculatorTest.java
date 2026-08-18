@@ -1,9 +1,11 @@
 package com.neogul.whynago.progress.implement;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+import com.neogul.whynago.fixture.EssaySolvedFixture;
+
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.progress.implement.dto.UserProgressAggregate;
 import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
@@ -176,8 +178,10 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(otherUserId, QuestionType.MULTIPLE_CHOICE, 1, 1, SOLVED_AT.minusMinutes(5), SOLVED_AT));
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, null));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), otherUserId, root.getId(), ItemType.MAIN, 1, choice.getId(), choice.getId(), true, SOLVED_AT));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(otherUserId).questionId(root.getId())
+                .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(SOLVED_AT)
+                .build());
 
         UserProgressAggregate result = userScoreCalculator.calculate(USER_ID);
 
@@ -191,8 +195,10 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
         SolvedSession session = solvedSessionRepository.save(SolvedSession.completed(
                 USER_ID, QuestionType.MULTIPLE_CHOICE, totalCount, correctCount, SOLVED_AT.minusMinutes(5), SOLVED_AT));
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, null));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), USER_ID, root.getId(), ItemType.MAIN, 1, choice.getId(), choice.getId(), true, SOLVED_AT));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(USER_ID).questionId(root.getId())
+                .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(SOLVED_AT)
+                .build());
     }
 
     // questions: 본질문(첫 번째)부터 꼬리질문까지 세션 내 등장 순서.
@@ -203,8 +209,11 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
         for (Question question : questions) {
             ItemType type = sequence == 1 ? ItemType.MAIN : ItemType.FOLLOWUP;
             AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(question.getId(), 1, null));
-            solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                    session.getId(), USER_ID, question.getId(), type, sequence, choice.getId(), choice.getId(), true, SOLVED_AT));
+            solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                    .solvedSessionId(session.getId()).userId(USER_ID).questionId(question.getId())
+                    .type(type).sequence(sequence)
+                    .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(SOLVED_AT)
+                    .build());
             sequence++;
         }
     }
@@ -212,8 +221,9 @@ class UserScoreCalculatorTest extends IntegrationTestSupport {
     private void saveEssaySession(Question root, boolean isCorrect) {
         SolvedSession session = solvedSessionRepository.save(SolvedSession.completed(
                 USER_ID, QuestionType.ESSAY, 1, isCorrect ? 1 : 0, SOLVED_AT.minusMinutes(5), SOLVED_AT));
-        essaySolvedRepository.save(EssaySolved.create(
-                session.getId(), USER_ID, ItemType.MAIN, 1, root.getId(),
-                root.getContent(), "내 답변", "피드백", "모범답안", isCorrect, SOLVED_AT));
+        essaySolvedRepository.save(EssaySolvedFixture.builder()
+                .solvedSessionId(session.getId()).userId(USER_ID).questionId(root.getId())
+                .questionText(root.getContent()).userAnswer("내 답변").isCorrect(isCorrect).solvedAt(SOLVED_AT)
+                .build());
     }
 }

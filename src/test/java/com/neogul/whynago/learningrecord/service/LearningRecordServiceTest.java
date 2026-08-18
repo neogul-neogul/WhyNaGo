@@ -1,9 +1,10 @@
 package com.neogul.whynago.learningrecord.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.learningrecord.service.dto.DailyRecordCountResult;
 import com.neogul.whynago.learningrecord.service.dto.RecentRecordResult;
 import com.neogul.whynago.learningrecord.service.dto.StreakResult;
@@ -119,9 +120,10 @@ class LearningRecordServiceTest extends IntegrationTestSupport {
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(userId, QuestionType.MULTIPLE_CHOICE, totalCount, correctCount, solvedAt.minusMinutes(5), solvedAt));
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, null));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), userId, root.getId(), ItemType.MAIN, 1,
-                choice.getId(), choice.getId(), true, solvedAt));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(userId).questionId(root.getId())
+                .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(solvedAt)
+                .build());
         return session;
     }
 }

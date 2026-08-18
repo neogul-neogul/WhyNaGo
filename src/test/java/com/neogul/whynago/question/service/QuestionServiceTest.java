@@ -3,10 +3,12 @@ package com.neogul.whynago.question.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
-
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+
+import com.neogul.whynago.fixture.EssaySolvedFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
@@ -354,32 +356,16 @@ class QuestionServiceTest extends IntegrationTestSupport {
     }
 
     private SolvedMultipleChoice solvedMultipleChoice(Long userId, Long questionId) {
-        return SolvedMultipleChoice.create(
-                1L,
-                userId,
-                questionId,
-                ItemType.MAIN,
-                1,
-                1L,
-                1L,
-                true,
-                LocalDateTime.now()
-        );
+        return SolvedMultipleChoiceFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
     }
 
     private EssaySolved essaySolved(Long userId, Long questionId) {
-        return EssaySolved.create(
-                1L,
-                userId,
-                ItemType.MAIN,
-                1,
-                questionId,
-                "질문",
-                "답변",
-                "피드백",
-                "모범답안",
-                true,
-                LocalDateTime.now()
-        );
+        return EssaySolvedFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.neogul.whynago.solvedsession.infra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
@@ -56,16 +57,9 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
     }
 
     private SolvedMultipleChoice item(Long userId, Long questionId) {
-        return SolvedMultipleChoice.create(
-                1L,
-                userId,
-                questionId,
-                ItemType.MAIN,
-                1,
-                1L,
-                1L,
-                true,
-                LocalDateTime.now()
-        );
+        return SolvedMultipleChoiceFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
     }
 }
