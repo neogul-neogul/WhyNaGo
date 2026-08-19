@@ -151,6 +151,37 @@
 | userId | | FK → User (unique, 사용자당 1행) |
 | everyDayRemind | 매일 학습 리마인드 | 학습 기록이 없으면 알림. 기본값 true |
 
+### EmailBatchExecution (메일 발송 배치 실행) · EmailSendLog (수신자별 발송 기록)
+
+메일 발송 배치가 **실제로 어떻게 일어났는지**를 남기는 이력. `emailbatch` 도메인이다.
+
+`notification`과 나눈 이유: `notification`은 "누가 알림을 받을지" 설정을 다루고, 이쪽은 "발송이라는 행위의 기록"이라 성격이 다르다. 리마인더 외 다른 메일이 생겨도 같은 이력 도메인을 재사용한다.
+
+**이 도메인은 "통계는 조회 시점에 계산한다"는 원칙의 예외다.** 문제 통계는 `SolvedMultipleChoice` 같은 원본이 남아 있어 언제든 재계산할 수 있지만, "메일을 보냈다/실패했다"는 그 순간이 지나면 어디에도 흔적이 없다. 그래서 `notification.service.StudyReminderService`가 배치를 도는 동안 `emailbatch.implement.EmailBatchExecutionRecorder`로 발생 시점에 기록한다(배치 실행 1행 + 대상 수만큼의 발송 기록). 개별 발송 실패는 루프 안에서 흡수하므로 배치가 끝까지 도는 한 이력은 항상 커밋된다.
+
+현재 이력을 남기는 배치는 학습 리마인더 하나뿐이라 **배치 종류를 구분하는 필드는 두지 않는다** — 두 번째 메일 종류가 생기면 그때 추가한다. **재발송 기능은 제공하지 않는다**(조회 전용 이력).
+
+| 이름 | 한글 | 설명 |
+| --- | --- | --- |
+| id | | PK |
+| executedAt | 실행 시각 | 배치가 시작된 시각(개별 발송 시각이 아니다) |
+| totalTargetCount | 대상 수 | 배치 시작 시점에 확정되는 발송 대상 수 |
+| successCount | 성공 건수 | 배치 종료 시 확정 |
+| failureCount | 실패 건수 | 배치 종료 시 확정 |
+| status | 상태 | `EmailBatchStatus` → 아래 판정 규칙 |
+
+**`EmailBatchStatus` 판정** — 실패 0건이면 `SUCCESS`, 성공·실패가 섞여 있으면 `PARTIAL_FAILURE`, 대상이 1건 이상인데 성공이 0건이면 `FAILED`. **대상이 0명이면 `SUCCESS`** — 보낼 대상이 없는 것은 실패가 아니다.
+
+| 이름 | 한글 | 설명 |
+| --- | --- | --- |
+| id | | PK |
+| batchExecutionId | 배치 실행 ID | FK → EmailBatchExecution |
+| userId | | FK → User (JPA 연관관계 없이 ID로만 참조) |
+| recipientEmail | 수신 주소 | **발송 시점 값의 스냅샷.** 조회 시 `User`를 다시 조인하지 않으므로 이후 회원이 이메일을 바꿔도 "그때 어디로 보냈는지"는 바뀌지 않는다. 대상 회원 조회 자체가 실패하면(탈퇴 등) 주소를 알 수 없어 null |
+| sentAt | 발송 시각 | 발송을 시도한 시각. 실패한 건도 남는다 |
+| status | 상태 | `EmailSendStatus` |
+| failureReason | 실패 사유 | 예외의 **실제 원인** 메시지(SMTP 응답 등). 도메인 에러 메시지가 아니라 원인을 남기려고 `EmailSender`가 원인 예외를 보존한다. 성공 건은 null이며 255자를 넘으면 잘라서 저장 |
+
 ### ProblemSet (문제집)
 
 사용자가 원하는 문제를 모아 만드는 이름 붙은 목록. 유튜브의 "재생목록"과 같은 개념이다. **항상 본인만 볼 수 있다** — 공개 범위(visibility) 같은 필드 자체가 없다. 공유·탐색 기능이 없고 앞으로도 개인 전용 리소스라는 전제이므로, 안 쓰는 필드를 미리 만들어 두지 않는다.
@@ -385,6 +416,8 @@
 | Difficulty | `LOW`(하) · `MEDIUM`(중) · `HIGH`(상) |
 | QuestionType | `MULTIPLE_CHOICE` · `ESSAY` |
 | InterviewStatus | `IN_PROGRESS` · `COMPLETED` |
+| EmailBatchStatus | `SUCCESS` · `PARTIAL_FAILURE` · `FAILED` |
+| EmailSendStatus | `SUCCESS` · `FAILURE` |
 
 ---
 

@@ -1,6 +1,4 @@
 import type {
-  AdminEmailBatch,
-  AdminEmailRecipient,
   AdminInterviewRecord,
   AdminKpi,
   AdminMemberAnomaly,
@@ -176,61 +174,4 @@ export const adminCategoryBars: { label: string; value: number }[] = [
   { label: "LANGUAGE", value: 2 },
   { label: "DESIGN_PT", value: 1 },
 ];
-
-type BatchSeed = [string, string, number, number, string | null];
-
-/** 이메일 발송 배치 실행 이력 (최신순) */
-export const adminEmailBatches: AdminEmailBatch[] = (
-  [
-    ["2026-08-17", "21:00", 2893, 12, "Invalid address (4건), Mailbox full (3건), Network error (5건)"],
-    ["2026-08-16", "19:30", 2874, 0, null],
-    ["2026-08-15", "18:15", 2860, 7, "Invalid address (3건), Mailbox full (4건)"],
-    ["2026-08-14", "20:45", 2841, 0, null],
-    ["2026-08-13", "21:10", 2836, 5, "Network error (5건)"],
-    ["2026-08-12", "20:05", 2820, 0, null],
-    ["2026-08-11", "19:50", 2811, 9, "Invalid address (6건), Mailbox full (3건)"],
-    ["2026-08-10", "21:00", 2795, 0, null],
-  ] satisfies BatchSeed[]
-).map((b) => ({
-  date: b[0],
-  at: b[1],
-  status: b[3] > 0 ? "일부 실패" : "정상",
-  targetCount: b[2],
-  successCount: b[2] - b[3],
-  failCount: b[3],
-  failureSummary: b[4] ?? undefined,
-}));
-
-const RECIPIENT_EMAILS = [
-  "dev****@gmail.com",
-  "min****@naver.com",
-  "cs_****@kakao.com",
-  "yun****@gmail.com",
-  "bac****@daum.net",
-  "jhy****@gmail.com",
-  "seo****@outlook.com",
-  "hae****@gmail.com",
-];
-
-const FAIL_REASONS = ["Invalid address", "Mailbox full", "Network error"];
-
-/**
- * 배치별 개별 발송 목록 더미.
- * 실제로는 수천 건이지만 화면 확인용으로 한 페이지 분량만 만든다 (실패 건은 배치의 failCount에 맞춰 섞는다).
- */
-export function adminEmailRecipients(batch: AdminEmailBatch): AdminEmailRecipient[] {
-  const [hour, minute] = batch.at.split(":").map(Number);
-
-  return RECIPIENT_EMAILS.map((email, i) => {
-    const failed = batch.failCount > 0 && i % 3 === 1;
-    const sentMinute = minute + Math.floor(i / 2);
-    return {
-      key: `${batch.date}-${i}`,
-      email,
-      sentAt: `${batch.date} ${String(hour).padStart(2, "0")}:${String(sentMinute).padStart(2, "0")}`,
-      succeeded: !failed,
-      reason: failed ? FAIL_REASONS[i % FAIL_REASONS.length] : "",
-    };
-  });
-}
 

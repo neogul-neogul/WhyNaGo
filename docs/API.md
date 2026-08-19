@@ -2157,7 +2157,7 @@ DELETE /api/problem-sets/{problemSetId}
 
 관리자 백오피스 전용 API. 관련 도메인은 `admin`이다.
 
-모든 엔드포인트는 `/api/admin` 접두사를 쓰며, 인증을 통과했더라도 `role`이 `ADMIN`이 아니면 `403 AUTH_FORBIDDEN`을 반환한다(→ 권한, `docs/DOMAIN.md` 관리자 권한 정책). 통계 값은 별도 집계 테이블 없이 **조회 시점에 계산**한다 — 오답노트·학습 기록이 상태를 컬럼으로 저장하지 않는 원칙과 같다.
+모든 엔드포인트는 `/api/admin` 접두사를 쓰며, 인증을 통과했더라도 `role`이 `ADMIN`이 아니면 `403 AUTH_FORBIDDEN`을 반환한다(→ 권한, `docs/DOMAIN.md` 관리자 권한 정책). 통계 값은 별도 집계 테이블 없이 **조회 시점에 계산**한다 — 오답노트·학습 기록이 상태를 컬럼으로 저장하지 않는 원칙과 같다. 단, **이메일 발송 이력은 이 원칙의 예외**다. 재계산할 원본이 남지 않는 휘발성 이벤트라 발생 시점에 영속화한다(→ 발송 배치 실행 이력 목록 조회).
 
 ---
 
@@ -2651,3 +2651,180 @@ GET /api/admin/members/{userId}
 | --- | --- | --- |
 | 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
 | 404 | `USER_NOT_FOUND` | 해당 ID의 회원이 없음. |
+
+---
+
+## **발송 배치 실행 이력 목록 조회**
+
+이메일 발송 배치가 언제 실행돼 몇 건이 성공·실패했는지 조회한다. 관리자 백오피스의 메일 발송 관리 목록 화면에서 사용한다.
+
+**이 절의 값만은 조회 시점 계산이 아니라 저장된 이력이다.** 문제 통계는 `SolvedMultipleChoice` 같은 원본이 남아 있어 언제든 재계산할 수 있지만, "메일을 보냈다/실패했다"는 그 순간이 지나면 어디에도 흔적이 없는 휘발성 이벤트다. 그래서 배치가 도는 동안 발생 시점에 `emailbatch` 도메인의 테이블로 남긴다(→ `docs/DOMAIN.md` emailbatch).
+
+현재 이력을 남기는 배치는 학습 리마인더(매일 21시, `Asia/Seoul`) 하나뿐이라 배치 종류를 구분하는 필드는 두지 않는다.
+
+### **Endpoint**
+
+```
+GET /api/admin/email-batches
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+- 정렬은 실행 시각 내림차순(최신순) 고정이며, 기간·상태 필터는 제공하지 않는다.
+- 배치가 한 번도 실행되지 않았으면 에러가 아니라 빈 `content`다.
+
+### **Query Parameters**
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 행 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 12,
+      "executedAt": "2026-08-19T21:00:00",
+      "totalTargetCount": 340,
+      "successCount": 338,
+      "failureCount": 2,
+      "status": "PARTIAL_FAILURE"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 45,
+  "totalPages": 3,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 배치 실행 ID. 상세·발송 로그 조회의 경로 변수로 쓴다. |
+| `executedAt` | LocalDateTime | 배치가 시작된 시각. 개별 발송 시각이 아니라 배치 단위 시작 시각이다. |
+| `totalTargetCount` | int | 발송 대상 수. 배치 시작 시점에 확정된다(리마인더가 켜진 사용자 수). |
+| `successCount` | int | 발송에 성공한 건수. |
+| `failureCount` | int | 발송에 실패한 건수. |
+| `status` | String | `SUCCESS` \| `PARTIAL_FAILURE` \| `FAILED`. 판정 규칙은 아래. |
+
+**`status` 판정** — 실패가 0건이면 `SUCCESS`, 성공·실패가 섞여 있으면 `PARTIAL_FAILURE`, 대상이 1건 이상인데 성공이 0건이면 `FAILED`다. **대상이 0명이면 `SUCCESS`** — 보낼 대상이 없는 것은 실패가 아니다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **발송 배치 실행 단건 조회**
+
+배치 한 건의 실행 결과와 **실패 사유별 건수 요약**을 조회한다. 관리자 메일 발송 관리 상세 화면의 상단 지표와 목록 화면의 요약 카드에서 사용한다.
+
+실패 사유 요약을 목록 응답이 아니라 단건 응답에 둔 이유는, 수신자별 발송 상세가 페이징되기 때문이다. 화면이 현재 페이지만 세면 요약이 실제와 어긋나므로 서버가 해당 배치의 실패 건 전체를 사유별로 집계해 내려준다.
+
+### **Endpoint**
+
+```
+GET /api/admin/email-batches/{executionId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "id": 12,
+  "executedAt": "2026-08-19T21:00:00",
+  "totalTargetCount": 340,
+  "successCount": 338,
+  "failureCount": 2,
+  "status": "PARTIAL_FAILURE",
+  "failureReasons": [
+    { "reason": "Mail server connection refused", "count": 2 }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` ~ `status` | - | 배치 실행 이력 목록 조회의 같은 필드와 동일하다. |
+| `failureReasons` | Object[] | 실패 사유별 건수. 건수가 많은 순으로 정렬한다. **실패가 없으면 빈 배열.** |
+| `failureReasons[].reason` | String | 실패 사유. 발송 시 발생한 예외의 실제 원인 메시지(SMTP 응답 등)다. |
+| `failureReasons[].count` | long | 그 사유로 실패한 건수. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `EMAIL_BATCH_NOT_FOUND` | `executionId`가 존재하지 않음. |
+
+---
+
+## **발송 상세 목록 조회**
+
+배치 한 건의 **수신자별 발송 결과**를 조회한다. 관리자 메일 발송 관리 상세 화면의 개별 발송 목록에서 사용한다.
+
+수신자가 수천 건이 될 수 있어 단건 응답에 중첩하지 않고 엔드포인트를 나눴다. 화면의 "실패만 보기"는 목록이 페이징되는 탓에 클라이언트에서 걸러낼 수 없으므로 `status`를 쿼리 파라미터로 받는다.
+
+**재발송은 제공하지 않는다.** 이 API는 조회 전용 이력이며, 재발송은 이력을 어떻게 갱신할지·스케줄러 밖의 트랜잭션 경계를 어떻게 잡을지 별도 설계가 필요하다.
+
+### **Endpoint**
+
+```
+GET /api/admin/email-batches/{executionId}/send-logs
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+- 정렬은 발송 시각 오름차순(배치가 실제로 보낸 순서) 고정이다.
+
+### **Query Parameters**
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `status` | String | 발송 상태 필터. `SUCCESS` \| `FAILURE`. 생략하면 성공·실패를 모두 조회한다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 행 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 981,
+      "userId": 501,
+      "recipientEmail": "user@example.com",
+      "sentAt": "2026-08-19T21:00:03",
+      "status": "FAILURE",
+      "failureReason": "Mail server connection refused"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 340,
+  "totalPages": 17,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 발송 기록 ID. |
+| `userId` | Long | 수신자 회원 ID. |
+| `recipientEmail` | String \| null | **발송 시점의 이메일 주소 스냅샷.** 조회 시점에 회원을 다시 조인하지 않으므로 이후 회원이 이메일을 바꿔도 "그때 어디로 보냈는지"는 그대로 남는다. 관리자에게는 마스킹하지 않는다. 대상 회원 조회 자체가 실패했다면(탈퇴 등) 주소를 알 수 없어 `null`이다. |
+| `sentAt` | LocalDateTime | 발송을 시도한 시각. 실패한 건도 시도 시각이 남는다. |
+| `status` | String | `SUCCESS` \| `FAILURE`. |
+| `failureReason` | String \| null | 실패 사유(예외의 실제 원인 메시지). 성공 건은 `null`이며, 255자를 넘으면 잘라서 저장한다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `EMAIL_BATCH_NOT_FOUND` | `executionId`가 존재하지 않음. 빈 목록이 아니라 404로 답한다. |

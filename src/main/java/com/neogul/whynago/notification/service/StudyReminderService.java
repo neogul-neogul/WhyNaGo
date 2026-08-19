@@ -1,6 +1,8 @@
 package com.neogul.whynago.notification.service;
 
 import com.neogul.whynago.common.exception.BusinessException;
+import com.neogul.whynago.emailbatch.domain.EmailBatchExecution;
+import com.neogul.whynago.emailbatch.implement.EmailBatchExecutionRecorder;
 import com.neogul.whynago.notification.domain.NotificationSetting;
 import com.neogul.whynago.notification.implement.NotificationSettingReader;
 import com.neogul.whynago.notification.implement.StudyReminderMailSender;
@@ -9,6 +11,7 @@ import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import com.neogul.whynago.user.implement.UserReader;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -28,27 +31,48 @@ public class StudyReminderService {
     private final UserReader userReader;
     private final SolvedSessionReader solvedSessionReader;
     private final StudyReminderMailSender studyReminderMailSender;
+    private final EmailBatchExecutionRecorder emailBatchExecutionRecorder;
 
-    @Transactional(readOnly = true)
+    // 개별 발송 실패는 루프 안에서 흡수하므로 배치가 끝까지 도는 한 이력은 항상 커밋된다.
+    @Transactional
     public void sendDailyReminders() {
         long startedAt = System.currentTimeMillis();
         List<NotificationSetting> settings = notificationSettingReader.findAllEveryDayRemindEnabled();
         log.info("일일 학습 리마인더 발송 시작 - target={}", settings.size());
 
+        EmailBatchExecution execution = emailBatchExecutionRecorder.start(settings.size(), LocalDateTime.now());
         int success = 0;
         int failure = 0;
         for (NotificationSetting setting : settings) {
+            Long userId = setting.getUserId();
+            String recipientEmail = null;
             try {
-                sendTo(userReader.read(setting.getUserId()));
+                User user = userReader.read(userId);
+                recipientEmail = user.getEmail().getValue();
+                sendTo(user);
+                emailBatchExecutionRecorder.recordSuccess(execution, userId, recipientEmail, LocalDateTime.now());
                 success++;
             } catch (Exception e) {
+                emailBatchExecutionRecorder.recordFailure(
+                        execution, userId, recipientEmail, LocalDateTime.now(), resolveFailureReason(e));
                 failure++;
-                log.error("학습 리마인더 발송 실패 - userId={}", setting.getUserId(), e);
+                log.error("학습 리마인더 발송 실패 - userId={}", userId, e);
             }
         }
+        emailBatchExecutionRecorder.complete(execution, success, failure);
 
         log.info("일일 학습 리마인더 발송 종료 - target={}, success={}, failure={}, durationMs={}",
                 settings.size(), success, failure, System.currentTimeMillis() - startedAt);
+    }
+
+    // 관리자가 실패 원인을 구분할 수 있어야 하므로 도메인 에러 메시지가 아니라 실제 원인(SMTP 응답 등)을 남긴다.
+    private String resolveFailureReason(Exception e) {
+        Throwable cause = e;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     @Transactional(readOnly = true)
