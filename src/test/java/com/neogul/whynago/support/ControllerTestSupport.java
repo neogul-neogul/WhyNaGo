@@ -22,6 +22,7 @@ import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionControlle
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
+import com.neogul.whynago.user.domain.Role;
 import com.neogul.whynago.user.presentation.UserController;
 import com.neogul.whynago.user.service.UserService;
 import com.neogul.whynago.wrongnote.presentation.WrongNoteController;
@@ -98,6 +99,10 @@ public abstract class ControllerTestSupport {
     }
 
     protected String bearerToken(Long userId) {
-        return "Bearer " + jwtProvider.createAccessToken(new JwtClaim(userId));
+        return bearerToken(userId, Role.USER);
+    }
+
+    protected String bearerToken(Long userId, Role role) {
+        return "Bearer " + jwtProvider.createAccessToken(new JwtClaim(userId, role));
     }
 }

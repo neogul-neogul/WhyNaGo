@@ -61,7 +61,18 @@ Authorization: Bearer {accessToken}
 | --- | --- | --- |
 | `Authorization` 헤더가 없거나 비어 있음 | `AUTH_TOKEN_MISSING` | 로그인 화면으로 유도 |
 | `Bearer ` 형식이 아니거나 서명이 맞지 않음 | `AUTH_TOKEN_INVALID` | 저장된 토큰을 버리고 재로그인 |
+| 토큰에 권한(`role`)이 담기지 않음 | `AUTH_TOKEN_INVALID` | 저장된 토큰을 버리고 재로그인 |
 | 토큰이 만료됨 | `AUTH_TOKEN_EXPIRED` | 재발급을 시도하고, 실패하면 재로그인 |
+
+> 권한 도입 전에 발급된 토큰은 `role`이 없어 무효로 처리한다. 권한 배포 직후 한 번 전원 재로그인이 필요하다는 뜻이며, 그 이후에는 발생하지 않는다.
+
+### **권한**
+
+토큰에는 사용자 권한(`role`)이 함께 담긴다. `USER`(일반 사용자) 또는 `ADMIN`(관리자)이며, 로그인 응답으로도 내려준다.
+
+- **관리자 전용 API는 `/api/admin/**` 경로를 쓴다.** 인증을 통과했더라도 `role`이 `ADMIN`이 아니면 `403 Forbidden` `AUTH_FORBIDDEN`을 반환한다.
+- **권한 승격은 API로 제공하지 않는다.** 관리자 지정은 운영 DB에서 직접 수행한다. → `docs/DOMAIN.md` 권한 정책
+- 재발급 시 권한은 토큰이 아니라 저장된 값을 다시 읽어 담는다. 따라서 권한 변경은 늦어도 access token 수명(30분) 안에 반영된다.
 
 ---
 
@@ -157,7 +168,8 @@ POST /api/auth/login
   "id": 1,
   "email": "member@example.com",
   "nickname": "테스터",
-  "position": "BACKEND"
+  "position": "BACKEND",
+  "role": "USER"
 }
 ```
 
@@ -169,6 +181,7 @@ POST /api/auth/login
 | `email` | String | 이메일. |
 | `nickname` | String | 닉네임. |
 | `position` | String | 직무(`BACKEND` \| `FRONTEND` \| `FULLSTACK`). |
+| `role` | String | 권한(`USER` \| `ADMIN`). `ADMIN`이면 클라이언트가 관리자 화면으로 보낸다. |
 
 ### **에러**
 
@@ -195,6 +208,7 @@ POST /api/auth/login
 - `email` — 구글 계정의 이메일
 - `nickname` — 서버가 자동 생성한다(`u` + 6자리 숫자). 마이페이지에서 변경할 수 있다.
 - `position` — 회원가입과 동일하게 `BACKEND`로 고정
+- `role` — 회원가입과 동일하게 `USER`로 고정
 - 비밀번호는 저장하지 않는다.
 
 **한 계정은 로그인 수단을 하나만 가진다.** 이메일이 겹쳐도 기존 계정에 구글을 연동하지 않고, 어느 쪽으로 로그인해야 하는지 안내한다.
@@ -231,7 +245,8 @@ POST /api/auth/login/google
   "id": 1,
   "email": "member@example.com",
   "nickname": "u483920",
-  "position": "BACKEND"
+  "position": "BACKEND",
+  "role": "USER"
 }
 ```
 

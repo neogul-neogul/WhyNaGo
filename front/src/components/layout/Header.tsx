@@ -8,6 +8,7 @@ import type { Position } from "@/types";
 import { navItems, profileMenu } from "@/mocks/navigation";
 import { refreshStreak, useStreak } from "@/lib/streakStore";
 import { logout as authLogout, useAuth, useCurrentUser, useHydrated } from "@/lib/auth";
+import { isAdminRoute } from "@/lib/routes";
 
 // 직무(Position)를 화면 표기용 한글 라벨로 변환
 const POSITION_LABEL: Record<Position, string> = {
@@ -91,8 +92,9 @@ export default function Header() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  // 인증 화면(로그인/회원가입)에서는 공통 헤더를 숨긴다
+  // 인증 화면(로그인/회원가입)과 관리자 화면에서는 공통 헤더를 숨긴다
   if (pathname === "/login" || pathname === "/signup") return null;
+  if (isAdminRoute(pathname)) return null;
 
   const handleLogout = () => {
     setProfileOpen(false);

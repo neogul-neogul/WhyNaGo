@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import com.neogul.whynago.auth.domain.RefreshToken;
 import com.neogul.whynago.auth.exception.AuthErrorCode;
 import com.neogul.whynago.auth.fixture.SignUpCommandFixture;
+import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.implement.RefreshTokenHasher;
 import com.neogul.whynago.auth.infra.GoogleIdTokenClient;
 import com.neogul.whynago.auth.infra.RefreshTokenRepository;
@@ -25,6 +26,7 @@ import com.neogul.whynago.notification.infra.NotificationSettingRepository;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.user.domain.AuthProvider;
 import com.neogul.whynago.user.domain.Position;
+import com.neogul.whynago.user.domain.Role;
 import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import com.neogul.whynago.user.implement.PasswordHasher;
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class AuthServiceTest extends IntegrationTestSupport {
 
@@ -51,6 +54,9 @@ class AuthServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private RefreshTokenHasher refreshTokenHasher;
+
+    @Autowired
+    private JwtProvider jwtProvider;
 
     @Autowired
     private NotificationSettingRepository notificationSettingRepository;
@@ -139,6 +145,46 @@ class AuthServiceTest extends IntegrationTestSupport {
         assertThat(result.email()).isEqualTo("member@example.com");
         assertThat(result.nickname()).isEqualTo("tester");
         assertThat(result.position()).isEqualTo(Position.BACKEND);
+        assertThat(result.role()).isEqualTo(Role.USER);
+    }
+
+    @DisplayName("관리자 계정으로 로그인하면 권한이 응답과 액세스 토큰에 담긴다.")
+    @Test
+    void login_admin() {
+        // given
+        Long userId = authService.signup(SignUpCommandFixture.signUpCommand()
+                .email("admin@example.com")
+                .password("password123")
+                .nickname("admin1")
+                .build());
+        promoteToAdmin(userId);
+
+        // when
+        LoginResult result = authService.login(new LoginCommand("admin@example.com", "password123"));
+
+        // then
+        assertThat(result.role()).isEqualTo(Role.ADMIN);
+        assertThat(jwtProvider.parseToken(result.tokenPair().accessToken()).role()).isEqualTo(Role.ADMIN);
+    }
+
+    @DisplayName("재발급하면 토큰에 담긴 권한이 아니라 저장된 권한으로 새 토큰을 만든다.")
+    @Test
+    void reissue_readsRoleFromDatabase() {
+        // given
+        Long userId = authService.signup(SignUpCommandFixture.signUpCommand()
+                .email("member@example.com")
+                .password("password123")
+                .nickname("tester")
+                .build());
+        LoginResult loggedIn = authService.login(new LoginCommand("member@example.com", "password123"));
+        promoteToAdmin(userId);
+
+        // when
+        ReissueResult result = authService.reissue(new ReissueCommand(loggedIn.tokenPair().refreshToken()));
+
+        // then
+        assertThat(jwtProvider.parseToken(result.accessToken()).role()).isEqualTo(Role.ADMIN);
+        assertThat(jwtProvider.parseToken(result.refreshToken()).role()).isEqualTo(Role.ADMIN);
     }
 
     @DisplayName("로그인하면 알림 설정이 없던 사용자에게 기본 알림 설정이 생성된다.")
@@ -499,6 +545,13 @@ class AuthServiceTest extends IntegrationTestSupport {
 
         // then
         assertThat(refreshTokenRepository.findAll()).isEmpty();
+    }
+
+    // 운영에서 SQL로 하는 승격을 테스트에서 재현한다 — 프로덕션 코드에는 권한 변경 경로가 없다
+    private void promoteToAdmin(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        ReflectionTestUtils.setField(user, "role", Role.ADMIN);
+        userRepository.saveAndFlush(user);
     }
 
     private void givenGoogleAccount(String sub, String email, boolean emailVerified) {

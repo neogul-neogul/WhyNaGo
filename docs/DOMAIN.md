@@ -312,12 +312,26 @@
 - "제거"(`DELETE /api/problem-sets/{id}/items/{questionId}`)는 그 문제집에서만 문제를 빼며, 문제(`Question`) 자체나 다른 문제집에는 영향이 없다. "문제집 삭제"(`DELETE /api/problem-sets/{id}`)는 하위 `ProblemSetItem`을 모두 지우고 문제집 자체도 없앤다.
 - 모든 조회·수정·삭제는 **본인 소유 문제집만** 가능하다(`ProblemSetReader.read`가 `findByIdAndUserId`로 검증, 없거나 본인 소유가 아니면 `PROBLEM_SET_NOT_FOUND`).
 
+### 관리자 권한 정책
+
+백오피스(관리자 기능)를 위해 `User`에 `role` 컬럼을 둔다. 값은 `USER`(일반 사용자) 또는 `ADMIN`(관리자)이며, 백오피스는 관리자 한 명이 쓰는 것을 전제로 한다.
+
+- **가입으로는 관리자가 될 수 없다.** `User.create`·`User.createSocial`은 항상 `Role.USER`로 만든다. 관리자 전용 회원가입 경로도 없다.
+- **승격은 운영 DB에서 직접 한다.** `UPDATE users SET role = 'ADMIN' WHERE email = ...`. 권한을 바꾸는 API도, `User`의 role 변경 메서드도 만들지 않는다 — 되돌리기 어려운 조작이고 관리자가 소수라, 코드에 경로 자체를 두지 않는 편이 안전하다. 관리자 계정은 일반 회원가입 API로 만든 뒤(비밀번호 해시·닉네임 검증을 정상적으로 태우기 위해) SQL로 승격한다.
+- **로그인은 일반 사용자와 같은 엔드포인트를 쓴다.** 로그인 응답의 `role`을 보고 클라이언트가 관리자 화면으로 보낸다. → `docs/API.md` 권한
+- **판정은 토큰으로 한다.** 권한은 JWT claim에 실려 `AdminInterceptor`가 `/api/admin/**`에서 확인한다(요청마다 조회하지 않는다). 권한이 없으면 `403 AUTH_FORBIDDEN`이다.
+  - 단, **재발급 시에는 저장된 권한을 다시 읽어** 토큰에 담는다. 그러지 않으면 refresh token에 박힌 권한이 최대 7일간 이어져 승격·강등이 반영되지 않는다. 이 처리로 반영 지연은 access token 수명(30분) 이내다.
+  - 트레이드오프(수용): 승격 후 최대 30분간 옛 토큰이 일반 사용자로 동작한다. 재로그인하면 즉시 반영된다.
+- **관리자 계정도 `users` 테이블의 일반 행이다.** `nickname`·`position`·`dailyGoal`이 모두 NOT NULL이라 값이 채워지며, 관리자에게 의미 없는 값(예: `position`)이 로그인 응답에 함께 내려간다. 응답 스펙을 권한에 따라 나누지 않고 클라이언트가 무시하는 방식을 택했다 — 필드 두어 개를 아끼려고 같은 엔드포인트가 두 가지 스키마를 반환하게 만들지 않는다.
+- **클라이언트의 권한 확인은 화면 표시용이다.** 실제 방어선은 서버의 403이며, 클라이언트가 권한을 조작해도 관리자 API는 열리지 않는다.
+
 ---
 
 ## Enum
 
 | Enum | 값 |
 | --- | --- |
+| Role | `USER`(일반 사용자) · `ADMIN`(관리자) |
 | Category | `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` |
 | Difficulty | `LOW`(하) · `MEDIUM`(중) · `HIGH`(상) |
 | QuestionType | `MULTIPLE_CHOICE` · `ESSAY` |
@@ -333,6 +347,7 @@
 - **오답노트 출처(source)**: 컬럼으로 두지 않는다. 현재 오답노트를 생성하는 경로는 문제 풀이(`SolvedSessionService`/`EssaySolvedSessionService`)와 1일 1면접(`InterviewService`)이며, 셋 다 `SolvedSession`을 만드는 동일한 경로다. 자가진단·재풀이·직접저장 경로가 실제로 생기면 그때 출처 구분을 재논의한다.
 - **1일 1면접 결과 저장**: 면접 결과는 별도 테이블이 아니라 `SolvedSession`(`type = ESSAY`) + `EssaySolved`에 통합 저장한다. `DailyInterview`는 포인터(`solvedSessionId`)와 진행 메타만 갖는다. → [1일 1면접 정책](#1일-1면접-정책)
 - **정답 불변**: 문제 정답은 바뀌지 않으므로 정답 스냅샷을 별도로 관리하지 않는다. `SolvedMultipleChoice.answerChoiceId` 는 조회 편의용 선택 필드.
+- **관리자 권한**: `User.role`(`USER`/`ADMIN`) 한 컬럼으로 표현하고, 별도 `Admin` 테이블이나 관리자 전용 로그인을 두지 않는다. 승격은 운영 DB SQL로만 하며 승격 API·도메인 메서드를 만들지 않는다. 권한 노출은 로그인 응답에만 하고 `GET /api/users/me`에는 넣지 않는다 — 클라이언트가 앱 로드 시 프로필을 조회하지 않아 쓰이지 않기 때문이다(필요해지면 그때 추가한다). → [관리자 권한 정책](#관리자-권한-정책)
 
 ## 보류 (추후 MVP)
 

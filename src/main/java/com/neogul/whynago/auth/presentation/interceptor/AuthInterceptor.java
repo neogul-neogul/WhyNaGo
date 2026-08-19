@@ -32,7 +32,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         String token = tokenExtractor.extractToken(request.getHeader(HttpHeaders.AUTHORIZATION));
         JwtClaim claim = jwtProvider.parseToken(token);
-        request.setAttribute(AUTH_CONTEXT_KEY, new AuthContext(claim.id()));
+        request.setAttribute(AUTH_CONTEXT_KEY, AuthContext.from(claim));
         return true;
     }
 }
