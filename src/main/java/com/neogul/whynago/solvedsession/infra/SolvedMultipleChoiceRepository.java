@@ -2,6 +2,7 @@ package com.neogul.whynago.solvedsession.infra;
 
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
 import com.neogul.whynago.solvedsession.infra.dto.ChoiceSelectionCount;
+import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveCount;
 import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveSummary;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,4 +35,15 @@ public interface SolvedMultipleChoiceRepository extends JpaRepository<SolvedMult
             group by s.userChoiceId
             """)
     List<ChoiceSelectionCount> countGroupByUserChoice(@Param("questionId") Long questionId);
+
+    // 관리자 문제 목록의 풀이수·정답률 컬럼용 벌크 집계. 단건 조회(findSolveSummary)와 달리 여러 문제를 한 번에 묶는다.
+    @Query("""
+            select s.questionId as questionId,
+                   count(s) as totalCount,
+                   sum(case when s.isCorrect = true then 1 else 0 end) as correctCount
+            from SolvedMultipleChoice s
+            where s.questionId in :questionIds
+            group by s.questionId
+            """)
+    List<QuestionSolveCount> countGroupByQuestion(@Param("questionIds") List<Long> questionIds);
 }

@@ -2161,6 +2161,178 @@ DELETE /api/problem-sets/{problemSetId}
 
 ---
 
+## **문제 목록 조회**
+
+관리자 백오피스의 문제 관리 목록을 조회한다. 공개 문제은행 목록(`GET /api/questions`)과 동일한 조회 조건·페이징 규칙을 쓰되, `solved` 대신 문제별 **풀이수·정답률**을 함께 내려준다.
+
+풀이수·정답률은 문제 유형에 따라 다른 테이블을 집계한다 — 객관식은 `SolvedMultipleChoice`, 서술형은 `EssaySolved`(본질문 풀이만, `questionId`가 있는 행) 기준이다. 단건 조회(객관식 문제 통계 조회)와 달리 페이지에 담긴 여러 문제를 한 번에 묶어 집계한다.
+
+### **Endpoint**
+
+```
+GET /api/admin/questions
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+- 정렬은 문제 ID 내림차순(최신순) 고정이다.
+
+### **Query Parameters**
+
+문제 목록 조회(`GET /api/questions`)와 동일하다. 모두 선택이며, 생략하면 해당 조건을 적용하지 않는다.
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `type` | String | 문제 유형. `MULTIPLE_CHOICE` \| `ESSAY` |
+| `difficulty` | String | 난이도. `LOW` \| `MEDIUM` \| `HIGH` |
+| `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
+| `q` | String | 제목·지문 키워드. 부분 일치이며 대소문자를 구분하지 않는다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 문항 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 12,
+      "title": "REPEATABLE READ의 이상 현상",
+      "category": "DB",
+      "difficulty": "MEDIUM",
+      "type": "MULTIPLE_CHOICE",
+      "solveCount": 1842,
+      "correctRate": 63.8
+    },
+    {
+      "id": 7,
+      "title": "SYN flooding이 성립하는 원인",
+      "category": "NETWORK",
+      "difficulty": "HIGH",
+      "type": "ESSAY",
+      "solveCount": 0,
+      "correctRate": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 137,
+  "totalPages": 7,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `content[].id` | Long | 문제 ID. |
+| `content[].title` | String | 문제 제목. |
+| `content[].category` | String | 카테고리. |
+| `content[].difficulty` | String | 난이도. |
+| `content[].type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `content[].solveCount` | long | 이 문제의 전체 풀이 응답 수. 본질문·꼬리질문 구분 없이 더한다. |
+| `content[].correctRate` | double \| null | 정답률(%), 소수점 첫째 자리로 반올림. **`solveCount`가 0이면 `0.0`이 아니라 `null`이다** — "아직 안 풀림"과 "0% 정답"은 다르다. |
+
+### **에러**
+
+없음. 조건에 맞는 문제가 없으면 빈 `content`와 `200 OK`를 반환한다.
+
+---
+
+## **문제 상세 조회**
+
+관리자 백오피스의 문제 상세 화면에서 쓴다. 공개 문제 단건 조회(`GET /api/questions/{questionId}`)와 달리 **선택지에 정답 여부(`correct`)를 그대로 노출**한다 — 관리자는 정답을 볼 수 있어야 하므로 사용자용 응답과 DTO를 분리했다.
+
+서술형 문제는 `choices`가 빈 배열이며, 대신 `solveCount`·`correctRate`로 풀이수·정답률을 함께 내려준다. **객관식 문제는 이 두 필드가 항상 `null`이다** — 객관식은 지표 집합이 더 큰 별도 통계 조회 API(`GET /api/admin/questions/{questionId}/statistics`)를 쓴다.
+
+### **Endpoint**
+
+```
+GET /api/admin/questions/{questionId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body — 객관식**
+
+```json
+{
+  "id": 12,
+  "title": "REPEATABLE READ의 이상 현상",
+  "content": "트랜잭션 격리 수준을 REPEATABLE READ로 설정했을 때...",
+  "type": "MULTIPLE_CHOICE",
+  "difficulty": "MEDIUM",
+  "category": "DB",
+  "explanation": "REPEATABLE READ는 동일 트랜잭션 내...",
+  "choices": [
+    {
+      "id": 33,
+      "sequence": 1,
+      "content": "Dirty Read — 커밋되지 않은 데이터를 읽는 현상",
+      "correct": false,
+      "explanation": "Dirty Read는 READ UNCOMMITTED에서만 발생하며...",
+      "relatedQuestionId": null
+    },
+    {
+      "id": 34,
+      "sequence": 2,
+      "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+      "correct": true,
+      "explanation": "",
+      "relatedQuestionId": null
+    }
+  ],
+  "tags": ["트랜잭션", "격리수준"],
+  "solveCount": null,
+  "correctRate": null
+}
+```
+
+### **Response Body — 서술형**
+
+```json
+{
+  "id": 7,
+  "title": "SYN flooding이 성립하는 원인",
+  "content": "TCP 3-way handshake 과정에서 SYN flooding 공격이 성립하는 원인을 서술하세요.",
+  "type": "ESSAY",
+  "difficulty": "HIGH",
+  "category": "NETWORK",
+  "explanation": "서버가 SYN을 받은 뒤 SYN+ACK를 보내고...",
+  "choices": [],
+  "tags": ["TCP", "핸드셰이크", "보안"],
+  "solveCount": 312,
+  "correctRate": 41.2
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제 ID. |
+| `title` | String | 문제 제목. |
+| `content` | String | 문제 발문. |
+| `type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `difficulty` | String | 난이도. |
+| `category` | String | 카테고리. |
+| `explanation` | String | 정답(전체) 해설. |
+| `choices` | Array | 선택지 목록. 서술형은 항상 빈 배열. |
+| `choices[].id` | Long | 선택지 ID. |
+| `choices[].sequence` | int | 보기 표시 순서. |
+| `choices[].content` | String | 선택지 내용. |
+| `choices[].correct` | boolean | 정답 선택지 여부. 단일 정답이므로 `true`는 정확히 1개다. |
+| `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값. |
+| `choices[].relatedQuestionId` | Long \| null | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`. |
+| `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+| `solveCount` | long \| null | 서술형 문제의 전체 풀이 응답 수(본질문 풀이만, `EssaySolved.questionId`가 있는 행 기준). **객관식은 항상 `null`.** |
+| `correctRate` | double \| null | 서술형 문제의 정답률(%), 소수점 첫째 자리로 반올림. 풀이가 없으면 `null`. **객관식은 항상 `null`.** |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |
+
+---
+
 ## **객관식 문제 통계 조회**
 
 객관식 문제 한 건의 전체 풀이 횟수·정답률·평균 소요 시간·가장 많이 고른 선택지·보기별 선택 분포를 조회한다. 관리자 문제 상세 화면의 "통계" 탭에서 사용한다.
