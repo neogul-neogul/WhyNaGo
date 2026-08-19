@@ -1,10 +1,12 @@
-# **Recommendation Convention**
+# **맞춤 문제 추천 전략**
 
 ## **목표**
 
+이 문서는 맞춤 문제 추천을 **왜 이렇게 설계했는지**를 남기는 전략 문서다. 결정과 그 근거, 아직 못 정한 것과 알고 있는 리스크를 적는다. 무엇을 언제 구현했는지는 git 로그를 본다.
+
 사용자별 약점을 진단하고, **그 약점에 맞는 서술형 문제를 AI로 생성해** 추천한다. 관련 도메인은 `recommendation`이다.
 
-**생성 대상은 서술형(`ESSAY`)만이다.** 객관식은 생성하지 않는다. 객관식은 보기 4개·오답 해설·꼬리질문 연결까지 갖춘 구조라 AI 생성 시 검증 부담과 오류 표면이 지나치게 크고, 기존 175문항으로 충분히 커버된다.
+**생성 대상은 서술형(`ESSAY`)만이다.** 객관식은 생성하지 않는다. 객관식은 보기 4개·오답 해설·꼬리질문 연결까지 갖춘 구조라 AI 생성 시 검증 부담과 오류 표면이 지나치게 크고, 기존 문제은행 문항으로 충분히 커버된다.
 
 취약 주제를 결정하는 단계까지는 결정적으로 처리하고, 마지막 문제 생성만 AI에 맡긴다.
 
@@ -34,6 +36,8 @@
 | 문제별 평균 풀이 시간 | `question_stat.avg_elapsed_seconds` | 객관식 트랙 |
 
 태그는 `question_tag`가 이름을 직접 갖는 반정규화 구조였으나 `tag` 테이블로 정규화했다. 사용자별 숙련도를 태그 단위로 붙일 대상(`tag_id`)이 필요했기 때문이다. 사전에 없는 태그는 런타임에 만들 수 없다(`TAG_NOT_FOUND`).
+
+`question_stat` 집계는 `solvedsession`에 둔다(`QuestionStatAggregator`). 집계 대상이 `question`이라 `question` 쪽이 자연스러워 보이지만, `solvedsession -> question` 의존이 이미 있어 반대 방향으로 두면 도메인 간 순환이 된다.
 
 > 세션 단위 `startedAt ~ solvedAt` 차분으로 문항별 시간을 도출하지 않는다. 이탈·창 전환에 오염되며, 세션 내 문항별 배분이 불가능하다.
 
@@ -233,7 +237,9 @@ AI 출력은 신뢰하지 않는다. `GeneratedEssayValidator`(domain)가 다음
 
 `review_status`는 `nullable = false`에 DB 기본값 `APPROVED`로 둔다. NULL을 허용하면 3-valued logic 때문에 `review_status = 'APPROVED'` 조건이 기존 문항을 전부 걸러낸다(`source`도 같은 이유로 `@ColumnDefault("'SEEDED'")`를 걸었다). 생성 경로는 `Question.generated()` 팩토리가 `PENDING`을 세팅해 불변식을 구조적으로 강제한다.
 
-`modelAnswer`와 `gradingCriteria`의 저장 위치는 확인이 필요하다. 현재 스키마에서 서술형 모범답안은 `essay_solved.model_answer`에 풀이 시점 스냅샷으로만 남으며, `question` 쪽에 모범답안 컬럼이 있는지 확인한 뒤 없으면 추가한다.
+`modelAnswer`와 `gradingCriteria`는 `question`에 컬럼으로 붙인다. 채점 기준은 여러 줄이지만 별도 테이블을 두지 않고 `GradingCriteriaConverter`로 한 컬럼에 줄바꿈 저장한다 — 조건 검색 대상이 아니라 문항을 읽을 때 늘 함께 읽는 값이기 때문이다. 시드 문항은 해설(`explanation`)만 갖고 채점 때 AI가 모범답안을 만들지만, 생성 문항은 만들어질 때 모범답안이 함께 나오므로 문항에 붙여 보관한다.
+
+시드 쪽에서는 `data3.sql`이 정규화된 태그 사전을 참조하는 현행 시드다. `data2.sql`은 사전 밖 태그가 533종이라 변환하지 않고 레거시로 남겼다.
 
 ### **검수 승인 정책**
 
@@ -305,40 +311,6 @@ AI 출력은 신뢰하지 않는다. `GeneratedEssayValidator`(domain)가 다음
 ### **6. 검수되지 않은 문항의 통계 오염**
 
 `question_stat`은 사용자 무관 전역 집계인데, 특정 사용자만 푼 생성 문항이 여기 섞이면 `sample_count`가 낮은 상태로 평균이 형성된다. 표본 5건 미만 폴백이 이를 일부 막지만, 생성 문항은 애초에 표본이 쌓이기 어렵다. `question_stat` 집계 시 `source = GENERATED`를 분리 집계할지 결정한다. 승인되어 문제은행에 올라간 뒤에도 출신은 `GENERATED`로 남으므로 이 분리는 사후에도 가능하다.
-
-## **폐기 대상**
-
-기존 랭킹 기반 설계에서 만들려 했던 다음 파일은 사용하지 않는다. 구현 시점에 저장소를 확인한 결과 **실제로 커밋된 적이 없어 삭제할 것은 없었다.**
-
-- `domain/RecommendationPolicy` — 랭킹 정책. `RecommendationTopicPolicy`로 대체
-- `domain/RecommendationCandidate`, `domain/ScoredRecommendation` — 후보·점수 모델
-- `implement/RecommendationCandidateSelector` — 후보 선정
-- `infra` 의 `findCandidates` 쿼리 — 폴백 조회(`findApprovedByCategories`)로 축소해 새로 작성
-
-## **구현 현황**
-
-아래는 모두 반영됐다.
-
-1. ~~`solved_multiple_choice.elapsed_seconds`, `essay_solved.elapsed_seconds` 컬럼 추가.~~ **완료** — `ElapsedSecondsPolicy`가 상한 600초로 클램핑한다.
-2. ~~`essay_solved.score` 컬럼 추가(0~10).~~ **완료** — `EssayScorePolicy`.
-3. ~~`question_stat` 테이블 추가.~~ **완료** — `QuestionStat`(PK `question_id`, `avg_elapsed_seconds`, `correct_rate`, `sample_count`, `updated_at`), `QuestionStatRepository`, `QuestionStatReader`/`QuestionStatWriter`.
-4. ~~`question.source` 컬럼 추가.~~ **완료** — `QuestionSource`, `Question.generated()`.
-5. ~~`question.review_status` 컬럼 추가, 노출 필터 교체.~~ **완료** — `QuestionReviewStatus`, `approve()`/`reject()` 전이, `QuestionRepository` 세 쿼리를 `review_status = APPROVED`로 필터.
-6. ~~`question`에 서술형 모범답안·채점 기준 컬럼 추가.~~ **완료** — `Question.modelAnswer`, `Question.gradingCriteria`(`GradingCriteriaConverter`로 한 컬럼에 줄바꿈 저장). 별도 테이블을 두지 않은 이유는 조건 검색 대상이 아니기 때문이다.
-7. ~~`QuestionStatAggregator` + 야간 배치 스케줄러.~~ **완료** — `solvedsession.implement.QuestionStatAggregator`, `QuestionStatService`, `QuestionStatScheduler`(KST 03:30). 집계를 `solvedsession`에 둔 이유는 `solvedsession -> question` 의존이 이미 있어 반대 방향으로 두면 도메인 간 순환이 되기 때문이다.
-8. ~~`RecommendationTopicPolicy` 신규 작성.~~ **완료** — `MasteryPolicy`, `MasteryLevel`, `WeaknessProfile`(+`weakestCategories`), `TagWeakness`, `RecommendationTopicPolicy`, `WeaknessProfileCalculator`. 정책 빈 등록은 `config/RecommendationPolicyConfig`(`MasteryPolicy`는 `mastery`로 옮기며 `mastery/config/MasteryPolicyConfig`로 이동).
-9. ~~프롬프트 외부화 + 생성·검증·저장 구현.~~ **완료** — `resources/prompts/essay-question-generation.st`, `EssayQuestionAiClient`(Gemini/Mock 2구현), `EssayQuestionGenerator`, `GeneratedEssayValidator`, `GeneratedQuestionAppender`, `GeneratedQuestionCollector`.
-10. ~~`RECOMMENDATION_AI_*` ErrorCode 추가 및 쿼터 버킷 분리.~~ **완료** — 실패 분류는 `common.ai.AiFailureClassifier`로 공유하고, 에러코드 매핑만 도메인별로 나눠 채점 쿼터와 버킷을 분리했다.
-11. ~~`Clock` 빈 등록.~~ **완료** — `common.config.ClockConfig`.
-12. ~~`GET /api/recommendations/questions` API 문서.~~ **완료** — `docs/API.md` "맞춤 문제 추천".
-13. ~~리스크 1 완화 — 오답 해설 주입 라벨링 규칙 확정.~~ **완료** — 프롬프트에서 오답 해설 블록을 "객관식 오답에 대한 해설"로 명시 라벨링하고, 정답 근거로 인용 금지·바로잡아 인용 금지를 지시한다.
-
-14. ~~태그 정규화.~~ **완료** — `tag`(사전 238개) + `question_tag.tag_id`. 이름 기반 쿼리는 조인으로 교체하고, `data-tag.sql` + 변환한 `data3.sql`을 `SeedIntegrityTest`가 검증한다. `data2.sql`은 사전 밖 태그 533종 때문에 변환하지 않고 레거시로 남겼다.
-15. ~~채점 AI가 숙련도·근거를 반환.~~ **완료** — `EssayPromptV4`(v3는 되돌릴 수 있게 남김), `GradeAndFollowupResult`~응답 DTO에 `mastery`·`masteryReason` 추가, `MasteryLevel`을 `common.domain`으로 이동.
-16. ~~숙련도 기록·조회.~~ **완료** — `mastery` 도메인(`mastery_record`, `user_tag_mastery`), 채점 시점 기록(연습 채점 API 인증 추가, 면접 답변), `GET /api/mastery`.
-17. ~~객관식 숙련도 기록.~~ **완료** — `ChoiceMasteryRecorder`가 세션 저장 시점에 `RULE_CHOICE`로 남긴다. `MasteryPolicy`·`SolvedSignal`을 `mastery.domain`으로 옮기고 `ChoiceMasteryReason` 추가.
-17. ~~추천 프로필 2트랙 연동.~~ **완료** — 서술형은 AI 판정 우선, 없으면 규칙 판정 폴백.
-18. ~~맞춤 문제 생성 프롬프트 문서화.~~ **완료** — `docs/SCRIPT_RECOMMENDATION.md` + 런타임 `.st` 재작성(약점도·선정 근거 전달).
 
 ## **남은 작업**
 

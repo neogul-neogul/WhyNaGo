@@ -240,5 +240,4 @@
 | --- | --- |
 | 객관식 생성 프롬프트 | `docs/SCRIPT.md` |
 | 서술형 생성 프롬프트 | `docs/SCRIPT_ESSAY.md` |
-| 시드 생성·검증 절차 | `docs/SEED_GENERATION.md` |
 | 도메인 정의 | `docs/DOMAIN.md` |

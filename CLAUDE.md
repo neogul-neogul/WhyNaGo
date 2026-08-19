@@ -49,7 +49,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`docs/DOMAIN.md`** - 도메인 문서.
   도메인 관련 정보가 담겨있다.
 
-- **`docs/RECOMMENDATION.md`** — 맞춤 문제 추천 설계.
+- **`docs/RECOMMENDATION.md`** — 맞춤 문제 추천 전략.
   약점을 진단해 그에 맞는 서술형 문항을 AI로 생성해 추천하는 파이프라인(`recommendation` 도메인)을 규정한다. 숙련도 판정·약점 프로필·취약 주제 선정은 결정적으로 처리하고 문항 생성만 AI에 맡긴다. 생성 문항은 `source = GENERATED`·`review_status = PENDING`으로 저장돼 검수 승인 전에는 문제은행 목록에 노출되지 않는다. 추천을 건드리기 전에 읽는다.
 
 - **`docs/SCRIPT_RECOMMENDATION.md`** — 맞춤 문제 생성 프롬프트.
@@ -59,13 +59,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   `question_tag.name`에 넣을 수 있는 태그의 전체 목록(8개 카테고리 총 238개)과 태그 명명·부여 규칙을 규정한다. 카테고리당 개수는 고정하지 않으며, 태그 이름은 8개 카테고리를 통틀어 유일하다. `SCRIPT.md`·`SCRIPT_ESSAY.md`가 공통으로 참조하며, 두 프롬프트를 쓸 때 **반드시 함께 제공**한다. 사전에 없는 태그는 생성 중에 만들지 않는다.
 
 - **`docs/SCRIPT.md`** — 객관식 문제 시드 생성 프롬프트.
-  객관식 문항 시드 데이터를 SQL INSERT문으로 생성하기 위해 LLM에 주는 규칙. **태그 사전 확정 → 태그를 축으로 문항 생성**의 2단계 절차(이번 회차에 소비할 태그 25개를 5개 클러스터로 나눠 태그 1개당 문항 1개, 카테고리 전체는 회차를 누적해 커버), 세션 변수 기반 순환 연결(`related_question_id` NULL 없음), 정답 위치 무작위 분산, 서술형 보기 등을 규정한다.
+  객관식 문항 시드 데이터를 SQL INSERT문으로 생성하기 위해 LLM에 주는 규칙. **태그 사전 확정 → 태그를 축으로 문항 생성**의 2단계 절차(이번 회차에 소비할 태그 25개를 5개 클러스터로 나눠 태그 1개당 문항 1개, 카테고리 전체는 회차를 누적해 커버), 세션 변수 기반 순환 연결(`related_question_id` NULL 없음), 정답 위치 무작위 분산, 서술형 보기 등을 규정한다. 시드는 카테고리별로 나눠 생성해 하나로 합친 뒤 `SeedIntegrityTest`로 검증한다.
 
 - **`docs/SCRIPT_ESSAY.md`** — 서술형 문제 시드 생성 프롬프트.
   서술형(`type = 'ESSAY'`) 문항 시드를 생성하는 규칙. 객관식과 달리 `answer_choice`·`related_question_id`가 없고 본 질문만 저장하며(꼬리질문은 런타임에 AI가 생성), 태그 사전의 태그 1개당 문항 1개를 만든다.
 
-- **`docs/SEED_GENERATION.md`** — 문제 시드 생성·검증 가이드.
-  위 `SCRIPT.md` 프롬프트를 실제로 굴려 시드를 만들고 검증하는 절차 핸드오프 문서. 도메인 핵심(본질문/꼬리질문 구분 없음), 생성 워크플로(카테고리별 병렬 생성 → 결합 → 실제 스키마에 넣어 검증), 관련 백엔드 사실·파일 위치를 정리한다. 새 시드를 만들 때 먼저 읽는다.
 
 ## 프론트엔드
 
