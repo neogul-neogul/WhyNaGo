@@ -3,20 +3,25 @@ package com.neogul.whynago.question.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
-
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+
+import com.neogul.whynago.fixture.EssaySolvedFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.TagFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
+import com.neogul.whynago.question.domain.Tag;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
+import com.neogul.whynago.question.infra.TagRepository;
 import com.neogul.whynago.question.service.dto.ChoiceGradingResult;
 import com.neogul.whynago.question.service.dto.ChoiceResult;
 import com.neogul.whynago.question.service.dto.EssayQuestionResult;
@@ -50,6 +55,9 @@ class QuestionServiceTest extends IntegrationTestSupport {
     private QuestionTagRepository questionTagRepository;
 
     @Autowired
+    private TagRepository tagRepository;
+
+    @Autowired
     private SolvedMultipleChoiceRepository solvedMultipleChoiceRepository;
 
     @Autowired
@@ -63,7 +71,7 @@ class QuestionServiceTest extends IntegrationTestSupport {
         AnswerChoice correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
         answerChoiceRepository.save(AnswerChoiceFixture.wrong(root.getId(), 2));
         AnswerChoice followupCorrect = answerChoiceRepository.save(AnswerChoiceFixture.correct(followup.getId(), 1, null));
-        questionTagRepository.save(QuestionTag.create(followup.getId(), "UDP"));
+        saveTag(followup.getId(), "UDP", Category.NETWORK);
 
         ChoiceGradingResult result = questionService.getChoiceGrading(root.getId(), correct.getId());
 
@@ -133,7 +141,7 @@ class QuestionServiceTest extends IntegrationTestSupport {
     void findQuestions_essay() {
         // given
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
-        questionTagRepository.save(QuestionTag.create(essay.getId(), "트랜잭션"));
+        saveTag(essay.getId(), "트랜잭션", Category.DB);
 
         // when
         QuestionsResult result = questionService.findQuestions(
@@ -273,7 +281,7 @@ class QuestionServiceTest extends IntegrationTestSupport {
         // given
         Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(question.getId(), 1, null));
-        questionTagRepository.save(QuestionTag.create(question.getId(), "NETWORK"));
+        saveTag(question.getId(), "TCP", Category.NETWORK);
         solvedMultipleChoiceRepository.save(solvedMultipleChoice(10L, question.getId()));
 
         // when
@@ -282,7 +290,7 @@ class QuestionServiceTest extends IntegrationTestSupport {
         // then
         assertThat(result.id()).isEqualTo(question.getId());
         assertThat(result.choices()).extracting(ChoiceResult::id).containsExactly(choice.getId());
-        assertThat(result.tags()).containsExactly("NETWORK");
+        assertThat(result.tags()).containsExactly("TCP");
         assertThat(result.solved()).isTrue();
     }
 
@@ -315,8 +323,8 @@ class QuestionServiceTest extends IntegrationTestSupport {
     void findEssayQuestion() {
         // given
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
-        questionTagRepository.save(QuestionTag.create(essay.getId(), "트랜잭션"));
-        questionTagRepository.save(QuestionTag.create(essay.getId(), "격리 수준"));
+        saveTag(essay.getId(), "트랜잭션", Category.DB);
+        saveTag(essay.getId(), "격리 수준", Category.DB);
 
         // when
         EssayQuestionResult result = questionService.findEssayQuestion(essay.getId());
@@ -354,32 +362,22 @@ class QuestionServiceTest extends IntegrationTestSupport {
     }
 
     private SolvedMultipleChoice solvedMultipleChoice(Long userId, Long questionId) {
-        return SolvedMultipleChoice.create(
-                1L,
-                userId,
-                questionId,
-                ItemType.MAIN,
-                1,
-                1L,
-                1L,
-                true,
-                LocalDateTime.now()
-        );
+        return SolvedMultipleChoiceFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
     }
 
     private EssaySolved essaySolved(Long userId, Long questionId) {
-        return EssaySolved.create(
-                1L,
-                userId,
-                ItemType.MAIN,
-                1,
-                questionId,
-                "질문",
-                "답변",
-                "피드백",
-                "모범답안",
-                true,
-                LocalDateTime.now()
-        );
+        return EssaySolvedFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
+    }
+
+    // 태그 이름은 tag 테이블에 있고 question_tag는 그 id를 참조한다.
+    private void saveTag(Long questionId, String name, Category category) {
+        Tag tag = tagRepository.save(TagFixture.of(name, category));
+        questionTagRepository.save(QuestionTag.create(questionId, tag.getId()));
     }
 }

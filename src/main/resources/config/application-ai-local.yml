@@ -1,13 +1,26 @@
 spring:
+  autoconfigure:
+    # OpenAI starter는 운영 Gemini(OpenAI 호환)용이다. 로컬에서는 사용하지 않는
+    # OpenAI 모델들이 API 키를 검증하지 않도록 전부 제외하고 Ollama만 선택한다.
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
   ai:
     model:
+      chat: ollama
       embedding: none
-    openai:
-      api-key: ${API_KEY:dummy-local-dev-key}
-      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       chat:
-        completions-path: /chat/completions
         options:
-          model: gemini-3.5-flash-lite
+          # 현재 로컬에 내려받은 모델. 다른 설치 모델은 OLLAMA_MODEL로 바꾼다.
+          model: ${OLLAMA_MODEL:gemma3:4b}
           temperature: 0.3
-          reasoning-effort: medium
+
+whynago:
+  ai:
+    enabled: true

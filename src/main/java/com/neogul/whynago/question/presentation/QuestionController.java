@@ -89,12 +89,14 @@ public class QuestionController {
                 .body(EssaySessionResponse.from(essayAnswerService.startSession(questionId)));
     }
 
+    // 채점 시점에 숙련도를 기록하므로 인증이 필요하다.
     @PostMapping("/{questionId}/essay/answers")
     public ResponseEntity<EvaluateEssayAnswerResponse> evaluateEssayAnswer(
+            @LoginUser AuthContext authContext,
             @PathVariable Long questionId,
             @Valid @RequestBody EvaluateEssayAnswerRequest request
     ) {
-        EssayAnswerResult result = essayAnswerService.evaluate(questionId, request.toCommand());
+        EssayAnswerResult result = essayAnswerService.evaluate(authContext.id(), questionId, request.toCommand());
         return ResponseEntity.ok(EvaluateEssayAnswerResponse.from(result));
     }
 }

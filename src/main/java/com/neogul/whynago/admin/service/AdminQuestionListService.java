@@ -28,7 +28,7 @@ public class AdminQuestionListService {
 
     @Transactional(readOnly = true)
     public AdminQuestionsResult readQuestions(QuestionSearchCommand command) {
-        QuestionPage questionPage = questionReader.readQuestionPage(
+        QuestionPage questionPage = questionReader.readQuestionPageForAdmin(
                 command.type(),
                 command.difficulty(),
                 command.category(),

@@ -29,8 +29,8 @@ public class SolvedMultipleChoiceAppender {
                     question.userChoiceId(),
                     question.answerChoiceId(),
                     question.correct(),
-                    solvedAt,
-                    question.elapsedSeconds()
+                    question.elapsedSeconds(),
+                    solvedAt
             ));
         }
         solvedMultipleChoiceRepository.saveAll(items);

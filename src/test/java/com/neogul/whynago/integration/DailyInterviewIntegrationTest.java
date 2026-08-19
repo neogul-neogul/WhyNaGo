@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
+import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.QuestionFixture;
 import com.neogul.whynago.interview.exception.InterviewErrorCode;
@@ -21,7 +22,6 @@ import com.neogul.whynago.interview.service.dto.StartInterviewResult;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
-import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import com.neogul.whynago.wrongnote.infra.WrongNoteRepository;
 import java.util.ArrayList;
@@ -60,9 +60,9 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
         given(essayAiClient.gradeAndGenerateFollowup(
                 anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(
-                        new GradeAndFollowupResult("피드백1", "모범답안1", 9, "꼬리질문1"),
-                        new GradeAndFollowupResult("피드백2", "모범답안2", 4, "꼬리질문2"),
-                        new GradeAndFollowupResult("피드백3", "모범답안3", 8, null)
+                        GradeAndFollowupResultFixture.of("피드백1", "모범답안1", 9, "꼬리질문1"),
+                        GradeAndFollowupResultFixture.of("피드백2", "모범답안2", 4, "꼬리질문2"),
+                        GradeAndFollowupResultFixture.of("피드백3", "모범답안3", 8, null)
                 );
 
         StartInterviewResult started = interviewService.start(USER_ID);
@@ -77,7 +77,9 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
                     "답변" + turn,
                     answered.grading().feedback(),
                     answered.grading().modelAnswer(),
-                    answered.grading().isCorrect()
+                    answered.grading().isCorrect(),
+                    answered.grading().score(),
+                    null
             ));
             if (turn == 3) {
                 assertThat(answered.nextFollowup()).isNull();
@@ -124,6 +126,6 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null, null);
     }
 }

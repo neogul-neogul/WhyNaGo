@@ -46,6 +46,7 @@ const CATEGORY_ORDER: QuestionCategory[] = [
   "DB",
   "LANGUAGE",
   "DESIGN_PATTERN",
+  "GENERAL_CS",
 ];
 
 /** 점수·티어·카테고리별 현황 조회 */

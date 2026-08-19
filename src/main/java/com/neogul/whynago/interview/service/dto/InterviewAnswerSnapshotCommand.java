@@ -7,10 +7,13 @@ public record InterviewAnswerSnapshotCommand(
         String userAnswer,
         String feedback,
         String modelAnswer,
-        boolean isCorrect
+        boolean isCorrect,
+        Integer score,
+        Integer elapsedSeconds
 ) {
 
     public EssaySolvedPayload toPayload() {
-        return new EssaySolvedPayload(null, questionText, userAnswer, feedback, modelAnswer, isCorrect);
+        return new EssaySolvedPayload(
+                null, questionText, userAnswer, feedback, modelAnswer, isCorrect, score, elapsedSeconds);
     }
 }

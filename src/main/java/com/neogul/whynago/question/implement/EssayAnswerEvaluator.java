@@ -29,8 +29,11 @@ public class EssayAnswerEvaluator {
         return new EssayEvaluation(
                 result.feedback(),
                 result.modelAnswer(),
+                result.score(),
                 result.score() >= PASS_THRESHOLD,
-                result.followupQuestion()
+                result.followupQuestion(),
+                result.mastery(),
+                result.masteryReason()
         );
     }
 }

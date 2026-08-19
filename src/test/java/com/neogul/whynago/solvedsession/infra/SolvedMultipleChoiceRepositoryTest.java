@@ -3,12 +3,12 @@ package com.neogul.whynago.solvedsession.infra;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
 import com.neogul.whynago.solvedsession.infra.dto.ChoiceSelectionCount;
 import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveSummary;
 import com.neogul.whynago.support.RepositoryTestSupport;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -176,7 +176,10 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
     }
 
     private SolvedMultipleChoice item(Long userId, Long questionId) {
-        return item(userId, questionId, ItemType.MAIN, 1L, true);
+        return SolvedMultipleChoiceFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .build();
     }
 
     private SolvedMultipleChoice item(
@@ -197,17 +200,13 @@ class SolvedMultipleChoiceRepositoryTest extends RepositoryTestSupport {
             boolean isCorrect,
             Integer elapsedSeconds
     ) {
-        return SolvedMultipleChoice.create(
-                1L,
-                userId,
-                questionId,
-                type,
-                1,
-                userChoiceId,
-                1L,
-                isCorrect,
-                LocalDateTime.now(),
-                elapsedSeconds
-        );
+        return SolvedMultipleChoiceFixture.builder()
+                .userId(userId)
+                .questionId(questionId)
+                .type(type)
+                .userChoiceId(userChoiceId)
+                .isCorrect(isCorrect)
+                .elapsedSeconds(elapsedSeconds)
+                .build();
     }
 }

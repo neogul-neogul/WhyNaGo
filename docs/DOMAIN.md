@@ -20,20 +20,63 @@
 | content | 지문 | 실제 문제 본문/발문 |
 | type | 유형 | `MULTIPLE_CHOICE`(객관식) \| `ESSAY`(서술형) |
 | difficulty | 난이도 | `LOW`(하) \| `MEDIUM`(중) \| `HIGH`(상) |
-| category | 카테고리 | `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
+| category | 카테고리 | `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` \| `GENERAL_CS` |
 | explanation | 정답 해설 | 문제 전체(정답) 해설. 채점 후 항상 노출. 선택지별 오답 사유(`AnswerChoice.explanation`)와 별개 |
 
 > **집계(파생) 값** — 문제은행 화면의 `완료한 사람 수`, `정답률`, 사용자별 `상태(완료/오답/안 푼 문제)` 는 `SolvedMultipleChoice` 를 집계해 얻는 조회용 값이며 `Question` 컬럼으로 저장하지 않는다. → [문제은행 표시 정책](#문제은행-표시-정책)
 
-### QuestionTag (문제 태그)
+### Tag (태그 사전)
+
+태그 사전 그 자체다. 원본은 `docs/TAG.md`이며 시드(`data-tag.sql`)로 적재한다. 런타임에 태그를 새로 만드는 경로는 없다(사전 확장은 별도 작업).
+
+| 이름 | 한글 | 설명 |
+| --- | --- | --- |
+| id | 태그 ID | PK |
+| name | 태그명 | 카테고리를 통틀어 유일 |
+| category | 카테고리 | 그 태그가 속한 카테고리 |
+
+문항이 하나도 없는 태그도 행으로 존재한다. 그래서 맞춤 문제 생성 시 후보 태그를 "문항이 있는 태그"가 아니라 사전 전체에서 고를 수 있다.
+
+### QuestionTag (문제–태그 연결)
 
 프런트의 `keywords`(예: "TCP/UDP", "전송 계층")에 대응한다. 한 문제에 여러 태그.
 
 | 이름 | 한글 | 설명 |
 | --- | --- | --- |
-| id | 태그 ID | PK |
+| id | 연결 ID | PK |
 | questionId | 문제 ID | FK → Question |
-| name | 태그명 | 검색·필터에 사용 |
+| tagId | 태그 ID | FK → Tag |
+
+태그 이름을 이 테이블에 직접 두지 않는다(반정규화 제거). 사용자별 숙련도를 **태그 단위로 붙일 대상(`tagId`)**이 필요했기 때문이다. 부여 순서를 유지하며, 첫 행이 그 문항의 주 태그다.
+
+### MasteryRecord (숙련도 판정 이력)
+
+문제를 풀 때마다 남는 판정 1건이다. 한 번의 채점이 그 문항의 태그 개수만큼 행을 만든다.
+
+| 이름 | 한글 | 설명 |
+| --- | --- | --- |
+| id | 판정 ID | PK |
+| userId | 사용자 ID | FK → User |
+| questionId | 문제 ID | FK → Question |
+| tagId | 태그 ID | FK → Tag. 태그가 없는 문항이면 null |
+| category | 카테고리 | 항상 채운다 |
+| level | 숙련도 | `MasteryLevel` 6분류 |
+| reason | 판정 근거 | AI 판정(`AI_ESSAY`)이면 답변에서 근거를 짚은 문장, 규칙 판정(`RULE_CHOICE`)이면 정답 여부·평균 대비 소요시간을 옮긴 문장 |
+| source | 판정 출처 | `AI_ESSAY`(서술형 채점 시점) · `RULE_CHOICE`(객관식 세션 저장 시점) |
+| createdAt | 판정 시각 | |
+
+### UserTagMastery (태그별 현재 숙련도)
+
+| 이름 | 한글 | 설명 |
+| --- | --- | --- |
+| id | ID | PK |
+| userId | 사용자 ID | FK → User |
+| tagId | 태그 ID | FK → Tag |
+| level | 현재 숙련도 | 새 판정이 오면 덮어쓴다 |
+| reason | 근거 | 가장 최근 판정의 근거 |
+| updatedAt | 갱신 시각 | |
+
+`(userId, tagId)` 조합당 1행이다. 숙련도는 "지금 이 주제를 얼마나 아는가"이므로 과거 판정을 평균하지 않고 덮어쓴다. 되짚어야 할 때는 `MasteryRecord` 이력을 본다.
 
 ### AnswerChoice (객관식 선택지)
 
@@ -78,7 +121,7 @@
 | answerChoiceId | 실제 답안 | FK → AnswerChoice (정답 보기). 정답은 불변이므로 `AnswerChoice.isCorrect` 로 도출 가능 — 조회 편의를 위한 선택 필드 |
 | isCorrect | 정답 여부 | `userChoiceId == answerChoiceId` |
 | solvedAt | 응답 시각 | 개별 문항 채점 시각 (선택). **세션 저장 시각이 모든 문항에 동일하게 들어가므로 문항 간 시간차를 나타내지 않는다** |
-| elapsedSeconds | 소요 시간 | 그 문항을 푸는 데 걸린 초. 클라이언트가 측정해 세션 저장 요청에 담는다. 수집 전에 쌓인 기록과 이상치(1시간 초과)는 `null`이며 집계에서 빠진다 → [문제 통계 집계 정책](#문제-통계-집계-정책) |
+| elapsedSeconds | 소요 시간 | 그 문항을 푸는 데 걸린 초. 클라이언트가 측정해 세션 저장 요청에 담는다. 10분을 넘으면 600초로 잘라 저장하고, 0초 이하와 수집 전에 쌓인 기록은 `null`이라 집계에서 빠진다(`ElapsedSecondsPolicy`) → [문제 통계 집계 정책](#문제-통계-집계-정책) |
 
 ### WrongNote (오답노트)
 
@@ -220,6 +263,16 @@
 - `isCorrect`는 채점 API 응답으로 반환되며, 완료 세션 저장 시 클라이언트가 그대로 전달해 세션 `correctCount` 집계에 쓰인다.
 - 임계값 튜닝·다단계 등급 등 고도화는 추후 과제다.
 
+### 숙련도 판정 정책
+- 숙련도 분류는 하나(`MasteryLevel` 6분류)이고 **판정 주체는 두 트랙**이다.
+  - **서술형**: 채점 AI가 답변 **내용**을 근거로 판정하고, 판정 근거(`masteryReason`)를 반드시 함께 반환한다(`EssayPromptV4`).
+  - **객관식**: AI를 호출하지 않고 정답 여부 × 소요시간 비율로 서버가 판정한다.
+- 기록 시점은 **채점 응답을 내리는 시점**이다. 클라이언트가 채점 결과를 되돌려주는 저장 경로에 맡기면 값이 조작될 수 있고, 세션을 중도 이탈한 답변의 판정이 남지 않는다. 그래서 서술형 채점 API는 인증이 필요하다.
+- 판정은 그 문항의 **모든 태그와 카테고리에 연결**해 기록한다. 태그가 없는 문항은 카테고리 신호로만 남는다.
+- **꼬리질문 턴은 기록하지 않는다.** `questionId`가 없어 태그를 붙일 수 없다.
+- AI가 숙련도를 빠뜨리면 채점은 그대로 응답하고 기록만 건너뛴다. 그 이력은 추천 집계에서 규칙 판정으로 폴백한다.
+- 상세는 `docs/RECOMMENDATION.md` 숙련도 판정 정책을 따른다.
+
 ### 1일 1면접 정책
 
 면접은 서술형 풀이와 **같은 3문항 흐름**(본 질문 + 꼬리질문 2개, AI 채점)을 쓰되, 하루 1회 제약과 진행 메타가 얹힌 형태다. → [서술형 풀이 흐름 정책](#서술형-풀이-흐름-정책)
@@ -347,10 +400,14 @@
 | Enum | 값 |
 | --- | --- |
 | Role | `USER`(일반 사용자) · `ADMIN`(관리자) |
-| Category | `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` |
+| Category | `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` · `GENERAL_CS`(기타 CS) |
 | Difficulty | `LOW`(하) · `MEDIUM`(중) · `HIGH`(상) |
 | QuestionType | `MULTIPLE_CHOICE` · `ESSAY` |
 | InterviewStatus | `IN_PROGRESS` · `COMPLETED` |
+| MasteryLevel | `MASTERED` · `SOLID` · `UNSTABLE` · `GUESSED` · `WEAK` · `NOT_LEARNED` |
+| MasterySource | `AI_ESSAY` · `RULE_CHOICE` |
+| QuestionSource | `SEEDED` · `GENERATED` |
+| QuestionReviewStatus | `APPROVED` · `PENDING` · `REJECTED` |
 
 ---
 

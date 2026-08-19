@@ -360,7 +360,7 @@ POST /api/auth/logout
 
 문제 조회와 서술형 풀이 진행을 담당한다. 관련 도메인은 `question`이다.
 
-> **인증 범위**: `GET /api/questions`(목록 조회)와 `GET /api/questions/{questionId}`(단건 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다(`WebConfig`가 `/api/questions`와 한 단계 아래 경로(`/api/questions/*`)만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다. `/essay`·`/choices` 하위는 경로 깊이가 달라 제외 대상이 아니다).
+> **인증 범위**: `GET /api/questions`(목록 조회)와 `GET /api/questions/{questionId}`(단건 조회)만 **선택적 인증**이다. `Authorization` 헤더 없이 호출할 수 있고, 이때는 모든 문항의 `solved`가 `false`로 내려간다. 헤더를 보내면 해석해 푼 문제에 `solved = true`를 채운다(토큰이 만료·위조면 다른 경로와 동일하게 401). 그 외 이 도메인의 모든 하위 경로(`/api/questions/{id}/choices/{id}`, `/api/questions/{id}/essay`, `/api/questions/{id}/essay/sessions`, `/api/questions/{id}/essay/answers`)는 `Authorization` 헤더가 필요하다. 특히 서술형 채점(`/essay/answers`)은 채점 시점에 숙련도를 사용자별로 기록하므로 인증 없이는 호출할 수 없다(`WebConfig`가 `/api/questions`와 한 단계 아래 경로(`/api/questions/*`)만 인증 인터셉터에서 제외하고, 같은 경로에 선택적 인증 인터셉터를 등록한다. `/essay`·`/choices` 하위는 경로 깊이가 달라 제외 대상이 아니다).
 
 ## **문제 목록 조회**
 
@@ -387,7 +387,7 @@ GET /api/questions
 | --- | --- | --- |
 | `type` | String | 문제 유형. `MULTIPLE_CHOICE` \| `ESSAY` |
 | `difficulty` | String | 난이도. `LOW` \| `MEDIUM` \| `HIGH` |
-| `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
+| `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` \| `GENERAL_CS` |
 | `q` | String | 제목·지문 키워드. 부분 일치이며 대소문자를 구분하지 않는다. |
 | `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
 | `size` | int | 한 페이지 문항 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
@@ -707,7 +707,9 @@ POST /api/questions/{questionId}/essay/answers
   "grading": {
     "feedback": "흐름 제어와 혼잡 제어의 목적 차이(수신자 보호 vs 네트워크 보호)를 명확히 구분하면 더 좋습니다.",
     "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 하여 수신 버퍼가 넘치지 않게 조절합니다.",
-    "isCorrect": true
+    "isCorrect": true,
+    "mastery": "UNSTABLE",
+    "masteryReason": "윈도우 크기로 송신량을 조절한다는 결론은 맞지만, 그것이 수신자 보호를 위한 것이라는 근거를 제시하지 못했습니다."
   },
   "nextFollowup": {
     "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
@@ -721,6 +723,10 @@ POST /api/questions/{questionId}/essay/answers
 | `grading.feedback` | String | AI 피드백. |
 | `grading.modelAnswer` | String | 해당 문항의 모범답안·해설. |
 | `grading.isCorrect` | boolean | 통과 여부. LLM이 매긴 0~10 점수를 서버가 임계값(7 이상 통과)으로 환산한 값(→ `docs/DOMAIN.md` 서술형 정답 판정 기준). |
+| `grading.mastery` | String \| null | 이 답변이 드러낸 이해 수준. `MASTERED` \| `SOLID` \| `UNSTABLE` \| `GUESSED` \| `WEAK` \| `NOT_LEARNED`. AI가 판정하지 못하면 `null`이며, 이때 숙련도는 기록되지 않는다. |
+| `grading.masteryReason` | String \| null | 그 판정의 근거. 답변에서 근거가 된 부분을 짚은 문장이다. `mastery`가 `null`이면 함께 `null`이다. |
+
+> 채점과 동시에 서버가 그 문항의 태그·카테고리에 숙련도를 기록한다(→ `docs/RECOMMENDATION.md` 숙련도 기록·조회). 그래서 이 API는 **인증이 필요**하다. 기록된 숙련도는 `GET /api/mastery`로 조회한다.
 | `nextFollowup` | Object | 생성된 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`(면접 종료). |
 | `nextFollowup.question` | String | 생성된 꼬리질문 발문. |
 
@@ -752,6 +758,8 @@ POST /api/solved-sessions
 ```
 
 - 성공 시 `201 Created`를 반환한다.
+
+> 저장과 동시에 서버가 문항마다 숙련도를 판정해 그 문항의 태그·카테고리에 기록한다(출처 `RULE_CHOICE`, 꼬리질문 포함). 판정은 클라이언트가 보낸 정답 여부가 아니라 서버가 다시 채점한 결과와 `elapsedSeconds`로 계산한다(→ `docs/RECOMMENDATION.md` 숙련도 판정 정책). 기록된 숙련도는 `GET /api/mastery`로 조회한다.
 
 ### **Request Body**
 
@@ -794,7 +802,10 @@ POST /api/solved-sessions
 `elapsedSeconds`는 선택 필드다. 보내지 않으면 소요 시간 없이 저장되고 통계 집계에서 빠질 뿐, 세션 저장은 정상 처리된다.
 
 - **음수면 `400 INVALID_INPUT`이다.** 측정 로직의 버그이지 사용자 입력이 아니므로 거절한다.
-- **3600초(1시간)를 넘으면 세션은 저장되지만 그 문항의 소요 시간은 버려진다(`null`).** 문제를 띄워둔 채 자리를 비운 시간을 "푸는 데 걸린 시간"으로 볼 수 없기 때문이며, 이것 때문에 실제로 푼 기록까지 잃게 하지는 않는다.
+- **600초(10분)를 넘으면 세션은 저장되고 그 문항의 소요 시간은 600초로 잘라 저장한다.** 문제를 띄워둔 채 자리를 비운 시간을 "푸는 데 걸린 시간"으로 볼 수 없기 때문이며, 이것 때문에 실제로 푼 기록까지 잃게 하지는 않는다.
+- **0초는 저장하지 않는다(`null`).** 문제를 읽고 답을 고르는 데 0초가 걸릴 수는 없으므로 측정 실패로 본다.
+
+정규화 규칙은 `solvedsession.domain.ElapsedSecondsPolicy` 한 곳에 있고 서술형 풀이(`essay_solved`)에도 같은 규칙이 적용된다.
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 
@@ -1380,7 +1391,9 @@ POST /api/interviews/{interviewId}/answers
   "grading": {
     "feedback": "흐름 제어와 혼잡 제어의 목적 차이를 명확히 구분하면 더 좋습니다.",
     "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 조절합니다.",
-    "isCorrect": true
+    "isCorrect": true,
+    "mastery": "SOLID",
+    "masteryReason": "윈도우 크기로 송신량을 조절한다는 점과 그 목적을 함께 설명했습니다."
   },
   "nextFollowup": {
     "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
@@ -1393,6 +1406,8 @@ POST /api/interviews/{interviewId}/answers
 | `grading.feedback` | String | AI 피드백. |
 | `grading.modelAnswer` | String | 모범답안·해설. |
 | `grading.isCorrect` | boolean | 통과 여부(→ `docs/DOMAIN.md` 서술형 정답 판정 정책). |
+| `grading.mastery` | String \| null | 이 답변이 드러낸 이해 수준. AI가 판정하지 못하면 `null`. 서술형 채점과 같은 6분류다. |
+| `grading.masteryReason` | String \| null | 그 판정의 근거. |
 | `nextFollowup` | Object | 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`. |
 | `nextFollowup.question` | String | 생성된 꼬리질문 발문. |
 
@@ -2153,6 +2168,175 @@ DELETE /api/problem-sets/{problemSetId}
 
 ---
 
+# **Mastery API**
+
+사용자가 지금까지 받은 숙련도 판정을 조회한다. 관련 도메인은 `mastery`다.
+
+숙련도는 **문제를 풀 때마다** 판정해 그 문항의 태그·카테고리에 연결해 기록한다. 서술형은 채점 AI가 답변 내용을 근거로 판정하고(채점 응답 시점), 객관식은 AI를 호출하지 않고 정답 여부와 소요시간 비율로 서버가 판정한다(세션 저장 시점). 두 트랙 모두 이 API로 조회된다(→ `docs/RECOMMENDATION.md` 숙련도 판정 정책).
+
+## **숙련도 조회**
+
+### **Endpoint**
+
+```
+GET /api/mastery
+```
+
+- 인증이 필요하다. `userId`는 인증 계층에서 해석한다.
+- 성공 시 `200 OK`를 반환한다.
+- 판정 이력이 하나도 없는 카테고리는 배열에서 제외된다. 판정이 전혀 없으면 `categories`가 빈 배열이다.
+
+### **Response Body**
+
+```json
+{
+  "categories": [
+    {
+      "category": "DB",
+      "levelCounts": {
+        "NOT_LEARNED": 2,
+        "UNSTABLE": 1
+      },
+      "tags": [
+        {
+          "tagId": 1,
+          "name": "인덱스",
+          "level": "NOT_LEARNED",
+          "reason": "카디널리티를 언급했지만 인덱스를 타지 않는 이유를 설명하지 못했습니다.",
+          "updatedAt": "2026-08-19T10:00:00"
+        }
+      ]
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `categories[].category` | String | 카테고리. |
+| `categories[].levelCounts` | Object | 그 카테고리에서 각 숙련도를 몇 번 받았는지. 받은 적 없는 숙련도는 키에서 빠진다. 태그가 없는 문항의 판정도 포함된다. |
+| `categories[].tags[]` | Array | 태그별 **현재** 숙련도. 최근에 판정된 태그가 먼저 온다. |
+| `categories[].tags[].level` | String | 그 태그의 현재 숙련도. 새 판정이 오면 누적이 아니라 덮어써진다. |
+| `categories[].tags[].reason` | String | 그 판정의 근거. 서술형은 AI가 답변에서 짚은 문장, 객관식은 정답 여부·평균 대비 소요시간을 옮긴 문장이다. |
+| `categories[].tags[].updatedAt` | String | 현재 숙련도가 갱신된 시각. |
+
+`levelCounts`는 이력 기반 누적이고 `tags[].level`은 현재값이다. 그래서 같은 태그를 여러 번 풀면 `levelCounts`의 합은 늘어나지만 `tags[].level`은 하나만 남는다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 401 | `UNAUTHORIZED` | 토큰이 없거나 유효하지 않음. |
+
+---
+
+## **맞춤 문제 추천**
+
+사용자의 약점을 진단해 그에 맞는 문제를 반환한다. 취약 주제에 해당하는 **서술형 문항을 AI로 생성**해 내려주고, 생성이 불가능하거나 부족하면 기존 문제은행 문항으로 채운다. 추천 자체가 실패하지 않는 것이 원칙이다(→ `docs/RECOMMENDATION.md`).
+
+생성된 문항은 검수 전(`PENDING`) 상태로 저장되므로 문제 목록 조회(`GET /api/questions`)에는 나타나지 않는다. 이 응답과 문제 단건 조회로만 도달한다.
+
+같은 사용자가 하루에 여러 번 호출해도 생성은 한 번이다. 문제를 더 풀어 약점 프로필이 바뀌면 캐시가 무효화되어 다음 호출에서 새로 생성한다.
+
+### **Endpoint**
+
+```
+GET /api/recommendations/questions
+```
+
+- 인증이 필요하다. `userId`는 인증 계층에서 해석한다.
+- 성공 시 `200 OK`와 문항 배열을 반환한다.
+- 한 번의 응답에 최대 3문항을 담는다. 문항 하나가 채점까지 합쳐 여러 번의 AI 호출을 유발하므로 보수적으로 제한한다.
+
+### **Response Body**
+
+```json
+{
+  "personalized": true,
+  "generated": true,
+  "questions": [
+    {
+      "id": 342,
+      "title": "낮은 카디널리티 컬럼의 인덱스",
+      "content": "카디널리티가 낮은 컬럼에 인덱스를 걸면 조회 성능이 어떻게 달라지는지 이유와 함께 설명하라.",
+      "type": "ESSAY",
+      "difficulty": "LOW",
+      "category": "DB",
+      "tags": ["인덱스"],
+      "generated": true
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `personalized` | boolean | 약점 프로필을 근거로 골랐는지 여부. 풀이 이력이 3건 미만인 콜드스타트면 `false`. |
+| `generated` | boolean | 이번 응답에 AI가 새로 만든 문항이 하나라도 포함됐는지 여부. |
+| `questions[].type` | String | `MULTIPLE_CHOICE` \| `ESSAY`. 생성 문항은 항상 `ESSAY`이고, 폴백·콜드스타트에서는 객관식도 내려간다. |
+| `questions[].generated` | boolean | 그 문항이 이번 추천을 위해 생성된 검수 전 문항인지 여부. **현재 클라이언트는 이 값을 화면에 노출하지 않는다** — 생성 문항인지 기존 문항인지는 사용자에게 구분해 보여주지 않기로 했다. 운영·디버깅용 정보다. |
+
+`questions[]`의 나머지 필드는 문제 목록 조회와 같은 의미다. 다만 `explanation`·`choices`는 내려가지 않으므로, 문제를 풀려면 문제 단건 조회로 상세를 받는다.
+
+`personalized`·`generated`도 `questions[].generated`와 같이 화면에 노출하지 않는다. 사용자에게는 콜드스타트·폴백·정상 생성이 모두 "내 취약점에 맞춘 문제" 하나로 보이고, 세 경우의 화면 문구가 같다. 클라이언트는 `questions[]`만 쓰면 된다.
+
+### **동작 분기**
+
+| 상황 | `personalized` | `generated` | 내용 |
+| --- | --- | --- | --- |
+| 풀이 이력 3건 미만 | `false` | `false` | 난이도 `LOW` 문항을 카테고리별로 고르게 반환. AI를 호출하지 않는다. |
+| 정상 | `true` | `true` | 취약 주제로 생성한 서술형 문항. 부족분은 기존 문항으로 채운다. |
+| 생성 실패·쿼터 소진 | `true` | `false` | 취약 주제에 해당하는 기존 문제은행 문항(객관식·서술형 모두). |
+| 같은 날 재조회 | 이전과 동일 | 이전과 동일 | 캐시된 문항을 같은 순서로 반환한다. |
+
+재조회해도 같은 문항이 돌아오므로, "다른 문제"는 이 API를 다시 부르지 말고 한 번의 응답으로 받은 `questions[]`를 클라이언트가 순환해 보여준다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 401 | `UNAUTHORIZED` | 토큰이 없거나 유효하지 않음. |
+
+AI 생성 실패·쿼터 소진은 에러로 내리지 않고 폴백으로 응답한다. 아래 에러코드는 추천 전용 쿼터 버킷으로 정의돼 있으며, 서술형 채점 쿼터(`ESSAY_AI_*`)를 잠식하지 않는다. 폴백까지 실패하는 경우에만 노출된다.
+
+| **code** | **의미** |
+| --- | --- |
+| `RECOMMENDATION_AI_UNAVAILABLE` | 생성 중 AI 장애. |
+| `RECOMMENDATION_AI_QUOTA_EXCEEDED` | 순간 요청량 초과. |
+| `RECOMMENDATION_AI_DAILY_QUOTA_EXCEEDED` | 일일 생성 한도 초과. |
+
+### **취약 태그 조회**
+
+전체 풀이 이력을 약점 프로필로 계산해, 취약도 상위 태그를 최대 4개 반환한다. 최근 기간으로 제한하지 않는다.
+
+```
+GET /api/recommendations/weak-tags
+```
+
+```json
+{
+  "sampleCount": 128,
+  "tags": [
+    {
+      "tag": "TCP/IP",
+      "weaknessScore": 0.85,
+      "sampleCount": 7
+    }
+  ]
+}
+```
+
+| 필드 | 설명 |
+| --- | --- |
+| `sampleCount` | 약점 계산에 반영된 전체 풀이 문항 수. |
+| `tags[].tag` | 취약 태그명. |
+| `tags[].weaknessScore` | `0.0`~`1.0` 범위의 약점도. 높을수록 취약하다. |
+| `tags[].sampleCount` | 해당 태그가 붙은 문제를 푼 횟수. |
+
+인증이 필요하다. 풀이 이력이나 태그가 없으면 `tags`는 빈 배열이다.
+
+---
+
 # **Admin API**
 
 관리자 백오피스 전용 API. 관련 도메인은 `admin`이다.
@@ -2164,6 +2348,8 @@ DELETE /api/problem-sets/{problemSetId}
 ## **문제 목록 조회**
 
 관리자 백오피스의 문제 관리 목록을 조회한다. 공개 문제은행 목록(`GET /api/questions`)과 동일한 조회 조건·페이징 규칙을 쓰되, `solved` 대신 문제별 **풀이수·정답률**을 함께 내려준다.
+
+**공개 목록과 달리 검수 전 문항(`PENDING`)과 거절된 문항(`REJECTED`)도 함께 반환한다.** 검수 대기열을 봐야 하는 유일한 화면이기 때문이며, 화면이 구분할 수 있도록 `reviewStatus`와 `source`를 함께 내려준다(→ `docs/RECOMMENDATION.md` 저장 정책).
 
 풀이수·정답률은 문제 유형에 따라 다른 테이블을 집계한다 — 객관식은 `SolvedMultipleChoice`, 서술형은 `EssaySolved`(본질문 풀이만, `questionId`가 있는 행) 기준이다. 단건 조회(객관식 문제 통계 조회)와 달리 페이지에 담긴 여러 문제를 한 번에 묶어 집계한다.
 
@@ -2200,15 +2386,19 @@ GET /api/admin/questions
       "category": "DB",
       "difficulty": "MEDIUM",
       "type": "MULTIPLE_CHOICE",
+      "reviewStatus": "APPROVED",
+      "source": "SEEDED",
       "solveCount": 1842,
       "correctRate": 63.8
     },
     {
       "id": 7,
-      "title": "SYN flooding이 성립하는 원인",
-      "category": "NETWORK",
+      "title": "AI가 생성한 인덱스 문항",
+      "category": "DB",
       "difficulty": "HIGH",
       "type": "ESSAY",
+      "reviewStatus": "PENDING",
+      "source": "GENERATED",
       "solveCount": 0,
       "correctRate": null
     }
@@ -2228,6 +2418,8 @@ GET /api/admin/questions
 | `content[].category` | String | 카테고리. |
 | `content[].difficulty` | String | 난이도. |
 | `content[].type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `content[].reviewStatus` | String | 검수 상태(`APPROVED` \| `PENDING` \| `REJECTED`). 관리자가 전이시키는 가변 상태다. |
+| `content[].source` | String | 문항 출신(`SEEDED` \| `GENERATED`). 생성 시점에 확정되며 승인 뒤에도 바뀌지 않는다. |
 | `content[].solveCount` | long | 이 문제의 전체 풀이 응답 수. 본질문·꼬리질문 구분 없이 더한다. |
 | `content[].correctRate` | double \| null | 정답률(%), 소수점 첫째 자리로 반올림. **`solveCount`가 0이면 `0.0`이 아니라 `null`이다** — "아직 안 풀림"과 "0% 정답"은 다르다. |
 

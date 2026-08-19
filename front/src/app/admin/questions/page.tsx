@@ -17,7 +17,7 @@ import { mockQuestionMeta } from "@/mocks/admin";
 import Input from "@/components/ui/Input";
 import Pagination from "@/components/ui/Pagination";
 import AdminTable, { type AdminColumn } from "@/components/admin/AdminTable";
-import { CategoryBadge, DifficultyText, StatusBadge } from "@/components/admin/AdminBadges";
+import { CategoryBadge, DifficultyText, ReviewStatusBadge } from "@/components/admin/AdminBadges";
 import FilterSelect from "@/components/admin/FilterSelect";
 
 const ALL = "전체";
@@ -68,7 +68,7 @@ const COLUMNS: AdminColumn<AdminQuestionResponse>[] = [
       </span>
     ),
   },
-  // 수정일·상태는 Question에 컬럼이 없어 API가 내려주지 않는다. 목업 값이다.
+  // 수정일은 Question에 컬럼이 없어 API가 내려주지 않는다. 목업 값이다.
   {
     key: "updatedAt",
     header: "수정일",
@@ -81,12 +81,14 @@ const COLUMNS: AdminColumn<AdminQuestionResponse>[] = [
       </span>
     ),
   },
+  // 이 목록은 공개 목록과 달리 검수 전(PENDING)·거절(REJECTED) 문항도 함께 받는다.
+  // 검수 대기열을 보는 화면이므로 어떤 상태인지 한눈에 구분돼야 한다.
   {
-    key: "status",
-    header: "상태",
+    key: "reviewStatus",
+    header: "검수 상태",
     width: 96,
     align: "right",
-    render: (q) => <StatusBadge status={mockQuestionMeta(q.id).status} />,
+    render: (q) => <ReviewStatusBadge status={q.reviewStatus} />,
   },
 ];
 

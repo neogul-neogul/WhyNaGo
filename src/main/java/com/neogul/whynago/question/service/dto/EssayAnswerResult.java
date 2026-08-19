@@ -9,7 +9,14 @@ public record EssayAnswerResult(GradingResult grading, NextFollowupResult nextFo
                 ? null
                 : new NextFollowupResult(evaluation.followupQuestion());
         return new EssayAnswerResult(
-                new GradingResult(evaluation.feedback(), evaluation.modelAnswer(), evaluation.isCorrect()),
+                new GradingResult(
+                        evaluation.feedback(),
+                        evaluation.modelAnswer(),
+                        evaluation.score(),
+                        evaluation.isCorrect(),
+                        evaluation.mastery(),
+                        evaluation.masteryReason()
+                ),
                 nextFollowup
         );
     }

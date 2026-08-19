@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+import com.neogul.whynago.common.domain.MasteryLevel;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
@@ -388,9 +389,9 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("서술형 답변을 채점하면 피드백·모범답안·통과 여부와 다음 꼬리질문을 응답한다.")
     void evaluateEssayAnswer() {
-        given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
+        given(essayAnswerService.evaluate(eq(1L), eq(3L), any())).willReturn(
                 new EssayAnswerResult(
-                        new GradingResult("피드백", "모범답안", true),
+                        new GradingResult("피드백", "모범답안", 8, true, MasteryLevel.SOLID, "핵심 근거를 짚었다."),
                         new NextFollowupResult("다음 꼬리질문")
                 )
         );
@@ -405,6 +406,7 @@ class QuestionControllerTest extends ControllerTestSupport {
                 .statusCode(200)
                 .body("grading.feedback", Matchers.equalTo("피드백"))
                 .body("grading.modelAnswer", Matchers.equalTo("모범답안"))
+                .body("grading.score", Matchers.equalTo(8))
                 .body("grading.isCorrect", Matchers.equalTo(true))
                 .body("nextFollowup.question", Matchers.equalTo("다음 꼬리질문"));
     }
@@ -412,8 +414,8 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("마지막 문항 답변은 꼬리질문 없이 채점 결과만 응답한다.")
     void evaluateEssayAnswer_lastTurn() {
-        given(essayAnswerService.evaluate(eq(3L), any())).willReturn(
-                new EssayAnswerResult(new GradingResult("피드백", "모범답안", false), null)
+        given(essayAnswerService.evaluate(eq(1L), eq(3L), any())).willReturn(
+                new EssayAnswerResult(new GradingResult("피드백", "모범답안", 4, false, MasteryLevel.SOLID, "핵심 근거를 짚었다."), null)
         );
 
         RestAssuredMockMvc.given()
@@ -446,7 +448,7 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("서술형이 아닌 문제에 답변을 제출하면 400을 응답한다.")
     void evaluateEssayAnswer_notEssay() {
-        given(essayAnswerService.evaluate(eq(1L), any()))
+        given(essayAnswerService.evaluate(eq(1L), eq(1L), any()))
                 .willThrow(new BusinessException(QuestionErrorCode.QUESTION_NOT_ESSAY));
 
         RestAssuredMockMvc.given()
@@ -463,7 +465,7 @@ class QuestionControllerTest extends ControllerTestSupport {
     @Test
     @DisplayName("AI 호출이 실패하면 503을 응답한다.")
     void evaluateEssayAnswer_aiUnavailable() {
-        given(essayAnswerService.evaluate(eq(3L), any()))
+        given(essayAnswerService.evaluate(eq(1L), eq(3L), any()))
                 .willThrow(new BusinessException(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));
 
         RestAssuredMockMvc.given()

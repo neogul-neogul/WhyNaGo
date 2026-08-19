@@ -55,7 +55,9 @@ public class InterviewRecordRegistrar {
                     payload.userAnswer(),
                     payload.feedback(),
                     payload.modelAnswer(),
-                    payload.isCorrect()
+                    payload.isCorrect(),
+                    payload.score(),
+                    payload.elapsedSeconds()
             ));
         }
         return resolved;

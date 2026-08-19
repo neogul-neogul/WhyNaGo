@@ -10,12 +10,12 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
-import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -30,7 +30,7 @@ class EssayAnswerEvaluatorTest {
     void evaluate_generatesFollowupWhenNotLastTurn() {
         given(essayAiClient.completedTurns("conv")).willReturn(1);
         given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", true, EssayGradingMode.PRACTICE))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 8, "다음 꼬리질문"));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "다음 꼬리질문"));
 
         EssayEvaluation evaluation =
                 essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
@@ -42,11 +42,37 @@ class EssayAnswerEvaluatorTest {
     }
 
     @Test
+    @DisplayName("AI가 매긴 점수를 버리지 않고 그대로 전달한다.")
+    void evaluate_keepsScore() {
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", true, EssayGradingMode.PRACTICE))
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 3, "다음 꼬리질문"));
+
+        EssayEvaluation evaluation =
+                essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
+
+        assertThat(evaluation.score()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("점수가 7점 미만이면 오답으로 판정한다.")
+    void evaluate_belowPassThreshold() {
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", true, EssayGradingMode.PRACTICE))
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 6, "다음 꼬리질문"));
+
+        EssayEvaluation evaluation =
+                essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
+
+        assertThat(evaluation.isCorrect()).isFalse();
+    }
+
+    @Test
     @DisplayName("마지막 턴(완료 2턴)이면 꼬리질문을 생성하지 않고 대화를 정리한다.")
     void evaluate_lastTurnNoFollowupAndClears() {
         given(essayAiClient.completedTurns("conv")).willReturn(2);
         given(essayAiClient.gradeAndGenerateFollowup("conv", "질문", "답변", false, EssayGradingMode.PRACTICE))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 5, null));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 5, null));
 
         EssayEvaluation evaluation =
                 essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE);
@@ -62,7 +88,7 @@ class EssayAnswerEvaluatorTest {
         given(essayAiClient.completedTurns("conv")).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
                 anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 8, "다음 꼬리질문"));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "다음 꼬리질문"));
 
         essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.INTERVIEW);
 
@@ -75,7 +101,7 @@ class EssayAnswerEvaluatorTest {
         given(essayAiClient.completedTurns("conv")).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
                 eq("conv"), eq("질문"), eq("답변"), anyBoolean(), eq(EssayGradingMode.PRACTICE)))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 7, "다음 꼬리질문"));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 7, "다음 꼬리질문"));
 
         assertThat(essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE).isCorrect())
                 .isTrue();
@@ -87,7 +113,7 @@ class EssayAnswerEvaluatorTest {
         given(essayAiClient.completedTurns("conv")).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
                 eq("conv"), eq("질문"), eq("답변"), anyBoolean(), eq(EssayGradingMode.PRACTICE)))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 6, "다음 꼬리질문"));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 6, "다음 꼬리질문"));
 
         assertThat(essayAnswerEvaluator.evaluate("conv", "질문", "답변", EssayGradingMode.PRACTICE).isCorrect())
                 .isFalse();

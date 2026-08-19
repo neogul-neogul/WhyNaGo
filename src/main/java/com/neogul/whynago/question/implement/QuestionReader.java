@@ -4,13 +4,14 @@ import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
-import com.neogul.whynago.question.domain.QuestionTag;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.implement.dto.QuestionPage;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
 import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
+import com.neogul.whynago.question.infra.dto.QuestionTagName;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,6 +27,7 @@ public class QuestionReader {
 
     private final QuestionRepository questionRepository;
     private final QuestionTagRepository questionTagRepository;
+    private final TagReader tagReader;
 
     public Question read(Long questionId) {
         return questionRepository.findById(questionId)
@@ -51,6 +53,25 @@ public class QuestionReader {
             int size
     ) {
         Page<Question> questions = questionRepository.findQuestions(
+                type,
+                difficulty,
+                category,
+                normalize(keyword),
+                PageRequest.of(page, size)
+        );
+        return new QuestionPage(questions.getContent(), questions.getTotalElements());
+    }
+
+    // 관리자 화면 전용이다. 검수 대기 문항까지 보여주기 위해 노출 게이트를 통과시킨다.
+    public QuestionPage readQuestionPageForAdmin(
+            QuestionType type,
+            Difficulty difficulty,
+            Category category,
+            String keyword,
+            int page,
+            int size
+    ) {
+        Page<Question> questions = questionRepository.findQuestionsForAdmin(
                 type,
                 difficulty,
                 category,
@@ -97,11 +118,33 @@ public class QuestionReader {
         if (questionIds.isEmpty()) {
             return Map.of();
         }
-        return questionTagRepository.findByQuestionIdIn(questionIds).stream()
+        return questionTagRepository.findTagNames(questionIds).stream()
                 .collect(Collectors.groupingBy(
-                        QuestionTag::getQuestionId,
-                        Collectors.mapping(QuestionTag::getName, Collectors.toList())
+                        QuestionTagName::getQuestionId,
+                        LinkedHashMap::new,
+                        Collectors.mapping(QuestionTagName::getName, Collectors.toList())
                 ));
+    }
+
+    // 생성 프롬프트의 네거티브 컨텍스트다. 같은 주제를 다시 만들지 않게 기존 서술형 제목을 넘긴다.
+    public List<String> readEssayTitles(Category category, List<String> tagNames) {
+        return questionRepository.findEssayTitles(category, tagNames.isEmpty() ? List.of("") : tagNames);
+    }
+
+    // 생성 실패·쿼터 소진 시 쓰는 폴백 후보다. 객관식·서술형을 모두 후보로 삼는다.
+    public List<Question> readApprovedByCategories(List<Category> categories, int limit) {
+        if (categories.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        return questionRepository.findApprovedByCategories(categories, PageRequest.of(0, limit));
+    }
+
+    public List<Question> readApprovedByDifficulty(Difficulty difficulty) {
+        return questionRepository.findApprovedByDifficulty(difficulty);
+    }
+
+    public List<String> readTagDictionary(Category category) {
+        return tagReader.readNamesByCategory(category);
     }
 
     private String normalize(String keyword) {

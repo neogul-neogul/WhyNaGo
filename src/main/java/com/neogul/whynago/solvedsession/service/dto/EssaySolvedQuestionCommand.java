@@ -8,10 +8,13 @@ public record EssaySolvedQuestionCommand(
         String userAnswer,
         String feedback,
         String modelAnswer,
-        boolean isCorrect
+        boolean isCorrect,
+        Integer score,
+        Integer elapsedSeconds
 ) {
 
     public EssaySolvedPayload toPayload() {
-        return new EssaySolvedPayload(questionId, questionText, userAnswer, feedback, modelAnswer, isCorrect);
+        return new EssaySolvedPayload(
+                questionId, questionText, userAnswer, feedback, modelAnswer, isCorrect, score, elapsedSeconds);
     }
 }

@@ -52,6 +52,12 @@ public class EssaySolved {
     @Column(nullable = false)
     private boolean isCorrect;
 
+    // AI 채점 점수(0~10). 클라이언트가 중계하지 않으면 null이며 "점수 신호 없음"을 뜻한다(0점이 아니다).
+    private Integer score;
+
+    // 클라이언트가 보고한 소요 시간(초). 미전송이거나 비정상 값이면 null이며 "미측정"을 뜻한다(0초가 아니다).
+    private Integer elapsedSeconds;
+
     @Column(nullable = false)
     private LocalDateTime solvedAt;
 
@@ -66,6 +72,8 @@ public class EssaySolved {
             String feedback,
             String modelAnswer,
             boolean isCorrect,
+            Integer score,
+            Integer elapsedSeconds,
             LocalDateTime solvedAt
     ) {
         this.solvedSessionId = solvedSessionId;
@@ -78,6 +86,8 @@ public class EssaySolved {
         this.feedback = feedback;
         this.modelAnswer = modelAnswer;
         this.isCorrect = isCorrect;
+        this.score = score;
+        this.elapsedSeconds = elapsedSeconds;
         this.solvedAt = solvedAt;
     }
 
@@ -92,6 +102,8 @@ public class EssaySolved {
             String feedback,
             String modelAnswer,
             boolean isCorrect,
+            Integer score,
+            Integer elapsedSeconds,
             LocalDateTime solvedAt
     ) {
         return new EssaySolved(
@@ -105,6 +117,8 @@ public class EssaySolved {
                 feedback,
                 modelAnswer,
                 isCorrect,
+                EssayScorePolicy.normalize(score),
+                ElapsedSecondsPolicy.normalize(elapsedSeconds),
                 solvedAt
         );
     }

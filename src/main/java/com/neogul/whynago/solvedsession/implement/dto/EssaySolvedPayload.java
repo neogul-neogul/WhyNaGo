@@ -6,6 +6,8 @@ public record EssaySolvedPayload(
         String userAnswer,
         String feedback,
         String modelAnswer,
-        boolean isCorrect
+        boolean isCorrect,
+        Integer score,
+        Integer elapsedSeconds
 ) {
 }

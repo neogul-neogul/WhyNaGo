@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 문항과 태그 사전을 잇는 조인 엔티티다. 태그 이름을 여기 두면 같은 문자열이 행마다 반복되고,
+// 사용자별 숙련도를 태그 단위로 붙일 대상(tag_id)도 생기지 않는다.
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -22,14 +24,14 @@ public class QuestionTag {
     private Long questionId;
 
     @Column(nullable = false)
-    private String name;
+    private Long tagId;
 
-    private QuestionTag(Long questionId, String name) {
+    private QuestionTag(Long questionId, Long tagId) {
         this.questionId = questionId;
-        this.name = name;
+        this.tagId = tagId;
     }
 
-    public static QuestionTag create(Long questionId, String name) {
-        return new QuestionTag(questionId, name);
+    public static QuestionTag create(Long questionId, Long tagId) {
+        return new QuestionTag(questionId, tagId);
     }
 }

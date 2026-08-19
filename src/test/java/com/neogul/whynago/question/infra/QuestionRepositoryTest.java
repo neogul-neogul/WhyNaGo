@@ -5,13 +5,16 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.TagFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
+import com.neogul.whynago.question.domain.Tag;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.infra.dto.CategoryQuestionCount;
+import com.neogul.whynago.question.infra.dto.QuestionTagName;
 import com.neogul.whynago.support.RepositoryTestSupport;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +34,9 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
     @Autowired
     private QuestionTagRepository questionTagRepository;
 
+    @Autowired
+    private TagRepository tagRepository;
+
     @Test
     @DisplayName("객관식 문제를 필터링해 조회한다.")
     void findQuestions() {
@@ -39,7 +45,8 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         questionRepository.save(QuestionFixture.essayRoot());
         // followup은 root 선택지의 꼬리질문으로도 참조되지만, 그 자체로 독립된 문항이라 조회 대상에서 제외되지 않는다.
         answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, followup.getId()));
-        questionTagRepository.save(QuestionTag.create(root.getId(), "NETWORK"));
+        Tag tag = tagRepository.save(TagFixture.of("TCP", Category.NETWORK));
+        questionTagRepository.save(QuestionTag.create(root.getId(), tag.getId()));
 
         Page<Question> result = questionRepository.findQuestions(
                 QuestionType.MULTIPLE_CHOICE,
@@ -50,9 +57,77 @@ class QuestionRepositoryTest extends RepositoryTestSupport {
         );
 
         assertThat(result.getContent()).extracting(Question::getId).containsExactly(followup.getId(), root.getId());
-        assertThat(questionTagRepository.findByQuestionIdIn(List.of(root.getId())))
-                .extracting(QuestionTag::getName)
-                .containsExactly("NETWORK");
+        // 태그 이름은 tag 테이블에 있으므로 조인 조회로 확인한다.
+        assertThat(questionTagRepository.findTagNames(List.of(root.getId())))
+                .extracting(QuestionTagName::getName)
+                .containsExactly("TCP");
+    }
+
+    @Test
+    @DisplayName("문제 목록에는 검수를 통과하지 않은 문항이 포함되지 않는다.")
+    void findQuestions_excludesUnreviewed() {
+        Question seeded = questionRepository.save(QuestionFixture.essayRoot());
+        questionRepository.save(QuestionFixture.generatedEssay());
+        questionRepository.save(QuestionFixture.rejectedGeneratedEssay());
+
+        Page<Question> result = questionRepository.findQuestions(null, null, null, null, PageRequest.of(0, 20));
+
+        assertThat(result.getContent()).extracting(Question::getId).containsExactly(seeded.getId());
+        // countQuery에 필터를 빠뜨리면 행은 맞고 총 개수만 틀린다.
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("승인된 생성 문항은 시드 문항과 함께 목록에 노출된다.")
+    void findQuestions_includesApprovedGenerated() {
+        Question seeded = questionRepository.save(QuestionFixture.essayRoot());
+        // 판별 기준이 source라면 승인해도 계속 빠진다. 노출 게이트는 reviewStatus다.
+        Question approved = questionRepository.save(QuestionFixture.approvedGeneratedEssay());
+
+        Page<Question> result = questionRepository.findQuestions(null, null, null, null, PageRequest.of(0, 20));
+
+        assertThat(result.getContent())
+                .extracting(Question::getId)
+                .containsExactly(approved.getId(), seeded.getId());
+        assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("단건 조회는 검수 전 문항도 반환한다.")
+    void findById_returnsPendingQuestion() {
+        Question pending = questionRepository.save(QuestionFixture.generatedEssay());
+
+        // 추천으로 받은 문항을 열 수 있어야 하므로 목록과 달리 단건은 막지 않는다.
+        assertThat(questionRepository.findById(pending.getId())).isPresent();
+    }
+
+    @Test
+    @DisplayName("카테고리별 문제 수에도 검수를 통과하지 않은 문항은 세지 않는다.")
+    void countGroupByCategory_excludesUnreviewed() {
+        questionRepository.save(QuestionFixture.essayRoot());
+        questionRepository.save(QuestionFixture.generatedEssay());
+        questionRepository.save(QuestionFixture.rejectedGeneratedEssay());
+
+        List<CategoryQuestionCount> counts = questionRepository.countGroupByCategory();
+
+        assertThat(counts)
+                .filteredOn(count -> count.getCategory() == Category.DB)
+                .singleElement()
+                .satisfies(count -> assertThat(count.getTotal()).isEqualTo(1));
+    }
+
+    @Test
+    @DisplayName("카테고리별 문제 수에는 승인된 생성 문항이 포함된다.")
+    void countGroupByCategory_includesApprovedGenerated() {
+        questionRepository.save(QuestionFixture.essayRoot());
+        questionRepository.save(QuestionFixture.approvedGeneratedEssay());
+
+        List<CategoryQuestionCount> counts = questionRepository.countGroupByCategory();
+
+        assertThat(counts)
+                .filteredOn(count -> count.getCategory() == Category.DB)
+                .singleElement()
+                .satisfies(count -> assertThat(count.getTotal()).isEqualTo(2));
     }
 
     @Test

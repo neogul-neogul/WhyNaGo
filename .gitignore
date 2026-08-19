@@ -45,3 +45,5 @@ deploy/app.jar
 deploy/certbot-conf/
 deploy/certbot-www/
 
+### macOS ###
+.DS_Store

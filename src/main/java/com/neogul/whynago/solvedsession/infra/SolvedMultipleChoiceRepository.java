@@ -2,6 +2,7 @@ package com.neogul.whynago.solvedsession.infra;
 
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
 import com.neogul.whynago.solvedsession.infra.dto.ChoiceSelectionCount;
+import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveAggregate;
 import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveCount;
 import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveSummary;
 import java.util.List;
@@ -15,6 +16,19 @@ public interface SolvedMultipleChoiceRepository extends JpaRepository<SolvedMult
 
     @Query("select distinct s.questionId from SolvedMultipleChoice s where s.userId = :userId")
     List<Long> findSolvedQuestionIds(@Param("userId") Long userId);
+
+    List<SolvedMultipleChoice> findByUserId(Long userId);
+
+    // 문항 통계 배치용 전역 집계다. 사용자 구분 없이 모든 풀이를 문항 단위로 모은다.
+    @Query("""
+            select s.questionId as questionId,
+                   count(s) as solvedCount,
+                   sum(case when s.isCorrect = true then 1L else 0L end) as correctCount,
+                   avg(s.elapsedSeconds) as avgElapsedSeconds
+            from SolvedMultipleChoice s
+            group by s.questionId
+            """)
+    List<QuestionSolveAggregate> aggregateByQuestion();
 
     // 같은 문항이 세션에 따라 본질문이기도 꼬리질문이기도 하므로 ItemType으로 나누지 않는다.
     // avg·count(elapsedSeconds)는 null을 세지 않으므로 소요 시간 수집 전에 쌓인 응답이 평균을 희석하지 않는다.

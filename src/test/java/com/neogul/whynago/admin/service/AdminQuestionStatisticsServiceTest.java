@@ -226,8 +226,8 @@ class AdminQuestionStatisticsServiceTest extends IntegrationTestSupport {
                 userChoice.getId(),
                 userChoice.getId(),
                 isCorrect,
-                LocalDateTime.now(),
-                elapsedSeconds
+                elapsedSeconds,
+                LocalDateTime.now()
         ));
     }
 }

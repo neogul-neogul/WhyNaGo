@@ -8,7 +8,6 @@ import type {
   AdminMemberAnomaly,
   AdminMemberSignupMethod,
   AdminMemberStatus,
-  AdminQuestionStatus,
   ProgressTier,
   QuestionCategory,
   QuestionDifficulty,
@@ -159,14 +158,6 @@ export const adminMembers: AdminMember[] = (
 
 // 문제의 공개 상태·수정일은 Question에 컬럼이 없어 API가 내려주지 않는다.
 // 화면은 유지하되 값만 문제 ID로 고정 배정해 채운다 (컬럼·수정 API 설계는 별도 계획).
-const MOCK_QUESTION_STATUSES: AdminQuestionStatus[] = [
-  "PUBLISHED",
-  "PUBLISHED",
-  "DRAFT",
-  "PUBLISHED",
-  "ARCHIVED",
-];
-
 const MOCK_QUESTION_CREATED_DATES = ["2025-11-08", "2025-10-02", "2026-01-15", "2025-12-01", "2026-03-19"];
 
 const MOCK_QUESTION_UPDATED_DATES = [
@@ -181,13 +172,11 @@ const MOCK_QUESTION_EDITORS = ["김도현", "이서연", "박지훈"];
 
 /** 백엔드에 없는 목록·상세의 상태·등록일·수정일·수정자 목업 (문제 ID가 같으면 항상 같은 값) */
 export function mockQuestionMeta(questionId: number): {
-  status: AdminQuestionStatus;
   createdAt: string;
   updatedAt: string;
   updatedBy: string;
 } {
   return {
-    status: MOCK_QUESTION_STATUSES[questionId % MOCK_QUESTION_STATUSES.length],
     createdAt: MOCK_QUESTION_CREATED_DATES[questionId % MOCK_QUESTION_CREATED_DATES.length],
     updatedAt: MOCK_QUESTION_UPDATED_DATES[questionId % MOCK_QUESTION_UPDATED_DATES.length],
     updatedBy: MOCK_QUESTION_EDITORS[questionId % MOCK_QUESTION_EDITORS.length],

@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+import com.neogul.whynago.common.domain.MasteryLevel;
 import com.neogul.whynago.interview.service.dto.AnswerInterviewResult;
 import com.neogul.whynago.interview.service.dto.CompleteInterviewResult;
 import com.neogul.whynago.interview.service.dto.InterviewFollowupResult;
@@ -72,7 +73,7 @@ class InterviewControllerTest extends ControllerTestSupport {
     @DisplayName("답변을 제출하면 채점 결과와 꼬리질문을 반환한다.")
     void answer() {
         given(interviewService.answer(eq(10L), eq(1L), any())).willReturn(new AnswerInterviewResult(
-                new InterviewGradingResult("피드백", "모범답안", true),
+                new InterviewGradingResult("피드백", "모범답안", 8, true, MasteryLevel.SOLID, "핵심 근거를 짚었다."),
                 new InterviewFollowupResult("꼬리질문1")
         ));
 
@@ -88,6 +89,7 @@ class InterviewControllerTest extends ControllerTestSupport {
                 .statusCode(200)
                 .body("grading.feedback", Matchers.equalTo("피드백"))
                 .body("grading.isCorrect", Matchers.equalTo(true))
+                .body("grading.score", Matchers.equalTo(8))
                 .body("nextFollowup.question", Matchers.equalTo("꼬리질문1"));
     }
 
@@ -95,7 +97,7 @@ class InterviewControllerTest extends ControllerTestSupport {
     @DisplayName("타이머 만료로 빈 답변이 와도 채점 요청을 받아들인다.")
     void answerWithBlankAnswer() {
         given(interviewService.answer(eq(10L), eq(1L), any())).willReturn(new AnswerInterviewResult(
-                new InterviewGradingResult("피드백", "모범답안", false),
+                new InterviewGradingResult("피드백", "모범답안", 4, false, MasteryLevel.SOLID, "핵심 근거를 짚었다."),
                 null
         ));
 

@@ -24,6 +24,8 @@ class EssaySolvedTest {
                 "핵심은 짚었으나 이상 현상 설명이 부족합니다.",
                 "READ UNCOMMITTED부터 SERIALIZABLE까지...",
                 true,
+                null,
+                null,
                 solvedAt
         );
 
@@ -52,6 +54,8 @@ class EssaySolvedTest {
                 "정확합니다.",
                 "이상 현상은 Dirty Read, Non-Repeatable Read, Phantom Read...",
                 false,
+                null,
+                null,
                 LocalDateTime.now()
         );
 

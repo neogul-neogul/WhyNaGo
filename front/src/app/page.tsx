@@ -6,11 +6,13 @@ import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import TodayBanner from "@/components/today/TodayBanner";
 import TodayMetrics from "@/components/today/TodayMetrics";
 import LearningMenu from "@/components/today/LearningMenu";
+import RecommendationEntry from "@/components/today/RecommendationEntry";
 import { fetchDailyCounts, todayDateKey } from "@/lib/records";
 import { fetchWrongNotes } from "@/lib/wrongNotes";
 import { fetchMyProfile } from "@/lib/user";
 import { syncStoredUser, useAuth } from "@/lib/auth";
 import { refreshStreak, useStreak } from "@/lib/streakStore";
+import { fetchWeakTags } from "@/lib/recommendations";
 import {
   guestPreviewGoal,
   guestPreviewStats,
@@ -42,6 +44,7 @@ export default function Home() {
   const loggedIn = useAuth();
   const streak = useStreak();
   const [fetched, setFetched] = useState<TodaySummary | null>(null);
+  const [weakTag, setWeakTag] = useState<string | null>(null);
 
   // 로그아웃하면 조회해둔 지표를 즉시 감춘다
   const summary = loggedIn && fetched !== null ? fetched : EMPTY_SUMMARY;
@@ -72,6 +75,24 @@ export default function Home() {
       cancelled = true;
     };
   }, [loggedIn]);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    let cancelled = false;
+    fetchWeakTags()
+      .then((result) => {
+        if (!cancelled) setWeakTag(result.tags[0]?.tag ?? null);
+      })
+      .catch(() => {
+        // 추천 카드 진입은 취약 태그 조회 실패와 무관하게 가능해야 한다.
+        if (!cancelled) setWeakTag(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loggedIn]);
+
+  const visibleWeakTag = loggedIn ? weakTag : null;
 
   const todayGoal: TodayGoal = {
     target: summary.dailyGoal,
@@ -107,6 +128,7 @@ export default function Home() {
             preview={!loggedIn}
           />
           <TodayMetrics metrics={todayMetrics} />
+          <RecommendationEntry weakTag={visibleWeakTag} />
           <LearningMenu items={learningMenu} />
         </div>
       </PageBody>

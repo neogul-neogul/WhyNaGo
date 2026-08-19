@@ -41,6 +41,29 @@ class EssaySolvedSessionControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    @DisplayName("score가 10을 넘으면 400을 반환한다.")
+    void createWithScoreOutOfRange() {
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "rootQuestion": {"questionId": 1, "questionText": "본질문", "userAnswer": "답변1", "feedback": "f1", "modelAnswer": "m1", "isCorrect": true, "score": 11},
+                          "followupQuestions": [
+                            {"questionId": null, "questionText": "꼬리질문1", "userAnswer": "답변2", "feedback": "f2", "modelAnswer": "m2", "isCorrect": false},
+                            {"questionId": null, "questionText": "꼬리질문2", "userAnswer": "답변3", "feedback": "f3", "modelAnswer": "m3", "isCorrect": true}
+                          ],
+                          "startedAt": "2026-06-24T09:20:00"
+                        }
+                        """)
+                .when()
+                .post("/api/solved-sessions/essay")
+                .then()
+                .statusCode(400)
+                .body("code", Matchers.equalTo("INVALID_INPUT"));
+    }
+
+    @Test
     @DisplayName("rootQuestion이 없으면 400을 반환한다.")
     void createWithoutRootQuestion() {
         RestAssuredMockMvc.given()

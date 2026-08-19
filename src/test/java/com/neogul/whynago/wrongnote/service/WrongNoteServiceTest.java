@@ -2,10 +2,12 @@ package com.neogul.whynago.wrongnote.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+
+import com.neogul.whynago.fixture.EssaySolvedFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
@@ -123,12 +125,16 @@ class WrongNoteServiceTest extends IntegrationTestSupport {
         Question essayRoot = questionRepository.save(QuestionFixture.essayRoot());
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(10L, QuestionType.ESSAY, 3, 2, LocalDateTime.now().minusMinutes(5), LocalDateTime.now()));
-        essaySolvedRepository.save(EssaySolved.create(
-                session.getId(), 10L, ItemType.MAIN, 1, essayRoot.getId(),
-                "격리 수준을 설명하라.", "답변1", "피드백1", "모범답안1", true, LocalDateTime.now()));
-        essaySolvedRepository.save(EssaySolved.create(
-                session.getId(), 10L, ItemType.FOLLOWUP, 2, null,
-                "팬텀 리드는?", "답변2", "피드백2", "모범답안2", false, LocalDateTime.now()));
+        essaySolvedRepository.save(EssaySolvedFixture.builder()
+                .solvedSessionId(session.getId()).userId(10L).type(ItemType.MAIN).sequence(1)
+                .questionId(essayRoot.getId()).questionText("격리 수준을 설명하라.")
+                .userAnswer("답변1").feedback("피드백1").modelAnswer("모범답안1").isCorrect(true)
+                .build());
+        essaySolvedRepository.save(EssaySolvedFixture.builder()
+                .solvedSessionId(session.getId()).userId(10L).type(ItemType.FOLLOWUP).sequence(2)
+                .questionId(null).questionText("팬텀 리드는?")
+                .userAnswer("답변2").feedback("피드백2").modelAnswer("모범답안2").isCorrect(false)
+                .build());
         WrongNote note = wrongNoteRepository.save(WrongNote.create(10L, session.getId()));
 
         WrongNoteDetailResult result = wrongNoteService.findDetail(10L, note.getId());
@@ -196,12 +202,16 @@ class WrongNoteServiceTest extends IntegrationTestSupport {
 
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(userId, QuestionType.MULTIPLE_CHOICE, 2, 1, LocalDateTime.now().minusMinutes(5), LocalDateTime.now()));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), userId, root.getId(), ItemType.MAIN, 1,
-                rootCorrect.getId(), rootCorrect.getId(), true, LocalDateTime.now()));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), userId, followup.getId(), ItemType.FOLLOWUP, 2,
-                followupWrong.getId(), followupCorrect.getId(), false, LocalDateTime.now()));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(userId).questionId(root.getId())
+                .type(ItemType.MAIN).sequence(1)
+                .userChoiceId(rootCorrect.getId()).answerChoiceId(rootCorrect.getId()).isCorrect(true)
+                .build());
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(userId).questionId(followup.getId())
+                .type(ItemType.FOLLOWUP).sequence(2)
+                .userChoiceId(followupWrong.getId()).answerChoiceId(followupCorrect.getId()).isCorrect(false)
+                .build());
 
         return session.getId();
     }

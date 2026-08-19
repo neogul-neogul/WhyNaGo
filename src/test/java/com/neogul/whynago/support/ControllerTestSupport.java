@@ -13,6 +13,8 @@ import com.neogul.whynago.auth.service.AuthService;
 import com.neogul.whynago.interview.presentation.InterviewController;
 import com.neogul.whynago.interview.service.InterviewService;
 import com.neogul.whynago.learningrecord.presentation.LearningRecordController;
+import com.neogul.whynago.mastery.presentation.MasteryController;
+import com.neogul.whynago.mastery.service.MasteryService;
 import com.neogul.whynago.learningrecord.service.LearningRecordService;
 import com.neogul.whynago.notification.presentation.NotificationSettingController;
 import com.neogul.whynago.notification.service.NotificationSettingService;
@@ -21,6 +23,8 @@ import com.neogul.whynago.problemset.service.ProblemSetService;
 import com.neogul.whynago.progress.presentation.ProgressController;
 import com.neogul.whynago.progress.service.ProgressService;
 import com.neogul.whynago.question.presentation.QuestionController;
+import com.neogul.whynago.recommendation.presentation.RecommendationController;
+import com.neogul.whynago.recommendation.service.RecommendationService;
 import com.neogul.whynago.question.service.EssayAnswerService;
 import com.neogul.whynago.question.service.QuestionService;
 import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionController;
@@ -52,6 +56,8 @@ import org.springframework.test.web.servlet.MockMvc;
         NotificationSettingController.class,
         ProblemSetController.class,
         ProgressController.class,
+        RecommendationController.class,
+        MasteryController.class,
         AdminQuestionStatisticsController.class,
         AdminQuestionController.class
 })
@@ -99,6 +105,12 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected ProgressService progressService;
+
+    @MockitoBean
+    protected RecommendationService recommendationService;
+
+    @MockitoBean
+    protected MasteryService masteryService;
 
     @MockitoBean
     protected AdminQuestionStatisticsService adminQuestionStatisticsService;

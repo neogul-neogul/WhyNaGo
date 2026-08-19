@@ -1,5 +1,6 @@
 package com.neogul.whynago.question.infra.ai;
 
+import com.neogul.whynago.common.ai.AiFailureClassifier;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.exception.ErrorCode;
 import com.neogul.whynago.question.domain.EssayGradingMode;
@@ -7,9 +8,7 @@ import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.ai.prompt.EssayPrompt;
 import java.time.Duration;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Supplier;
-import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ResponseEntity;
@@ -19,14 +18,9 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.retry.NonTransientAiException;
 
 @Slf4j
 public class GeminiEssayAiClient implements EssayAiClient {
-
-    private static final String QUOTA_STATUS = "RESOURCE_EXHAUSTED";
-    private static final Pattern QUOTA_STATUS_CODE = Pattern.compile("\\b429\\b");
-    private static final List<String> DAILY_QUOTA_HINTS = List.of("perday", "per day", "daily");
 
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
@@ -115,26 +109,13 @@ public class GeminiEssayAiClient implements EssayAiClient {
         }
     }
 
+    // 채점 쿼터 버킷의 에러코드로 옮긴다. 추천 문제 생성은 같은 분류를 쓰지만 다른 버킷으로 옮긴다.
     private ErrorCode errorCodeOf(RuntimeException e) {
-        String detail = e.getMessage();
-        if (!(e instanceof NonTransientAiException) || !isQuotaExceeded(detail)) {
-            return QuestionErrorCode.ESSAY_AI_UNAVAILABLE;
-        }
-        return isDailyQuota(detail)
-                ? QuestionErrorCode.ESSAY_AI_DAILY_QUOTA_EXCEEDED
-                : QuestionErrorCode.ESSAY_AI_QUOTA_EXCEEDED;
-    }
-
-    private boolean isQuotaExceeded(String detail) {
-        if (detail == null) {
-            return false;
-        }
-        return detail.contains(QUOTA_STATUS) || QUOTA_STATUS_CODE.matcher(detail).find();
-    }
-
-    private boolean isDailyQuota(String detail) {
-        String normalized = detail.toLowerCase(Locale.ROOT);
-        return DAILY_QUOTA_HINTS.stream().anyMatch(normalized::contains);
+        return switch (AiFailureClassifier.classify(e)) {
+            case DAILY_QUOTA_EXCEEDED -> QuestionErrorCode.ESSAY_AI_DAILY_QUOTA_EXCEEDED;
+            case QUOTA_EXCEEDED -> QuestionErrorCode.ESSAY_AI_QUOTA_EXCEEDED;
+            case UNAVAILABLE -> QuestionErrorCode.ESSAY_AI_UNAVAILABLE;
+        };
     }
 
     private long elapsedMillis(long startedAt) {

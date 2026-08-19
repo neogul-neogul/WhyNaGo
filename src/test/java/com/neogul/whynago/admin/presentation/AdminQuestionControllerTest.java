@@ -11,6 +11,8 @@ import com.neogul.whynago.admin.service.dto.AdminQuestionsResult;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
+import com.neogul.whynago.question.domain.QuestionReviewStatus;
+import com.neogul.whynago.question.domain.QuestionSource;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.support.ControllerTestSupport;
@@ -31,11 +33,13 @@ class AdminQuestionControllerTest extends ControllerTestSupport {
                 List.of(
                         new AdminQuestionResult(
                                 1L, "REPEATABLE READ의 이상 현상", Category.DB, Difficulty.MEDIUM,
-                                QuestionType.MULTIPLE_CHOICE, 1842L, 63.8
+                                QuestionType.MULTIPLE_CHOICE, QuestionReviewStatus.APPROVED, QuestionSource.SEEDED,
+                                1842L, 63.8
                         ),
                         new AdminQuestionResult(
                                 2L, "SYN flooding이 성립하는 원인", Category.NETWORK, Difficulty.HIGH,
-                                QuestionType.ESSAY, 0L, null
+                                QuestionType.ESSAY, QuestionReviewStatus.PENDING, QuestionSource.GENERATED,
+                                0L, null
                         )
                 ),
                 0,
@@ -51,8 +55,12 @@ class AdminQuestionControllerTest extends ControllerTestSupport {
                 .statusCode(200)
                 .body("content", Matchers.hasSize(2))
                 .body("content[0].id", Matchers.equalTo(1))
+                .body("content[0].reviewStatus", Matchers.equalTo("APPROVED"))
+                .body("content[0].source", Matchers.equalTo("SEEDED"))
                 .body("content[0].solveCount", Matchers.equalTo(1842))
                 .body("content[0].correctRate", Matchers.equalTo(63.8f))
+                .body("content[1].reviewStatus", Matchers.equalTo("PENDING"))
+                .body("content[1].source", Matchers.equalTo("GENERATED"))
                 .body("content[1].solveCount", Matchers.equalTo(0))
                 .body("content[1].correctRate", Matchers.nullValue())
                 .body("page", Matchers.equalTo(0))

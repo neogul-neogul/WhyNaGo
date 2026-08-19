@@ -17,6 +17,7 @@ import static org.mockito.Mockito.verify;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.exception.ErrorCode;
 import com.neogul.whynago.question.domain.EssayGradingMode;
@@ -93,7 +94,7 @@ class GeminiEssayAiClientTest {
     @DisplayName("채점에 성공하면 응답 본문을 반환한다.")
     void grade() {
         // given
-        GradeAndFollowupResult expected = new GradeAndFollowupResult("피드백", "모범답안", 7, "꼬리질문");
+        GradeAndFollowupResult expected = GradeAndFollowupResultFixture.of("피드백", "모범답안", 7, "꼬리질문");
         givenAiCallReturns(expected, chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
@@ -108,7 +109,7 @@ class GeminiEssayAiClientTest {
     void grade_logsTokenUsage() {
         // given
         givenAiCallReturns(
-                new GradeAndFollowupResult("피드백", "모범답안", 7, null),
+                GradeAndFollowupResultFixture.of("피드백", "모범답안", 7, null),
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
@@ -131,7 +132,7 @@ class GeminiEssayAiClientTest {
     void grade_delegatesPromptToEssayPrompt() {
         // given
         givenAiCallReturns(
-                new GradeAndFollowupResult("피드백", "모범답안", 7, "꼬리질문"),
+                GradeAndFollowupResultFixture.of("피드백", "모범답안", 7, "꼬리질문"),
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
@@ -149,7 +150,7 @@ class GeminiEssayAiClientTest {
     void grade_delegatesNoFollowupTurn() {
         // given
         givenAiCallReturns(
-                new GradeAndFollowupResult("피드백", "모범답안", 7, null),
+                GradeAndFollowupResultFixture.of("피드백", "모범답안", 7, null),
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when

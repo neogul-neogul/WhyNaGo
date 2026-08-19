@@ -2,9 +2,10 @@ package com.neogul.whynago.progress.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
+
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.SolvedMultipleChoiceFixture;
 import com.neogul.whynago.interview.service.InterviewService;
 import com.neogul.whynago.interview.service.dto.CompleteInterviewCommand;
 import com.neogul.whynago.interview.service.dto.InterviewAnswerSnapshotCommand;
@@ -99,8 +100,10 @@ class ProgressServiceTest extends IntegrationTestSupport {
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(USER_ID, QuestionType.MULTIPLE_CHOICE, 1, 1, SOLVED_AT.minusMinutes(5), SOLVED_AT));
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, null));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), USER_ID, root.getId(), ItemType.MAIN, 1, choice.getId(), choice.getId(), true, SOLVED_AT));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(USER_ID).questionId(root.getId())
+                .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(SOLVED_AT)
+                .build());
 
         ProgressDetailResult result = progressService.getDetail(USER_ID);
 
@@ -141,8 +144,10 @@ class ProgressServiceTest extends IntegrationTestSupport {
         SolvedSession session = solvedSessionRepository.save(
                 SolvedSession.completed(USER_ID, QuestionType.MULTIPLE_CHOICE, 1, 1, solvedAt.minusMinutes(5), solvedAt));
         AnswerChoice choice = answerChoiceRepository.save(AnswerChoiceFixture.correct(root.getId(), 1, null));
-        solvedMultipleChoiceRepository.save(SolvedMultipleChoice.create(
-                session.getId(), USER_ID, root.getId(), ItemType.MAIN, 1, choice.getId(), choice.getId(), true, solvedAt));
+        solvedMultipleChoiceRepository.save(SolvedMultipleChoiceFixture.builder()
+                .solvedSessionId(session.getId()).userId(USER_ID).questionId(root.getId())
+                .userChoiceId(choice.getId()).answerChoiceId(choice.getId()).solvedAt(solvedAt)
+                .build());
 
         questionRepository.save(QuestionFixture.essayRoot());
         Long interviewId = interviewService.start(USER_ID).interviewId();
@@ -167,6 +172,6 @@ class ProgressServiceTest extends IntegrationTestSupport {
     }
 
     private InterviewAnswerSnapshotCommand snapshot(String questionText, boolean isCorrect) {
-        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect);
+        return new InterviewAnswerSnapshotCommand(questionText, "답변", "피드백", "모범답안", isCorrect, null, null);
     }
 }

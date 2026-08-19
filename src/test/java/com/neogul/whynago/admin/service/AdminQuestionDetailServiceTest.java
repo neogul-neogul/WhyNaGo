@@ -9,13 +9,17 @@ import com.neogul.whynago.admin.service.dto.AdminQuestionDetailResult;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
+import com.neogul.whynago.fixture.TagFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
+import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionTag;
+import com.neogul.whynago.question.domain.Tag;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.QuestionTagRepository;
+import com.neogul.whynago.question.infra.TagRepository;
 import com.neogul.whynago.solvedsession.domain.EssaySolved;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.infra.EssaySolvedRepository;
@@ -40,6 +44,9 @@ class AdminQuestionDetailServiceTest extends IntegrationTestSupport {
     private QuestionTagRepository questionTagRepository;
 
     @Autowired
+    private TagRepository tagRepository;
+
+    @Autowired
     private EssaySolvedRepository essaySolvedRepository;
 
     @Test
@@ -49,14 +56,15 @@ class AdminQuestionDetailServiceTest extends IntegrationTestSupport {
         Question question = questionRepository.save(QuestionFixture.rootMultipleChoice());
         AnswerChoice correct = answerChoiceRepository.save(AnswerChoiceFixture.correct(question.getId(), 1, null));
         AnswerChoice wrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(question.getId(), 2));
-        questionTagRepository.save(QuestionTag.create(question.getId(), "NETWORK"));
+        Tag tag = tagRepository.save(TagFixture.of("TCP/IP", Category.NETWORK));
+        questionTagRepository.save(QuestionTag.create(question.getId(), tag.getId()));
 
         // when
         AdminQuestionDetailResult result = adminQuestionDetailService.readQuestion(question.getId());
 
         // then
         assertThat(result.id()).isEqualTo(question.getId());
-        assertThat(result.tags()).containsExactly("NETWORK");
+        assertThat(result.tags()).containsExactly("TCP/IP");
         assertThat(result.choices())
                 .extracting(AdminChoiceResult::id, AdminChoiceResult::correct)
                 .containsExactlyInAnyOrder(
@@ -134,6 +142,8 @@ class AdminQuestionDetailServiceTest extends IntegrationTestSupport {
                 "피드백",
                 "모범답안",
                 isCorrect,
+                null,
+                null,
                 LocalDateTime.now()
         ));
     }

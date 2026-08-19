@@ -91,6 +91,28 @@ class DailyQuestionResolverTest extends IntegrationTestSupport {
         assertThat(resolved.getType()).isEqualTo(QuestionType.ESSAY);
     }
 
+    @Test
+    @DisplayName("검수를 통과하지 않은 문항은 오늘의 면접 질문으로 뽑히지 않는다.")
+    void resolveSkipsUnreviewedQuestion() {
+        questionRepository.save(QuestionFixture.generatedEssay());
+        questionRepository.save(QuestionFixture.rejectedGeneratedEssay());
+        Question seeded = saveEssayQuestions(1).get(0);
+
+        Question resolved = dailyQuestionResolver.resolve(TODAY);
+
+        assertThat(resolved.getId()).isEqualTo(seeded.getId());
+    }
+
+    @Test
+    @DisplayName("승인된 생성 문항은 오늘의 면접 질문으로 뽑힐 수 있다.")
+    void resolvePicksApprovedGeneratedQuestion() {
+        Question approved = questionRepository.save(QuestionFixture.approvedGeneratedEssay());
+
+        Question resolved = dailyQuestionResolver.resolve(TODAY);
+
+        assertThat(resolved.getId()).isEqualTo(approved.getId());
+    }
+
     private List<Question> saveEssayQuestions(int count) {
         return IntStream.range(0, count)
                 .mapToObj(i -> questionRepository.save(QuestionFixture.essayRoot()))
