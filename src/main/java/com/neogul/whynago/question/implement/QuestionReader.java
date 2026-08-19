@@ -62,6 +62,25 @@ public class QuestionReader {
         return new QuestionPage(questions.getContent(), questions.getTotalElements());
     }
 
+    // 관리자 화면 전용이다. 검수 대기 문항까지 보여주기 위해 노출 게이트를 통과시킨다.
+    public QuestionPage readQuestionPageForAdmin(
+            QuestionType type,
+            Difficulty difficulty,
+            Category category,
+            String keyword,
+            int page,
+            int size
+    ) {
+        Page<Question> questions = questionRepository.findQuestionsForAdmin(
+                type,
+                difficulty,
+                category,
+                normalize(keyword),
+                PageRequest.of(page, size)
+        );
+        return new QuestionPage(questions.getContent(), questions.getTotalElements());
+    }
+
     public Question readEssayQuestion(Long questionId) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));

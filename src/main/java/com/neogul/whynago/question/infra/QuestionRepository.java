@@ -50,6 +50,37 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
             Pageable pageable
     );
 
+    // 관리자 문제 관리 화면용이다. 위 findQuestions와 조건은 같지만 review_status를 보지 않는다 —
+    // 검수 대기(PENDING) 문항을 봐야 하는 유일한 화면이라 노출 게이트를 통과시킨다.
+    // 같은 쿼리에 파라미터를 다는 대신 메서드를 나눈 이유는, 필터를 열어두면 사용자 화면 호출자가
+    // 값을 빠뜨렸을 때 검수 전 문항이 조용히 새어 나가기 때문이다.
+    @Query(value = """
+            select q
+            from Question q
+            where (:type is null or q.type = :type)
+              and (:difficulty is null or q.difficulty = :difficulty)
+              and (:category is null or q.category = :category)
+              and (:keyword is null or lower(q.title) like lower(concat('%', :keyword, '%'))
+                   or lower(q.content) like lower(concat('%', :keyword, '%')))
+            order by q.id desc
+            """,
+            countQuery = """
+            select count(q)
+            from Question q
+            where (:type is null or q.type = :type)
+              and (:difficulty is null or q.difficulty = :difficulty)
+              and (:category is null or q.category = :category)
+              and (:keyword is null or lower(q.title) like lower(concat('%', :keyword, '%'))
+                   or lower(q.content) like lower(concat('%', :keyword, '%')))
+            """)
+    Page<Question> findQuestionsForAdmin(
+            @Param("type") QuestionType type,
+            @Param("difficulty") Difficulty difficulty,
+            @Param("category") Category category,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
     // 진척도 화면의 카테고리별 분모다. 검수 전 문항이 섞이면 아무것도 하지 않았는데 분모가
     // 늘어나므로 목록과 같은 기준으로 APPROVED만 센다. 승인된 생성 문항은 분모에 포함된다.
     @Query("""

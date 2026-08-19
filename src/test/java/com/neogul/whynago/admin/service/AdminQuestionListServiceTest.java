@@ -7,6 +7,8 @@ import com.neogul.whynago.admin.service.dto.AdminQuestionsResult;
 import com.neogul.whynago.fixture.AnswerChoiceFixture;
 import com.neogul.whynago.fixture.QuestionFixture;
 import com.neogul.whynago.question.domain.AnswerChoice;
+import com.neogul.whynago.question.domain.Category;
+import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
@@ -19,6 +21,7 @@ import com.neogul.whynago.solvedsession.infra.EssaySolvedRepository;
 import com.neogul.whynago.solvedsession.infra.SolvedMultipleChoiceRepository;
 import com.neogul.whynago.support.IntegrationTestSupport;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,6 +121,29 @@ class AdminQuestionListServiceTest extends IntegrationTestSupport {
                 .filter(question -> question.id().equals(questionId))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    @Test
+    @DisplayName("검수 전 생성 문항도 관리자 목록에는 노출한다.")
+    void readQuestions_includesPendingQuestion() {
+        // given
+        // 문제은행 목록(GET /api/questions)은 APPROVED만 보여주지만, 검수 화면은 그 대기열을 봐야 한다.
+        Question pending = questionRepository.save(Question.generated(
+                "검수 대기 문항",
+                "아직 승인되지 않은 생성 문항이다.",
+                Difficulty.MEDIUM,
+                Category.DB,
+                "모범답안",
+                List.of("기준1", "기준2")
+        ));
+
+        // when
+        AdminQuestionsResult result = adminQuestionListService.readQuestions(searchCommand());
+
+        // then
+        assertThat(result.questions())
+                .extracting(AdminQuestionResult::id)
+                .contains(pending.getId());
     }
 
     private QuestionSearchCommand searchCommand() {
