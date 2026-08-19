@@ -1,8 +1,14 @@
 import { apiFetch } from "@/lib/api";
 import { DIFFICULTY_LABELS, type QuestionFilters, type QuestionPaging } from "@/lib/questions";
 import type {
+  AdminDashboardAlert,
+  AdminKpi,
   AdminQuestionDetailResponse,
   AdminQuestionResponse,
+  DashboardAlertCode,
+  DashboardAlertResponse,
+  DashboardResponse,
+  MetricComparisonResponse,
   MultipleChoiceStatisticsResponse,
   PageResponse,
   QuestionCategory,
@@ -78,4 +84,117 @@ export function formatElapsedSeconds(seconds: number | null): string {
   const rest = seconds % 60;
   if (minutes === 0) return `${rest}초`;
   return `${minutes}분 ${rest}초`;
+}
+
+// ===== 대시보드 =====
+
+/** 관리자 대시보드 조회 — KPI와 운영 알림을 한 번에 받는다 */
+export function fetchAdminDashboard(): Promise<DashboardResponse> {
+  return apiFetch<DashboardResponse>("/api/admin/dashboard");
+}
+
+const KPI_LABELS = {
+  totalMember: "전체 회원 수",
+  activeMember: "최근 7일 활동 회원 수",
+  cumulativeSolve: "누적 풀이 수",
+  interview: "오늘 면접 참여 / 완료",
+  signUp: "오늘 가입자 수",
+  solve: "오늘 풀이 수",
+} as const;
+
+/** 조회 전에도 카드 레이아웃을 유지하기 위한 자리 표시 */
+export const DASHBOARD_KPI_PLACEHOLDERS: AdminKpi[] = Object.values(KPI_LABELS).map((label) => ({
+  label,
+  value: "—",
+}));
+
+/**
+ * 전일·전주 대비 증감 표기.
+ * 서버는 { current, previous } 두 숫자만 주므로 화살표·퍼센트 문자열은 여기서 만든다.
+ * previousText를 주면 괄호 안 값을 대체한다 (예: 면접 카드의 "435 / 340").
+ */
+function formatDelta(
+  comparison: MetricComparisonResponse,
+  previousLabel: "전일" | "전주",
+  previousText?: string,
+): Pick<AdminKpi, "delta" | "increased"> {
+  const { current, previous } = comparison;
+  const previousPart = `(${previousLabel} ${previousText ?? previous.toLocaleString()})`;
+
+  // 이전 값이 0이면 증감률을 낼 수 없으므로 비교 대상만 보여준다
+  if (previous === 0) {
+    return { delta: previousPart, increased: current > 0 };
+  }
+
+  const rate = ((current - previous) / previous) * 100;
+  const arrow = rate > 0 ? "▲ " : rate < 0 ? "▼ " : "";
+  return { delta: `${arrow}${Math.abs(rate).toFixed(1)}% ${previousPart}`, increased: rate >= 0 };
+}
+
+/** 대시보드 응답 → KPI 카드 6장 */
+export function toDashboardKpis(dashboard: DashboardResponse): AdminKpi[] {
+  const { started, completed } = dashboard.todayInterview;
+  const { total, multipleChoiceCount, essayCount } = dashboard.cumulativeSolveCount;
+
+  return [
+    {
+      label: KPI_LABELS.totalMember,
+      value: dashboard.totalMemberCount.toLocaleString(),
+      unit: "명",
+    },
+    {
+      label: KPI_LABELS.activeMember,
+      value: dashboard.activeMember7Days.current.toLocaleString(),
+      unit: "명",
+      ...formatDelta(dashboard.activeMember7Days, "전주"),
+    },
+    {
+      label: KPI_LABELS.cumulativeSolve,
+      value: total.toLocaleString(),
+      unit: "건",
+      breakdown: `객관식 ${multipleChoiceCount.toLocaleString()} · 서술형 ${essayCount.toLocaleString()}`,
+    },
+    {
+      label: KPI_LABELS.interview,
+      value: `${started.current.toLocaleString()} / ${completed.current.toLocaleString()}`,
+      ...formatDelta(
+        started,
+        "전일",
+        `${started.previous.toLocaleString()} / ${completed.previous.toLocaleString()}`,
+      ),
+    },
+    {
+      label: KPI_LABELS.signUp,
+      value: dashboard.todaySignUpCount.current.toLocaleString(),
+      unit: "명",
+      ...formatDelta(dashboard.todaySignUpCount, "전일"),
+    },
+    {
+      label: KPI_LABELS.solve,
+      value: dashboard.todaySolveCount.current.toLocaleString(),
+      unit: "건",
+      ...formatDelta(dashboard.todaySolveCount, "전일"),
+    },
+  ];
+}
+
+/**
+ * 알림 종류별 표시 문구와 CTA. 서버는 코드와 판정에 쓴 값만 주고, 라우트 지식은 프런트가 갖는다.
+ * 미고정은 첫 응시자가 면접을 시작하면 해소되는 상태라 경고가 아닌 안내 문구로 쓴다.
+ */
+const DASHBOARD_ALERT_PRESETS: Record<DashboardAlertCode, AdminDashboardAlert> = {
+  DAILY_INTERVIEW_NOT_PINNED: {
+    title: "1일1면접 미고정",
+    detail: "오늘 면접 문항이 아직 고정되지 않았습니다 (첫 응시자가 면접을 시작하면 고정됩니다)",
+    ctaLabel: "1일1면접 이력으로 이동",
+    ctaHref: "/admin/interviews",
+  },
+};
+
+/** 대시보드 응답의 알림 → 알림 카드. 서버가 새 종류를 추가해도 화면이 깨지지 않게 모르는 코드는 건너뛴다 */
+export function toDashboardAlerts(alerts: DashboardAlertResponse[]): AdminDashboardAlert[] {
+  return alerts.flatMap((alert) => {
+    const preset = DASHBOARD_ALERT_PRESETS[alert.type];
+    return preset ? [preset] : [];
+  });
 }

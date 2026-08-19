@@ -1,5 +1,4 @@
 import type {
-  AdminDashboardAlert,
   AdminEmailBatch,
   AdminEmailRecipient,
   AdminInterviewRecord,
@@ -25,68 +24,10 @@ export const ADMIN_TIERS: ProgressTier[] = [
   "BRONZE",
 ];
 
-export const adminKpis: AdminKpi[] = [
-  { label: "전체 회원 수", value: "1,204", unit: "명" },
-  {
-    label: "최근 7일 활동 회원 수",
-    value: "312",
-    unit: "명",
-    delta: "▲ 6.1% (전주 294)",
-    increased: true,
-  },
-  {
-    label: "누적 풀이 수",
-    value: "48,920",
-    unit: "건",
-    breakdown: "객관식 34,180 · 서술형 14,740",
-  },
-  {
-    label: "오늘 면접 참여 / 완료",
-    value: "412 / 323",
-    delta: "▼ 5.3% (전일 435 / 340)",
-    increased: false,
-  },
-  { label: "오늘 가입자 수", value: "37", unit: "명", delta: "▲ 27.6% (전일 29)", increased: true },
-  { label: "오늘 풀이 수", value: "1,284", unit: "건", delta: "▲ 12.4% (전일 1,142)", increased: true },
-  {
-    label: "오늘 면접 참여자 수",
-    value: "412",
-    unit: "명",
-    delta: "▼ 5.3% (전일 435)",
-    increased: false,
-  },
-];
+// KPI·운영 알림은 GET /api/admin/dashboard로 연동됐다 (조립은 lib/admin.ts).
+// 메일 배치 알림은 배치 실행 이력이, 1일1면접 고정 실패 알림은 실패 기록이 없어 아직 서버가 판정하지 못한다.
 
-/** 대시보드 · 운영 알림 */
-export const adminDashboardAlerts: AdminDashboardAlert[] = [
-  {
-    title: "메일 배치 미실행",
-    detail: "오늘 21:00 메일 배치가 실행되지 않았습니다",
-    ctaLabel: "메일 관리로 이동",
-    ctaHref: "/admin/emails",
-  },
-  {
-    title: "메일 배치 실패",
-    detail:
-      "실행 21:00 · 대상자 2,893건 · 성공 2,881 / 실패 12 · Invalid address 4, Mailbox full 3, Network error 5",
-    ctaLabel: "메일 관리로 이동",
-    ctaHref: "/admin/emails",
-  },
-  {
-    title: "1일1면접 미고정",
-    detail: "오늘 면접 문항이 고정되지 않았습니다",
-    ctaLabel: "1일1면접 이력으로 이동",
-    ctaHref: "/admin/interviews",
-  },
-  {
-    title: "1일1면접 고정 실패",
-    detail: "조건을 만족하는 후보 문항을 찾지 못했습니다 (NETWORK · MEDIUM)",
-    ctaLabel: "1일1면접 이력으로 이동",
-    ctaHref: "/admin/interviews",
-  },
-];
-
-/** 대시보드 · AI 사용량 */
+/** 대시보드 · AI 사용량 — 호출 로깅이 없어 서버가 내려주지 않는다 */
 export const adminAiUsage: AdminKpi[] = [
   { label: "오늘 호출 수", value: "1,842", unit: "회" },
   { label: "최근 7일 호출 수", value: "11,306", unit: "회" },
