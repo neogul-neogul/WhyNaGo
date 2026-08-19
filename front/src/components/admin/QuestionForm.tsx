@@ -3,11 +3,11 @@
 import { useState } from "react";
 import type {
   AdminQuestionForm,
-  AdminQuestionTypeLabel,
   QuestionCategory,
   QuestionDifficulty,
+  QuestionTypeCode,
 } from "@/types";
-import { ADMIN_CATEGORIES, ADMIN_DIFFICULTIES } from "@/mocks/admin";
+import { ADMIN_CATEGORIES, ADMIN_DIFFICULTIES } from "@/lib/admin";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -26,7 +26,7 @@ export default function QuestionForm({
   initial,
   onCancel,
 }: {
-  type: AdminQuestionTypeLabel;
+  type: QuestionTypeCode;
   initial: AdminQuestionForm;
   onCancel: () => void;
 }) {
@@ -117,7 +117,7 @@ export default function QuestionForm({
           />
         </Field>
 
-        {type === "객관식" && (
+        {type === "MULTIPLE_CHOICE" && (
           <Field label="해설">
             <textarea
               value={form.explanation ?? ""}
@@ -128,7 +128,7 @@ export default function QuestionForm({
         )}
       </Card>
 
-      {type === "객관식" ? (
+      {type === "MULTIPLE_CHOICE" ? (
         <Card className="flex flex-col gap-3.5 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[13px] font-semibold text-muted">

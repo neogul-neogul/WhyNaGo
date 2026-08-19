@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { AdminInterviewRecord } from "@/types";
-import { ADMIN_CATEGORIES, adminInterviewAlerts, adminInterviews } from "@/mocks/admin";
+import { ADMIN_CATEGORIES } from "@/lib/admin";
+import { adminInterviewAlerts, adminInterviews } from "@/mocks/admin";
 import Card from "@/components/ui/Card";
 import Chip from "@/components/ui/Chip";
 import Pagination from "@/components/ui/Pagination";

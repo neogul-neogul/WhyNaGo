@@ -1,5 +1,4 @@
 import type {
-  AdminChoiceDistribution,
   AdminDashboardAlert,
   AdminEmailBatch,
   AdminEmailRecipient,
@@ -9,10 +8,6 @@ import type {
   AdminMemberAnomaly,
   AdminMemberSignupMethod,
   AdminMemberStatus,
-  AdminQuestion,
-  AdminQuestionDetail,
-  AdminQuestionForm,
-  AdminQuestionSession,
   AdminQuestionStatus,
   ProgressTier,
   QuestionCategory,
@@ -20,19 +15,7 @@ import type {
 } from "@/types";
 
 // 관리자 화면 더미 데이터. 어드민 백엔드 API가 없어 화면 확인용으로만 쓴다.
-
-/** 어드민 화면에서 그대로 노출하는 카테고리 코드 목록 */
-export const ADMIN_CATEGORIES: QuestionCategory[] = [
-  "NETWORK",
-  "DB",
-  "OS",
-  "ALGORITHM",
-  "DATA_STRUCTURE",
-  "LANGUAGE",
-  "DESIGN_PATTERN",
-];
-
-export const ADMIN_DIFFICULTIES: QuestionDifficulty[] = ["HIGH", "MEDIUM", "LOW"];
+// 카테고리·난이도 목록은 더미가 아니라 실제 도메인 enum이라 lib/admin.ts에 둔다.
 
 export const ADMIN_TIERS: ProgressTier[] = [
   "DIAMOND",
@@ -174,46 +157,42 @@ export const adminMembers: AdminMember[] = (
   status: m[13],
 }));
 
-type QuestionSeed = [string, QuestionCategory, QuestionDifficulty, "객관식" | "서술형", string, number, string, string, AdminQuestionStatus];
+// 문제의 공개 상태·수정일은 Question에 컬럼이 없어 API가 내려주지 않는다.
+// 화면은 유지하되 값만 문제 ID로 고정 배정해 채운다 (컬럼·수정 API 설계는 별도 계획).
+const MOCK_QUESTION_STATUSES: AdminQuestionStatus[] = [
+  "PUBLISHED",
+  "PUBLISHED",
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
+];
 
-export const adminQuestions: AdminQuestion[] = (
-  [
-    ["Q1042", "NETWORK", "HIGH", "서술형", "TCP 3-way handshake 과정에서 SYN flooding이 발생하는 원리와 방어 기법을 서술하세요.", 312, "41.2%", "08-12", "PUBLISHED"],
-    ["Q1041", "DB", "MEDIUM", "객관식", "다음 중 트랜잭션의 격리 수준 REPEATABLE READ에서 발생할 수 있는 이상 현상은?", 588, "63.8%", "08-12", "PUBLISHED"],
-    ["Q1038", "ALGORITHM", "LOW", "객관식", "병합 정렬의 시간 복잡도와 공간 복잡도를 올바르게 짝지은 것은?", 1204, "82.5%", "08-11", "PUBLISHED"],
-    ["Q1033", "OS", "MEDIUM", "서술형", "컨텍스트 스위칭이 발생하는 시점과 그 비용을 줄이기 위한 방법을 서술하세요.", 476, "55.1%", "08-10", "DRAFT"],
-    ["Q1029", "DATA_STRUCTURE", "LOW", "객관식", "해시 테이블에서 체이닝과 개방 주소법의 차이로 옳지 않은 것은?", 942, "7.4%", "08-09", "PUBLISHED"],
-    ["Q1021", "DESIGN_PATTERN", "HIGH", "서술형", "전략 패턴과 상태 패턴의 구조적 차이를 실제 예시와 함께 서술하세요.", 205, "38.9%", "08-07", "ARCHIVED"],
-    ["Q1014", "LANGUAGE", "MEDIUM", "객관식", "자바의 가비지 컬렉션 대상이 되는 객체 판별 기준으로 옳은 것은?", 803, "71.6%", "08-05", "PUBLISHED"],
-    ["Q1009", "NETWORK", "LOW", "객관식", "HTTP와 HTTPS의 차이에 대한 설명으로 옳지 않은 것은?", 1562, "88.3%", "08-02", "PUBLISHED"],
-    ["Q1005", "OS", "MEDIUM", "객관식", "페이지 교체 알고리즘 중 벨라디 예외가 발생하는 것은?", 1118, "74.2%", "07-31", "PUBLISHED"],
-    ["Q1001", "ALGORITHM", "HIGH", "서술형", "다이나믹 프로그래밍과 그리디의 적용 조건 차이를 서술하세요.", 288, "42.7%", "07-30", "DRAFT"],
-    ["Q0994", "NETWORK", "MEDIUM", "객관식", "TCP 흐름 제어와 혼잡 제어의 차이로 옳은 것은?", 1033, "68.9%", "07-28", "PUBLISHED"],
-    ["Q0987", "DB", "HIGH", "서술형", "인덱스가 있는 컬럼에 함수를 적용하면 인덱스를 타지 못하는 이유를 서술하세요.", 341, "39.5%", "07-27", "PUBLISHED"],
-    ["Q0981", "DATA_STRUCTURE", "MEDIUM", "객관식", "이진 탐색 트리와 힙의 구조적 차이로 옳은 것은?", 874, "66.1%", "07-25", "PUBLISHED"],
-    ["Q0975", "DESIGN_PATTERN", "MEDIUM", "객관식", "싱글톤 패턴을 멀티스레드 환경에서 안전하게 구현하는 방법은?", 512, "57.3%", "07-24", "PUBLISHED"],
-    ["Q0968", "LANGUAGE", "LOW", "객관식", "자바의 String과 StringBuilder 차이로 옳지 않은 것은?", 1340, "84.6%", "07-22", "ARCHIVED"],
-    ["Q0961", "OS", "HIGH", "서술형", "프로세스와 스레드의 차이를 메모리 구조 관점에서 설명하세요.", 397, "45.8%", "07-21", "PUBLISHED"],
-    ["Q0955", "ALGORITHM", "MEDIUM", "객관식", "퀵 정렬의 최악 시간 복잡도가 발생하는 조건은?", 968, "71.4%", "07-19", "PUBLISHED"],
-    ["Q0949", "NETWORK", "LOW", "객관식", "OSI 7계층에서 라우터가 동작하는 계층은?", 1712, "90.2%", "07-18", "PUBLISHED"],
-    ["Q0942", "DB", "MEDIUM", "객관식", "정규화 과정에서 제3정규형의 조건으로 옳은 것은?", 786, "62.5%", "07-16", "PUBLISHED"],
-    ["Q0936", "DATA_STRUCTURE", "HIGH", "서술형", "해시 충돌 처리 방식의 트레이드오프를 서술하세요.", 254, "37.1%", "07-15", "DRAFT"],
-    ["Q0930", "LANGUAGE", "MEDIUM", "객관식", "파이썬의 GIL이 성능에 영향을 주는 상황으로 옳은 것은?", 690, "59.8%", "07-13", "PUBLISHED"],
-    ["Q0923", "OS", "LOW", "객관식", "교착 상태의 네 가지 필요 조건에 해당하지 않는 것은?", 1455, "86.9%", "07-12", "PUBLISHED"],
-    ["Q0917", "DESIGN_PATTERN", "HIGH", "서술형", "전략 패턴을 적용해 조건 분기를 제거하는 과정을 서술하세요.", 231, "36.4%", "07-10", "ARCHIVED"],
-    ["Q0910", "ALGORITHM", "LOW", "객관식", "다익스트라 알고리즘의 전제 조건으로 옳은 것은?", 1204, "81.3%", "07-09", "PUBLISHED"],
-  ] satisfies QuestionSeed[]
-).map((q) => ({
-  id: q[0],
-  category: q[1],
-  difficulty: q[2],
-  type: q[3],
-  title: q[4],
-  solveCount: q[5],
-  correctRate: q[6],
-  updatedAt: q[7],
-  status: q[8],
-}));
+const MOCK_QUESTION_CREATED_DATES = ["2025-11-08", "2025-10-02", "2026-01-15", "2025-12-01", "2026-03-19"];
+
+const MOCK_QUESTION_UPDATED_DATES = [
+  "2026-08-12 14:22",
+  "2026-08-11 09:40",
+  "2026-08-09 18:05",
+  "2026-08-05 11:31",
+  "2026-07-28 16:12",
+];
+
+const MOCK_QUESTION_EDITORS = ["김도현", "이서연", "박지훈"];
+
+/** 백엔드에 없는 목록·상세의 상태·등록일·수정일·수정자 목업 (문제 ID가 같으면 항상 같은 값) */
+export function mockQuestionMeta(questionId: number): {
+  status: AdminQuestionStatus;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
+} {
+  return {
+    status: MOCK_QUESTION_STATUSES[questionId % MOCK_QUESTION_STATUSES.length],
+    createdAt: MOCK_QUESTION_CREATED_DATES[questionId % MOCK_QUESTION_CREATED_DATES.length],
+    updatedAt: MOCK_QUESTION_UPDATED_DATES[questionId % MOCK_QUESTION_UPDATED_DATES.length],
+    updatedBy: MOCK_QUESTION_EDITORS[questionId % MOCK_QUESTION_EDITORS.length],
+  };
+}
 
 type InterviewSeed = [string, string, QuestionCategory, QuestionDifficulty, number, string, string, string, string];
 
@@ -342,131 +321,5 @@ export function adminEmailRecipients(batch: AdminEmailBatch): AdminEmailRecipien
       reason: failed ? FAIL_REASONS[i % FAIL_REASONS.length] : "",
     };
   });
-}
-
-/** 문제 상세 더미 (시안에 상세가 준비된 문제만 존재한다) */
-export const adminQuestionDetails: Record<string, AdminQuestionDetail> = {
-  Q1041: {
-    title: "REPEATABLE READ의 이상 현상",
-    body: "트랜잭션 격리 수준을 REPEATABLE READ로 설정했을 때, 여전히 발생할 수 있는 이상 현상으로 가장 적절한 것은?",
-    options: [
-      { text: "Dirty Read — 커밋되지 않은 데이터를 읽는 현상", correct: false },
-      { text: "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", correct: true },
-      { text: "Lost Update — 동시 갱신으로 한쪽 변경이 사라지는 현상", correct: false },
-      { text: "Non-Repeatable Read — 같은 행을 재조회 시 값이 달라지는 현상", correct: false },
-    ],
-    answerExplanation:
-      "REPEATABLE READ는 동일 트랜잭션 내 같은 행의 재조회 결과를 보장하지만, 조회 범위에 새로 커밋된 행이 추가되는 것은 막지 못한다. 따라서 범위 조회에서 없던 행이 나타나는 Phantom Read가 발생할 수 있다.",
-    wrongExplanations: [
-      { number: 1, text: "Dirty Read는 READ UNCOMMITTED에서만 발생하며, REPEATABLE READ에서는 커밋된 데이터만 읽는다." },
-      { number: 3, text: "Lost Update는 격리 수준이 아니라 동시 갱신 제어(잠금·낙관적 락)의 문제다." },
-      { number: 4, text: "Non-Repeatable Read는 REPEATABLE READ에서 MVCC 스냅샷으로 방지된다." },
-    ],
-    tags: ["#트랜잭션", "#격리수준", "#MVCC"],
-    createdAt: "2025-11-08",
-    updatedAt: "2026-08-12 14:22",
-    updatedBy: "김도현",
-    responseCount: 1842,
-    correctRate: "63.8%",
-    avgSpent: "1분 18초",
-    topPick: "2번",
-    topPickRate: "63.8%",
-    distribution: [
-      { label: "보기 1", text: "Dirty Read — 커밋되지 않은 데이터를 읽는 현상", count: 318, rate: "17.3%", correct: false },
-      { label: "✓ 정답", text: "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", count: 1175, rate: "63.8%", correct: true },
-      { label: "보기 3", text: "Lost Update — 동시 갱신으로 한쪽 변경이 사라지는 현상", count: 214, rate: "11.6%", correct: false },
-      { label: "보기 4", text: "Non-Repeatable Read — 재조회 시 값이 달라지는 현상", count: 135, rate: "7.3%", correct: false },
-    ] satisfies AdminChoiceDistribution[],
-    sessions: [
-      { user: "devhoon", pick: "2 · Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", correct: true, spent: "0분 51초", at: "08-14 09:24" },
-      { user: "mina_kim", pick: "4 · Non-Repeatable Read — 재조회 시 값이 달라지는 현상", correct: false, spent: "1분 33초", at: "08-14 08:47" },
-      { user: "cs_master", pick: "2 · Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", correct: true, spent: "0분 38초", at: "08-13 23:02" },
-      { user: "jaewon.dev", pick: "1 · Dirty Read — 커밋되지 않은 데이터를 읽는 현상", correct: false, spent: "2분 07초", at: "08-13 20:15" },
-      { user: "nodejs_lee", pick: "2 · Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", correct: true, spent: "1분 12초", at: "08-13 12:41" },
-      { user: "algo_park", pick: "3 · Lost Update — 동시 갱신으로 한쪽 변경이 사라지는 현상", correct: false, spent: "0분 44초", at: "08-12 19:58" },
-      { user: "seoyeon", pick: "2 · Phantom Read — 범위 조회 시 없던 행이 나타나는 현상", correct: true, spent: "1분 49초", at: "08-12 11:20" },
-    ] satisfies AdminQuestionSession[],
-  },
-  Q1042: {
-    title: "SYN flooding이 성립하는 원인",
-    body: "TCP 3-way handshake 과정에서 SYN flooding 공격이 성립하는 원인과 서버 측 방어 기법을 서술하세요.",
-    answerExplanation:
-      "서버가 SYN을 받은 뒤 SYN+ACK를 보내고 ACK를 기다리는 동안 연결 정보를 백로그 큐에 유지하기 때문에, 위조된 SYN을 대량으로 보내면 큐가 고갈되어 정상 연결을 받을 수 없다. SYN 쿠키, 백로그 확장, 타임아웃 축소로 완화한다.",
-    tags: ["#TCP", "#핸드셰이크", "#보안"],
-    createdAt: "2025-10-02",
-    updatedAt: "2026-08-12 11:05",
-    updatedBy: "이서연",
-  },
-};
-
-/** 문제 수정 화면 초기 폼 (시안 기준) */
-export const adminQuestionFormSeed: AdminQuestionForm = {
-  category: "NETWORK",
-  difficulty: "HIGH",
-  tags: ["#TCP", "#핸드셰이크", "#보안"],
-  title: "SYN flooding이 성립하는 원인",
-  body: "다음 중 TCP 3-way handshake 과정에서 SYN flooding 공격이 성립하는 원인으로 가장 적절한 것은?",
-  explanation:
-    "서버가 SYN을 받은 뒤 SYN+ACK를 보내고 ACK를 기다리는 동안 연결 정보를 백로그 큐에 유지하기 때문에…",
-  answerIndex: 0,
-  options: [
-    { text: "서버가 ACK를 기다리며 백로그 큐에 연결 상태를 유지하기 때문", explanation: "" },
-    {
-      text: "TCP가 UDP보다 헤더 크기가 커서 대역폭을 많이 쓰기 때문",
-      explanation: "헤더 크기는 공격 성립과 무관합니다. SYN flooding은 연결 상태 자원 소모를 노린 공격입니다.",
-    },
-    {
-      text: "3-way handshake가 UDP 기반으로 동작하기 때문",
-      explanation: "handshake는 TCP 고유 절차입니다. 프로토콜 전제부터 잘못되었습니다.",
-    },
-    {
-      text: "서버가 SYN 패킷을 검증 없이 즉시 폐기하기 때문",
-      explanation: "즉시 폐기한다면 자원 소모가 없어 공격이 성립하지 않습니다.",
-    },
-  ],
-};
-
-/** 문제 상세 화면에서 쓰는, 목록 행 + 상세 더미를 합친 형태 */
-export interface AdminQuestionView extends AdminQuestion {
-  detail: AdminQuestionDetail;
-  /** 통계 탭 상단 지표 카드 */
-  statCards: { label: string; value: string; unit: string }[];
-}
-
-/** 목록 정보와 상세 더미를 합쳐 문제 상세 화면용 데이터를 만든다 (상세가 없는 문제는 목록 값으로 채운다) */
-export function adminQuestionView(id: string): AdminQuestionView | null {
-  const question = adminQuestions.find((q) => q.id === id);
-  if (!question) return null;
-
-  const seed = adminQuestionDetails[id];
-  const detail: AdminQuestionDetail = {
-    title: seed?.title ?? question.title,
-    body: seed?.body ?? question.title,
-    options: seed?.options,
-    answerExplanation: seed?.answerExplanation,
-    wrongExplanations: seed?.wrongExplanations,
-    tags: seed?.tags ?? [`#${question.category.toLowerCase()}`],
-    createdAt: seed?.createdAt ?? "2025-12-01",
-    updatedAt: seed?.updatedAt ?? `2026-${question.updatedAt} 10:00`,
-    updatedBy: seed?.updatedBy ?? "김도현",
-    responseCount: seed?.responseCount ?? question.solveCount,
-    correctRate: seed?.correctRate ?? question.correctRate,
-    avgSpent: seed?.avgSpent ?? "1분 42초",
-    topPick: seed?.topPick,
-    topPickRate: seed?.topPickRate,
-    distribution: seed?.distribution,
-    sessions: seed?.sessions,
-  };
-
-  return {
-    ...question,
-    detail,
-    statCards: [
-      { label: "전체 풀이 횟수", value: (detail.responseCount ?? 0).toLocaleString(), unit: "회" },
-      { label: "정답률", value: detail.correctRate ?? "—", unit: "" },
-      { label: "평균 소요 시간", value: detail.avgSpent ?? "—", unit: "" },
-      { label: "가장 많이 고른 선택지", value: detail.topPick ?? "—", unit: detail.topPickRate ?? "" },
-    ],
-  };
 }
 
