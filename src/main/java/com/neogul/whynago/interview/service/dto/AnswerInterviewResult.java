@@ -10,7 +10,13 @@ public record AnswerInterviewResult(InterviewGradingResult grading, InterviewFol
                 : new InterviewFollowupResult(evaluation.followupQuestion());
         return new AnswerInterviewResult(
                 new InterviewGradingResult(
-                        evaluation.feedback(), evaluation.modelAnswer(), evaluation.score(), evaluation.isCorrect()),
+                        evaluation.feedback(),
+                        evaluation.modelAnswer(),
+                        evaluation.score(),
+                        evaluation.isCorrect(),
+                        evaluation.mastery(),
+                        evaluation.masteryReason()
+                ),
                 nextFollowup
         );
     }

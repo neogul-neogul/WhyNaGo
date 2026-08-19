@@ -198,6 +198,7 @@ class EssayGradingIntegrationTest extends IntegrationTestSupport {
 
     private EssayAnswerResult evaluate(String conversationId, String question, String answer) {
         return essayAnswerService.evaluate(
+                10L,
                 essay.getId(),
                 new EvaluateEssayAnswerCommand(conversationId, question, answer)
         );
