@@ -10,6 +10,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 class UserRepositoryTest extends RepositoryTestSupport {
 
@@ -124,5 +126,83 @@ class UserRepositoryTest extends RepositoryTestSupport {
 
         // then
         assertThat(count).isZero();
+    }
+
+    @DisplayName("닉네임 일부로 회원을 검색한다.")
+    @Test
+    void findUsers_byNickname() {
+        // given
+        persistUser("devhoon@example.com", "devhoon");
+        persistUser("mina@example.com", "minakim");
+
+        // when
+        Page<User> found = userRepository.findUsers("hoon", PageRequest.of(0, 10));
+
+        // then
+        assertThat(found.getContent()).extracting(User::getNickname).containsExactly("devhoon");
+    }
+
+    @DisplayName("이메일 일부로 회원을 검색한다.")
+    @Test
+    void findUsers_byEmail() {
+        // given
+        persistUser("devhoon@gmail.com", "devhoon");
+        persistUser("minakim@naver.com", "minakim");
+
+        // when
+        Page<User> found = userRepository.findUsers("naver", PageRequest.of(0, 10));
+
+        // then
+        assertThat(found.getContent()).extracting(User::getNickname).containsExactly("minakim");
+    }
+
+    @DisplayName("검색어의 대소문자는 구분하지 않는다.")
+    @Test
+    void findUsers_ignoresCase() {
+        // given
+        persistUser("devhoon@example.com", "DevHoon");
+
+        // when
+        Page<User> found = userRepository.findUsers("DEVHOON", PageRequest.of(0, 10));
+
+        // then
+        assertThat(found.getContent()).hasSize(1);
+    }
+
+    @DisplayName("검색어가 없으면 전체 회원을 가입 역순으로 조회한다.")
+    @Test
+    void findUsers_noKeyword() {
+        // given
+        User first = persistUser("first@example.com", "firstus");
+        User second = persistUser("second@example.com", "second");
+        User third = persistUser("third@example.com", "thirdus");
+
+        // when
+        Page<User> found = userRepository.findUsers(null, PageRequest.of(0, 10));
+
+        // then
+        assertThat(found.getTotalElements()).isEqualTo(3);
+        assertThat(found.getContent()).extracting(User::getId)
+                .containsExactly(third.getId(), second.getId(), first.getId());
+    }
+
+    @DisplayName("전체 회원 수는 유지하면서 요청한 페이지만 조회한다.")
+    @Test
+    void findUsers_paged() {
+        // given
+        persistUser("first@example.com", "firstus");
+        User second = persistUser("second@example.com", "second");
+        persistUser("third@example.com", "thirdus");
+
+        // when
+        Page<User> found = userRepository.findUsers(null, PageRequest.of(1, 1));
+
+        // then
+        assertThat(found.getTotalElements()).isEqualTo(3);
+        assertThat(found.getContent()).extracting(User::getId).containsExactly(second.getId());
+    }
+
+    private User persistUser(String email, String nickname) {
+        return em.persistAndFlush(UserFixture.user().email(email).nickname(nickname).build());
     }
 }

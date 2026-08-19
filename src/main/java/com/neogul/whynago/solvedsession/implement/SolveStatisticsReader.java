@@ -21,6 +21,10 @@ public class SolveStatisticsReader {
         return solvedSessionRepository.countActiveUsersBetween(from, to);
     }
 
+    public long countQuestionsByUser(Long userId) {
+        return normalize(solvedSessionRepository.sumQuestionCountByUserId(userId));
+    }
+
     public SolveCountByType countCumulativeByType() {
         return SolveCountByType.from(solvedSessionRepository.sumQuestionCountGroupByType());
     }

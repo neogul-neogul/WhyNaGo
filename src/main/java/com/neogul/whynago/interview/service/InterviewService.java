@@ -116,6 +116,6 @@ public class InterviewService {
 
     @Transactional(readOnly = true)
     public int countCompleted(Long userId) {
-        return dailyInterviewReader.readCompletedAll(userId).size();
+        return (int) dailyInterviewReader.countCompleted(userId);
     }
 }

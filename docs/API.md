@@ -2503,3 +2503,151 @@ GET /api/admin/dashboard
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
 | 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 목록 조회**
+
+관리자 백오피스 회원 관리(`/admin/members`)의 목록을 조회한다. 회원 수가 많아 **서버 페이징**이 필수다.
+
+정렬은 **회원 ID 내림차순(가입 역순) 고정**이다. `createdAt`은 가입 시각 추적 이전에 가입한 회원이 `null`이라 정렬 키로 쓸 수 없다.
+
+> **티어·점수는 내려가지 않는다.** 둘 다 풀이 이력에서 조회 시점에 파생되는 값이라(→ `docs/DOMAIN.md` 점수·티어) 서버가 컬럼으로 갖고 있지 않고, 따라서 티어로 정렬·필터할 수도 없다. `users`에 점수 스냅샷을 도입한 뒤 목록 응답과 서버 필터에 함께 추가한다.
+
+### **Endpoint**
+
+```
+GET /api/admin/members
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+
+### **Query Parameters**
+
+모두 선택이다.
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `q` | String | 닉네임·이메일 키워드. 부분 일치이며 대소문자를 구분하지 않는다. 공백만 있으면 조건을 적용하지 않는다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 회원 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 20481,
+      "nickname": "devhoon",
+      "email": "devhoon@gmail.com",
+      "position": "BACKEND",
+      "provider": "GOOGLE",
+      "createdAt": "2025-11-02T09:12:00"
+    }
+  ],
+  "page": 0,
+  "size": 8,
+  "totalElements": 1204,
+  "totalPages": 151,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `content[].id` | long | 회원 ID. |
+| `content[].nickname` | String | 닉네임. |
+| `content[].email` | String | 이메일. **마스킹하지 않은 원본**이다. |
+| `content[].position` | String | 포지션. `BACKEND` \| `FRONTEND` \| `FULLSTACK` |
+| `content[].provider` | String | 가입 경로. `LOCAL` \| `GOOGLE` |
+| `content[].createdAt` | String \| null | 가입 시각(`yyyy-MM-dd'T'HH:mm:ss`). 추적 이전 가입 회원은 `null`이다. |
+
+**이메일은 서버가 마스킹하지 않는다.** 관리자는 문의 대응·검색에 원본이 필요하다. 표시용 마스킹이 필요하면 클라이언트가 처리한다.
+
+**포지션·가입 경로는 enum 코드를 그대로 내려준다.** 관리자 화면은 사용자 화면과 달리 코드를 그대로 노출하는 규칙을 따른다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 요약 조회**
+
+회원 목록 화면 상단의 요약 줄(`총 1,204명 · 최근 7일 활동 312명`)을 조회한다. 페이지 응답(`PageResponse`)에는 추가 필드를 끼울 수 없어 목록과 분리했다.
+
+두 값은 대시보드 조회와 **같은 집계 경로**를 쓰므로 두 화면의 숫자가 어긋나지 않는다. 날짜 경계는 `Asia/Seoul` 기준이다.
+
+### **Endpoint**
+
+```
+GET /api/admin/members/summary
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{ "totalCount": 1204, "activeWeekCount": 312 }
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `totalCount` | long | 전체 회원 수. |
+| `activeWeekCount` | long | 최근 7일(오늘 포함) 동안 풀이한 회원 수. 같은 회원은 한 번만 센다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 상세 조회**
+
+회원 상세 모달에 필요한 학습 지표를 조회한다. 스트릭·풀이 문항 수·완료 면접 수는 목록 컬럼에 없고 모달을 열 때만 필요해 **단건 조회로 분리**했다(목록 응답에 넣으면 행마다 스트릭 계산이 붙는다).
+
+### **Endpoint**
+
+```
+GET /api/admin/members/{userId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "id": 20481,
+  "nickname": "devhoon",
+  "email": "devhoon@gmail.com",
+  "position": "BACKEND",
+  "provider": "GOOGLE",
+  "createdAt": "2025-11-02T09:12:00",
+  "streakDays": 62,
+  "solvedQuestionCount": 1208,
+  "completedInterviewCount": 214
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` ~ `createdAt` | - | 회원 목록 조회의 같은 필드와 동일하다. |
+| `streakDays` | int | 연속 학습일. 오늘 아직 풀지 않았어도 어제까지 이어진 연속은 끊긴 것으로 보지 않는다(→ 스트릭 조회와 같은 규칙). |
+| `solvedQuestionCount` | long | 누적 풀이 문항 수. |
+| `completedInterviewCount` | long | 완료한 1일1면접 수. 진행 중인 면접은 세지 않는다. |
+
+**`solvedQuestionCount`도 세션 수가 아니라 문항 수**(`SolvedSession.totalCount` 합)다. 면접 완료가 남기는 서술형 세션이 함께 집계된다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `USER_NOT_FOUND` | 해당 ID의 회원이 없음. |

@@ -24,4 +24,7 @@ public interface SolvedSessionRepository extends JpaRepository<SolvedSession, Lo
 
     @Query("select count(distinct s.userId) from SolvedSession s where s.solvedAt between :from and :to")
     long countActiveUsersBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("select sum(s.totalCount) from SolvedSession s where s.userId = :userId")
+    Long sumQuestionCountByUserId(@Param("userId") Long userId);
 }

@@ -122,6 +122,22 @@ class SolvedSessionRepositoryTest extends RepositoryTestSupport {
         assertThat(count).isEqualTo(2);
     }
 
+    @Test
+    @DisplayName("회원 한 명이 풀이한 문항 수를 합산한다.")
+    void sumQuestionCountByUserId() {
+        solvedSessionRepository.save(session(10L, LocalDateTime.of(2026, 8, 19, 9, 0)));
+        solvedSessionRepository.save(essaySession(10L, LocalDateTime.of(2026, 8, 18, 9, 0)));
+        solvedSessionRepository.save(session(20L, LocalDateTime.of(2026, 8, 19, 9, 0)));
+
+        assertThat(solvedSessionRepository.sumQuestionCountByUserId(10L)).isEqualTo(4L);
+    }
+
+    @Test
+    @DisplayName("풀이 이력이 없는 회원의 문항 수 합은 null이다.")
+    void sumQuestionCountByUserId_noSession() {
+        assertThat(solvedSessionRepository.sumQuestionCountByUserId(10L)).isNull();
+    }
+
     private SolvedSession session(Long userId, LocalDateTime solvedAt) {
         return SolvedSession.completed(userId, QuestionType.MULTIPLE_CHOICE, 3, 2, solvedAt.minusMinutes(5), solvedAt);
     }
