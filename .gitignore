@@ -47,3 +47,11 @@ deploy/certbot-www/
 
 ### macOS ###
 .DS_Store
+
+### Python (tools/) ###
+.venv/
+__pycache__/
+*.pyc
+
+.work/
+tools/question-pipeline/evidence/
