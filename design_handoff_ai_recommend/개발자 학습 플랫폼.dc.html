@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&amp;display=swap">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;color:#1C1C1A;-webkit-font-smoothing:antialiased;background:#F6F6F4;}
+.mono{font-family:'JetBrains Mono',monospace;font-feature-settings:"tnum";}
+::-webkit-scrollbar{width:11px;height:11px;}
+::-webkit-scrollbar-thumb{background:#D9D9D2;border-radius:8px;border:3px solid #F6F6F4;background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+textarea:focus,button:focus{outline:none;}
+@keyframes om-spin{to{transform:rotate(360deg);}}
+.om-spin{animation:om-spin .8s linear infinite;}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;min-height:100vh;width:100%;background:#F6F6F4;">
+
+  <!-- ============ TOP BAR ============ -->
+  <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ true }}">
+  <header style="position:sticky;top:0;z-index:30;background:#F1F1ED;border-bottom:1px solid #E6E6E0;padding:11px 0;">
+    <div style="max-width:1180px;width:100%;margin:0 auto;padding:0 36px;display:flex;align-items:center;gap:24px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <div style="width:32px;height:32px;border-radius:9px;background:#1C1C1A;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span class="mono" style="color:#fff;font-size:15px;font-weight:700;letter-spacing:-.5px;">&lt;/&gt;</span>
+      </div>
+      <div style="display:flex;flex-direction:column;line-height:1.15;">
+        <span style="font-size:15px;font-weight:700;letter-spacing:-.3px;">데브루틴</span>
+        <span style="font-size:11px;color:#9A9A90;font-weight:500;">개발자 학습 · 면접</span>
+      </div>
+    </div>
+
+    <nav style="display:flex;align-items:center;justify-content:center;gap:10px;flex:1;min-width:0;overflow-x:auto;padding:0 28px;">
+      <sc-for list="{{ navLearn }}" as="item" hint-placeholder-count="5"><button style="{{ item.style }}" onClick="{{ item.onClick }}"><span>{{ item.label }}</span><sc-if value="{{ item.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ item.badgeStyle }}">{{ item.badgeText }}</span></sc-if></button></sc-for>
+    </nav>
+
+    <div style="display:flex;align-items:center;gap:11px;flex-shrink:0;position:relative;">
+      <div class="mono" style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#EA580C;">🔥{{ streakDays }}</div>
+      <button onClick="{{ toggleProfile }}" style="display:flex;align-items:center;gap:11px;background:transparent;border:none;font-family:inherit;cursor:pointer;padding:5px 8px;border-radius:10px;" style-hover="background:rgba(0,0,0,.04);">
+        <div style="width:34px;height:34px;border-radius:50%;background:#4F46E5;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px;flex-shrink:0;">지</div>
+        <div style="display:flex;flex-direction:column;line-height:1.25;text-align:left;">
+          <span style="font-size:13px;font-weight:600;">지민</span>
+          <span style="font-size:11px;color:#9A9A90;">백엔드 취준생</span>
+        </div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9A9A90" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="{{ profileChevronStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <sc-if value="{{ profileOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:calc(100% + 8px);right:0;width:236px;background:#fff;border:1px solid #ECECE8;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.12);padding:8px;z-index:50;display:flex;flex-direction:column;gap:2px;">
+        <div style="display:flex;align-items:center;gap:11px;padding:10px 12px 12px;border-bottom:1px solid #F2F2EE;margin-bottom:4px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:#4F46E5;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;flex-shrink:0;">지</div>
+          <div style="display:flex;flex-direction:column;line-height:1.3;min-width:0;">
+            <span style="font-size:14px;font-weight:700;">지민</span>
+            <span style="font-size:12px;color:#9A9A90;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">jimin.dev@gmail.com</span>
+          </div>
+        </div>
+        <sc-for list="{{ profileMenu }}" as="m" hint-placeholder-count="5">
+        <button onClick="{{ m.onClick }}" style="{{ m.style }}" style-hover="background:#FAFAF7;">
+          <span style="{{ m.iconStyle }}"></span>
+          <span>{{ m.label }}</span>
+        </button>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+    </div>
+  </header>
+  </sc-if>
+
+  <!-- ============ LOGGED-OUT / LOGIN SCREEN ============ -->
+  <sc-if value="{{ loggedOut }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div style="width:100%;max-width:400px;background:#fff;border:1px solid #ECECE8;border-radius:20px;padding:40px 36px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 20px 50px rgba(0,0,0,.08);">
+      <div style="width:52px;height:52px;border-radius:14px;background:#1C1C1A;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+        <span class="mono" style="color:#fff;font-size:23px;font-weight:700;letter-spacing:-.5px;">&lt;/&gt;</span>
+      </div>
+      <span style="font-size:20px;font-weight:700;letter-spacing:-.4px;">데브루틴</span>
+      <span style="font-size:13.5px;color:#9A9A90;margin-bottom:24px;">{{ authSubtitle }}</span>
+
+      <!-- 로그인 -->
+      <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+      <input placeholder="이메일" value="jimin.dev@gmail.com" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;margin-bottom:9px;">
+      <input type="password" placeholder="비밀번호" value="password" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;margin-bottom:18px;">
+      <button onClick="{{ doLogin }}" style="width:100%;font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:600;">로그인</button>
+      <button onClick="{{ goSignup }}" style="width:100%;font-family:inherit;cursor:pointer;background:#fff;color:#1C1C1A;border:1px solid #DCDCD4;border-radius:11px;padding:14px;font-size:15px;font-weight:600;margin-top:9px;" style-hover="border-color:#1C1C1A;">회원가입</button>
+      </sc-if>
+
+      <!-- 회원가입 -->
+      <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">
+      <input placeholder="이메일" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;margin-bottom:9px;">
+      <input type="password" placeholder="비밀번호" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;margin-bottom:9px;">
+      <input placeholder="닉네임" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:13px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;margin-bottom:18px;">
+      <button onClick="{{ doLogin }}" style="width:100%;font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:11px;padding:14px;font-size:15px;font-weight:600;">가입하기</button>
+      <button onClick="{{ goLoginMode }}" style="width:100%;font-family:inherit;cursor:pointer;background:transparent;color:#6B6B62;border:none;border-radius:11px;padding:12px;font-size:13.5px;font-weight:500;margin-top:6px;">이미 계정이 있으신가요? <span style="color:#1C1C1A;font-weight:700;">로그인</span></button>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ MAIN ============ -->
+  <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ true }}">
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; align-self: auto">
+    <header style="background:rgba(246,246,244,.85);border-bottom:1px solid #E6E6E0;padding:18px 0;">
+      <div style="max-width:1180px;width:100%;margin:0 auto;padding:0 36px;display:flex;align-items:flex-end;justify-content:space-between;">
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.4px;">{{ viewTitle }}</h1>
+        <p style="margin:0;font-size:13px;color:#8A8A80;">{{ viewSub }}</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #ECECE8;border-radius:9px;padding:7px 12px;font-size:12.5px;color:#6B6B62;font-weight:500;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+          {{ todayDate }}
+        </div>
+    </div></div></header>
+
+    <div style="flex: 1; padding: 32px 36px 60px; max-width: 1180px; width: 100%; align-self: center">
+
+      <!-- ========== HOME ========== -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:22px;">
+        <!-- today status banner -->
+        <div style="background:#1C1C1A;border-radius:18px;padding:26px 28px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:24px;overflow:hidden;position:relative;">
+          <div style="display:flex;flex-direction:column;gap:10px;z-index:1;">
+            <div style="display:flex;align-items:center;gap:9px;">
+              <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(52,211,107,.16);color:#5DDC8A;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;">● 오늘 학습 완료</span>
+            </div>
+            <div style="font-size:23px;font-weight:700;letter-spacing:-.4px;line-height:1.35;">오늘도 꾸준히 이어가고 있어요</div>
+            <div style="font-size:13.5px;color:#A8A8A0;">최소 학습 목표 <span class="mono" style="color:#fff;font-weight:600;">{{ goalTarget }}문제</span> 중 <span class="mono" style="color:#5DDC8A;font-weight:600;">{{ goalCurrent }}문제</span> 완료</div>
+            <div style="width:300px;max-width:100%;height:7px;background:rgba(255,255,255,.12);border-radius:6px;margin-top:4px;overflow:hidden;"><div style="width:100%;height:100%;background:#5DDC8A;border-radius:6px;"></div></div>
+          </div>
+          <div style="display:flex;gap:30px;z-index:1;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <span class="mono" style="font-size:34px;font-weight:700;color:#fff;line-height:1;">{{ streakDays }}</span>
+              <span style="font-size:12px;color:#A8A8A0;">연속 학습일</span>
+            </div>
+            <div style="width:1px;background:rgba(255,255,255,.12);"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+              <span class="mono" style="font-size:34px;font-weight:700;color:#fff;line-height:1;">{{ cumulativeDays }}</span>
+              <span style="font-size:12px;color:#A8A8A0;">누적 학습일</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- today metric chips -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:7px;">
+            <span style="font-size:12.5px;color:#8A8A80;font-weight:500;">오늘 푼 문제</span>
+            <div style="display:flex;align-items:baseline;gap:6px;"><span class="mono" style="font-size:28px;font-weight:700;">{{ goalCurrent }}</span><span style="font-size:13px;color:#A8A8A0;">문제</span></div>
+          </div>
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:7px;">
+            <span style="font-size:12.5px;color:#8A8A80;font-weight:500;">오늘 면접</span>
+            <div style="display:flex;align-items:center;gap:7px;"><span style="font-size:20px;font-weight:700;color:#C2410C;">미완료</span><span style="font-size:13px;color:#A8A8A0;">· 1일 1면접</span></div>
+          </div>
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:7px;">
+            <span style="font-size:12.5px;color:#8A8A80;font-weight:500;">오늘 오답 복습</span>
+            <div style="display:flex;align-items:center;gap:7px;"><span style="font-size:20px;font-weight:700;color:#16A34A;">완료</span><span style="font-size:13px;color:#A8A8A0;">· 4문제</span></div>
+          </div>
+        </div>
+
+        <!-- recommendation entry -->
+        <button onClick="{{ nav.recommend }}" style="text-align:left;cursor:pointer;font-family:inherit;background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:20px 24px;display:flex;align-items:center;gap:18px;transition:border-color .15s;" style-hover="border-color:#1C1C1A;">
+          <div style="width:46px;height:46px;border-radius:12px;background:#EEF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.4 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"></path></svg></div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="font-size:15.5px;font-weight:600;">맞춤 문제 추천</span><span style="font-size:10.5px;font-weight:700;color:#C2410C;background:#FEF2E8;padding:2px 7px;border-radius:5px;">취약 {{ weakTop }}</span></div>
+            <div style="font-size:12.5px;color:#9A9A90;">내 취약점을 확인하고, 그 영역에서 한 문제를 생성해 바로 풀어보세요</div>
+          </div>
+          <span style="font-size:13.5px;font-weight:600;color:#1C1C1A;">추천 보기</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+        </button>
+
+        <!-- learning menu -->
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:13px;">오늘 완료 가능한 학습</div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+            <button onClick="{{ nav.solve }}" style="text-align:left;cursor:pointer;background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px;font-family:inherit;transition:border-color .15s;" style-hover="border-color:#1C1C1A;">
+              <div style="width:42px;height:42px;border-radius:11px;background:#EEF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg></div>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:600;margin-bottom:3px;">문제 풀이</div><div style="font-size:12.5px;color:#9A9A90;">객관식 · 서술형 · 카테고리 · 난이도별</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+            <button onClick="{{ nav.wrong }}" style="text-align:left;cursor:pointer;background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px;font-family:inherit;" style-hover="border-color:#1C1C1A;">
+              <div style="width:42px;height:42px;border-radius:11px;background:#FEF2E8;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"></path><path d="M8 16l3-4 2 2 4-6"></path></svg></div>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:600;margin-bottom:3px;">오답노트 복습</div><div style="font-size:12.5px;color:#9A9A90;">미복습 {{ wrongUnresolved }}문제 대기 중</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+            <button onClick="{{ nav.interview }}" style="text-align:left;cursor:pointer;background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px;font-family:inherit;" style-hover="border-color:#1C1C1A;">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F0EDFF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#6D28D9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"></path></svg></div>
+              <div style="flex:1;"><div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;"><span style="font-size:15px;font-weight:600;">1일 1면접</span><span style="font-size:10px;font-weight:700;color:#6D28D9;background:#F0EDFF;padding:2px 6px;border-radius:5px;letter-spacing:.03em;">AI</span></div><div style="font-size:12.5px;color:#9A9A90;">오늘 면접 아직 진행 전</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+            <button onClick="{{ nav.mock }}" style="text-align:left;cursor:pointer;background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;align-items:center;gap:16px;font-family:inherit;" style-hover="border-color:#1C1C1A;">
+              <div style="width:42px;height:42px;border-radius:11px;background:#E8F5EE;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></div>
+              <div style="flex:1;"><div style="font-size:15px;font-weight:600;margin-bottom:3px;">모의 진단</div><div style="font-size:12.5px;color:#9A9A90;">실력 등급 다시 확인하기</div></div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== RECOMMEND ========== -->
+      <sc-if value="{{ isRecommend }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <sc-if value="{{ recIdle }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;">
+            <span style="font-size:15.5px;font-weight:600;">취약 태그</span>
+            <span style="font-size:12.5px;color:#9A9A90;">최근 30일 · 128문제 기준</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:13px;">
+            <sc-for list="{{ weakStats }}" as="w" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:16px;">
+                <span class="mono" style="font-size:13px;font-weight:600;color:#4F46E5;background:#EEF0FF;padding:4px 10px;border-radius:20px;width:112px;flex-shrink:0;text-align:center;">{{ w.category }}</span>
+                <div style="flex:1;height:8px;border-radius:20px;background:#F1F1EC;overflow:hidden;">
+                  <div style="height:100%;border-radius:20px;background:{{ w.barColor }};width:{{ w.barWidth }};"></div>
+                </div>
+                <span class="mono" style="font-size:12.5px;color:#6B6B62;width:42px;text-align:right;flex-shrink:0;">{{ w.accPct }}</span>
+                <span style="font-size:12px;color:#9A9A90;width:96px;flex-shrink:0;">오답 {{ w.wrong }}문제</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="font-size:13px;color:#8A8A80;line-height:1.6;">위 취약 태그 중 하나에서 한 문제를 무작위로 생성합니다.</div>
+          <sc-if value="{{ recNotDone }}" hint-placeholder-val="{{ true }}">
+          <div style="border-top:1px solid #F1F1EC;padding-top:18px;">
+            <button onClick="{{ recGenerate }}" style="width:100%;font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:11px;padding:16px;font-size:14.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px;">
+              <sc-if value="{{ recIdle }}" hint-placeholder-val="{{ true }}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.4 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"></path></svg>
+                <span>{{ recGenLabel }}</span>
+              </sc-if>
+              <sc-if value="{{ recGenerating }}" hint-placeholder-val="{{ false }}">
+                <span class="om-spin" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.28);border-top-color:#fff;border-radius:50%;"></span>
+                <span>생성 중…</span>
+              </sc-if>
+            </button>
+          </div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ recGenerating }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:76px 24px;display:flex;flex-direction:column;align-items:center;gap:20px;">
+          <span class="om-spin" style="display:inline-block;width:42px;height:42px;border:3px solid #ECECE8;border-top-color:#4F46E5;border-radius:50%;"></span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+            <span style="font-size:15px;font-weight:600;">취약점에 맞는 문제를 만들고 있어요</span>
+            <span style="font-size:13px;color:#9A9A90;">{{ recLoadStep }}</span>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ recDone }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:28px 30px;display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;align-items:center;gap:9px;">
+            
+            <span style="font-size:11px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:3px 8px;border-radius:5px;">난이도 {{ recProblem.diff }}</span>
+            <span class="mono" style="font-size:12px;font-weight:600;color:#4F46E5;background:#EEF0FF;padding:3px 8px;border-radius:20px;">{{ recProblem.tag }}</span>
+            <span style="font-size:12.5px;color:#8A8A80;">{{ recProblem.category }}</span>
+            <span style="color:#DCDCD6;">·</span>
+            <span style="font-size:12.5px;color:#8A8A80;">{{ recProblem.type }}</span>
+          </div>
+          <div style="font-size:21px;font-weight:600;line-height:1.45;">{{ recProblem.title }}</div>
+          <div style="font-size:14.5px;color:#4A4A44;line-height:1.7;">{{ recProblem.body }}</div>
+          
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button onClick="{{ nav.solve }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:13px 26px;font-size:14px;font-weight:600;">이 문제 풀기</button>
+            <button onClick="{{ recGenerate }}" style="font-family:inherit;cursor:pointer;background:#fff;color:#1C1C1A;border:1px solid #DCDCD6;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;transition:border-color .15s;" style-hover="border-color:#1C1C1A;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3.5-7.1"></path><path d="M21 3v6h-6"></path></svg>
+              <span>다른 문제 생성</span>
+            </button>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ========== SOLVE ========== -->
+      <sc-if value="{{ isSolve }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <!-- problem bank list (프로그래머스식) -->
+        <sc-if value="{{ solveSetup }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:1000px;">
+          <!-- search -->
+          <div style="position:relative;display:flex;align-items:center;">
+            <span style="position:absolute;left:16px;display:flex;pointer-events:none;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A8A8A0" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4-4"></path></svg></span>
+            <input oninput="{{ setPbSearch }}" value="{{ pbSearch }}" placeholder="풀고 싶은 문제 제목, 개념을 검색하세요" style="width:100%;border:1px solid #E0E0DA;border-radius:12px;padding:14px 16px 14px 46px;font-family:inherit;font-size:14.5px;background:#fff;color:#1C1C1A;">
+          </div>
+
+          <!-- filters -->
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:12.5px;font-weight:600;color:#A8A89E;width:52px;flex-shrink:0;">유형</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ pbTypeChips }}" as="chip" hint-placeholder-count="3"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:12.5px;font-weight:600;color:#A8A89E;width:52px;flex-shrink:0;">난이도</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;"><sc-for list="{{ pbDiffChips }}" as="chip" hint-placeholder-count="4"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:12.5px;font-weight:600;color:#A8A89E;width:52px;flex-shrink:0;padding-top:8px;">카테고리</span>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1;"><sc-for list="{{ pbCatChips }}" as="chip" hint-placeholder-count="8"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for></div>
+            </div>
+          </div>
+
+          <!-- count + sort -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px;">
+            <span style="font-size:14px;font-weight:600;"><span class="mono">{{ pbCount }}</span>개 문제</span>
+            <span style="font-size:13px;color:#9A9A90;font-weight:500;display:flex;align-items:center;gap:5px;">최신순<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></span>
+          </div>
+
+          <!-- table -->
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:16px;padding:13px 22px;background:#FAFAF7;border-bottom:1px solid #ECECE8;font-size:12px;font-weight:600;color:#A8A89E;">
+              <span style="width:84px;flex-shrink:0;">상태</span>
+              <span style="flex:1;min-width:0;">제목</span>
+              <span style="width:70px;flex-shrink:0;text-align:center;">유형</span>
+              <span style="width:60px;flex-shrink:0;text-align:center;">난이도</span>
+              <span style="width:92px;flex-shrink:0;text-align:right;">완료한 사람</span>
+              <span style="width:60px;flex-shrink:0;text-align:right;">정답률</span>
+            </div>
+            <sc-for list="{{ problemList }}" as="p" hint-placeholder-count="8">
+            <button onClick="{{ p.onClick }}" style="display:flex;align-items:center;gap:16px;width:100%;text-align:left;font-family:inherit;cursor:pointer;background:#fff;border:none;border-bottom:1px solid #F2F2EE;padding:15px 22px;transition:background .12s;" style-hover="background:#FAFAF7;">
+              <span style="width:84px;flex-shrink:0;"><span style="{{ p.statusStyle }}">{{ p.status }}</span></span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:14.5px;font-weight:600;color:#1C1C1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.title }}</span>
+                <span style="display:flex;flex-wrap:wrap;gap:6px;">
+                  <sc-for list="{{ p.keywords }}" as="kw" hint-placeholder-count="3"><span style="font-size: 10px; font-weight: 500; color: #6B6B62; padding: 2px 8px; border-radius: 5px; white-space: nowrap; background-color: #FFFFFF; padding-left: 4px; padding-right: 4px">{{ kw }}</span></sc-for>
+                </span>
+              </span>
+              <span style="width:70px;flex-shrink:0;display:flex;justify-content:center;"><span style="{{ p.typeStyle }}">{{ p.type }}</span></span>
+              <span style="width:60px;flex-shrink:0;text-align:center;font-size:12.5px;font-weight:700;color:{{ p.diffColor }};">{{ p.lv }}</span>
+              <span class="mono" style="width:92px;flex-shrink:0;text-align:right;font-size:13px;color:#6B6B62;">{{ p.solved }}명</span>
+              <span class="mono" style="width:60px;flex-shrink:0;text-align:right;font-size:13px;font-weight:600;color:#6B6B62;">{{ p.rate }}</span>
+            </button>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- quiz : 프로그래머스식 좌우 분할 -->
+        <sc-if value="{{ solveQuiz }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+            <button onClick="{{ quitQuiz }}" style="font-family:inherit;cursor:pointer;background:transparent;border:none;font-size:13px;color:#6B6B62;font-weight:600;display:flex;align-items:center;gap:6px;padding:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>돌아가기</button>
+            <button onClick="{{ openCm }}" style="{{ cmSaveStyle }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11M3 12h11M3 18h7"></path><path d="M17 11l5 3-5 3z"></path></svg>{{ cmSaveLabel }}</button>
+          </div>
+
+          <div style="display:flex;gap:18px;align-items:flex-start;">
+            <!-- LEFT : 문제 설명 -->
+            <div style="flex:1;min-width:0;background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+              <div style="background:#FAFAF7;border-bottom:1px solid #ECECE8;padding:13px 22px;display:flex;align-items:center;gap:9px;">
+                <span style="font-size:12px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:3px 10px;border-radius:6px;">{{ solveType }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ metaDiffColor }};background:{{ metaDiffBg }};padding:3px 9px;border-radius:6px;">난이도 {{ metaDiff }}</span>
+                <span style="margin-left:auto;font-size:12px;font-weight:600;color:#6B6B62;background:#F1F1ED;padding:3px 10px;border-radius:6px;">{{ metaCat }}</span>
+              </div>
+              <div style="padding:24px 22px;display:flex;flex-direction:column;gap:14px;">
+                <sc-if value="{{ isMCQ }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ mcqQList }}" as="q" hint-placeholder-count="1">
+                  <div onClick="{{ q.onClick }}" style="{{ q.wrapStyle }}">
+                    <span style="{{ q.labelStyle }}">{{ q.label }}</span>
+                    <div style="font-size:15.5px;font-weight:600;line-height:1.55;color:#1C1C1A;">{{ q.text }}</div>
+                  </div>
+                </sc-for>
+                </sc-if>
+                <sc-if value="{{ isDesc }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ descQList }}" as="q" hint-placeholder-count="1">
+                  <div style="{{ q.wrapStyle }}">
+                    <span style="{{ q.labelStyle }}">{{ q.label }}</span>
+                    <div style="font-size:15.5px;font-weight:600;line-height:1.55;color:#1C1C1A;">{{ q.text }}</div>
+                  </div>
+                </sc-for>
+                </sc-if>
+              </div>
+            </div>
+
+            <!-- RIGHT : 답안 -->
+            <div style="flex:1.15;min-width:0;display:flex;flex-direction:column;gap:14px;">
+
+              <!-- 객관식 -->
+              <sc-if value="{{ isMCQ }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+                <div style="background:#FAFAF7;border-bottom:1px solid #ECECE8;display:flex;align-items:center;gap:0;padding:0 8px;overflow-x:auto;">
+                  <sc-for list="{{ mcqTabs }}" as="t" hint-placeholder-count="1"><button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}<span style="color:{{ t.markColor }};font-weight:700;">{{ t.mark }}</span></button></sc-for>
+                </div>
+                <div style="padding:18px 22px 6px;display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:2px 9px;border-radius:5px;">{{ mcqActiveLabel }}</span>
+                  <span style="font-size:12px;font-weight:600;color:#9A9A90;">{{ mcqActiveNote }}</span>
+                </div>
+                <div style="padding:14px 22px 20px;display:flex;flex-direction:column;gap:10px;">
+                  <sc-for list="{{ currentOptions }}" as="opt" hint-placeholder-count="4">
+                    <button onClick="{{ opt.onClick }}" style="{{ opt.style }}">
+                      <span style="{{ opt.numStyle }}">{{ opt.num }}</span>
+                      <span style="flex:1;font-size:14.5px;line-height:1.5;">{{ opt.text }}</span>
+                      <span style="font-size:13px;font-weight:700;color:{{ opt.markColor }};">{{ opt.mark }}</span>
+                    </button>
+                  </sc-for>
+                  <sc-if value="{{ checked }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px dashed #E6E6E0;margin-top:6px;padding-top:16px;display:flex;flex-direction:column;gap:12px;">
+                    <div style="font-size:15px;font-weight:700;color:{{ resultIndColor }};">{{ resultIndText }}</div>
+                    <div style="background:#FAFAF7;border-radius:12px;padding:16px 18px;">
+                      <div style="font-size:12px;font-weight:600;color:#8A8A80;margin-bottom:7px;">정답 해설</div>
+                      <div style="font-size:14px;line-height:1.65;color:#3A3A34;">{{ explanationText }}</div>
+                    </div>
+                    <sc-if value="{{ wrongPicked }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FEF4F2;border:1px solid #F6DAD3;border-radius:12px;padding:16px 18px;">
+                      <div style="font-size:12px;font-weight:600;color:#C2410C;margin-bottom:7px;">{{ wrongPickedLabel }} · 왜 틀렸나</div>
+                      <div style="font-size:14px;line-height:1.65;color:#7A342A;">{{ wrongExplain }}</div>
+                    </div>
+                    </sc-if>
+                  </div>
+                  </sc-if>
+                </div>
+                <div style="border-top:1px solid #ECECE8;padding:14px 22px;display:flex;justify-content:flex-end;gap:8px;">
+                  <sc-if value="{{ showEndQuiz }}" hint-placeholder-val="{{ true }}"><button onClick="{{ endQuiz }}" style="font-family:inherit;cursor:pointer;background:#fff;color:#6B6B62;border:1px solid #DCDCD4;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:600;">종료하기</button></sc-if>
+                  <button onClick="{{ primaryQuizAction }}" style="{{ primaryBtnStyle }}">{{ primaryBtnLabel }}</button>
+                </div>
+              </div>
+              </sc-if>
+
+              <!-- 서술형 : AI 면접식 (질문은 왼쪽 카드, 답변은 여기) -->
+              <sc-if value="{{ isDesc }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+                <div style="background:#FAFAF7;border-bottom:1px solid #ECECE8;padding:13px 22px;display:flex;align-items:center;gap:8px;">
+                  <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:#1C1C1A;color:#fff;font-size:10px;font-weight:700;">AI</span>
+                  <span style="font-size:13px;font-weight:700;color:#6B6B62;">AI 면접관에게 답하듯 작성하세요</span>
+                </div>
+                <div style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+
+                  <!-- 답변 완료 기록 -->
+                  <sc-for list="{{ descThread }}" as="e" hint-placeholder-count="0">
+                  <div style="border:1px solid #ECECE8;border-radius:12px;overflow:hidden;">
+                    <div style="background:#FAFAF7;padding:9px 16px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #F2F2EE;">
+                      <span style="display:inline-flex;align-items:center;font-size:10.5px;font-weight:700;color:#6B6B62;background:#EBEBE6;padding:2px 8px;border-radius:5px;">{{ e.label }} · 내 답변</span>
+                    </div>
+                    <div style="padding:13px 16px;font-size:14px;line-height:1.65;color:#3A3A34;white-space:pre-wrap;">{{ e.answer }}</div>
+                    <button onClick="{{ e.onToggle }}" style="width:100%;font-family:inherit;cursor:pointer;background:#fff;border:none;border-top:1px solid #F2F2EE;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:600;color:#4F46E5;">
+                      <span style="display:flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"></path><path d="M12 16v-4M12 8h.01"></path></svg>{{ e.toggleLabel }}</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ e.toggleIcon }}"></path></svg>
+                    </button>
+                    <sc-if value="{{ e.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-top:1px solid #F2F2EE;padding:14px 16px;display:flex;flex-direction:column;gap:12px;background:#FCFCFA;">
+                      <div>
+                        <div style="font-size:11.5px;font-weight:700;color:#C2410C;margin-bottom:6px;">AI 피드백</div>
+                        <div style="font-size:13.5px;line-height:1.65;color:#7A4A38;">{{ e.feedback }}</div>
+                      </div>
+                      <div style="background:#F2FBF5;border-radius:10px;padding:13px 15px;">
+                        <div style="font-size:11.5px;font-weight:700;color:#16A34A;margin-bottom:6px;">모범답안 · 해설</div>
+                        <div style="font-size:13.5px;line-height:1.7;color:#3A3A34;">{{ e.model }}</div>
+                      </div>
+                    </div>
+                    </sc-if>
+                  </div>
+                  </sc-for>
+
+                  <!-- 현재 질문 답변 입력 -->
+                  <sc-if value="{{ descActive }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:11px;">
+                    <div style="display:flex;align-items:center;gap:7px;">
+                      <span style="display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:2px 9px;border-radius:5px;">{{ descActiveLabel }}</span>
+                      <span style="font-size:12px;font-weight:600;color:#9A9A90;">에 답변해 주세요</span>
+                    </div>
+                    <textarea oninput="{{ setDescDraft }}" value="{{ descDraft }}" placeholder="면접관에게 답하듯 설명해 보세요. 근거와 예시를 함께 들면 좋습니다." style="width:100%;min-height:170px;resize:vertical;border:1px solid #E0E0DA;border-radius:12px;padding:14px 16px;font-family:inherit;font-size:14.5px;line-height:1.7;color:#1C1C1A;background:#fff;display:block;box-sizing:border-box;"></textarea>
+                    <span class="mono" style="font-size:12px;color:#A8A8A0;">{{ descCharCount }}</span>
+                  </div>
+                  </sc-if>
+
+                  <!-- 면접 완료 -->
+                  <sc-if value="{{ descDone }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px dashed #E6E6E0;padding-top:16px;display:flex;flex-direction:column;gap:8px;">
+                    <div style="font-size:15px;font-weight:700;color:#16A34A;display:flex;align-items:center;gap:7px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>면접 완료 · 꼬리질문까지 모두 답했어요</div>
+                    <div style="font-size:13px;color:#9A9A90;">각 답변의 <b>해설·피드백 보기</b>를 눌러 모범답안과 비교해 보세요.</div>
+                  </div>
+                  </sc-if>
+                </div>
+                <div style="border-top:1px solid #ECECE8;padding:14px 22px;display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+                  <sc-if value="{{ descDone }}" hint-placeholder-val="{{ false }}"><span style="margin-right:auto;font-size:13.5px;font-weight:700;color:{{ descVerdictColor }};">{{ descVerdictText }}</span></sc-if>
+                  <sc-if value="{{ descActive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ submitDescAnswer }}" style="{{ descSubmitStyle }}">{{ descSubmitLabel }}</button></sc-if>
+                  <sc-if value="{{ descDone }}" hint-placeholder-val="{{ false }}"></sc-if>
+                  <sc-if value="{{ descDone }}" hint-placeholder-val="{{ false }}"><button onClick="{{ descFinish }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;">{{ descFinishLabel }}</button></sc-if>
+                </div>
+              </div>
+              </sc-if>
+
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+      </sc-if>
+
+      <!-- ========== 문제집 목록 ========== -->
+      <sc-if value="{{ isCollections }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:1000px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;">
+          <span style="font-size:14px;font-weight:600;"><span class="mono">{{ collectionCount }}</span>개 문제집</span>
+          <sc-if value="{{ clNewClosed }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ clOpenNew }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>새 문제집 만들기</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ clNewOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:13px;">
+          <span style="font-size:14px;font-weight:700;">새 문제집 만들기</span>
+          <input oninput="{{ setClName }}" value="{{ clNewName }}" placeholder="예) 면접 D-7 벼락치기" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:12px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:12.5px;font-weight:600;color:#A8A89E;">공개 범위</span>
+            <div style="display:flex;gap:8px;"><sc-for list="{{ clVisChips }}" as="chip" hint-placeholder-count="2"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button onClick="{{ clCancelNew }}" style="font-family:inherit;cursor:pointer;background:#fff;color:#6B6B62;border:1px solid #DCDCD4;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;">취소</button>
+            <button onClick="{{ clCreate }}" style="{{ clCreateStyle }}">만들기</button>
+          </div>
+        </div>
+        </sc-if>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">
+          <sc-for list="{{ collectionCards }}" as="c" hint-placeholder-count="3">
+          <button onClick="{{ c.onOpen }}" style="text-align:left;cursor:pointer;font-family:inherit;background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s;" style-hover="border-color:#1C1C1A;">
+            <div style="display:flex;align-items:flex-start;gap:12px;width:100%;">
+              <div style="width:38px;height:38px;border-radius:10px;background:#EEF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11M3 12h11M3 18h7"></path><path d="M17 11l5 3-5 3z"></path></svg></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.name }}</span>
+                <span style="font-size:12.5px;color:#9A9A90;">{{ c.countText }} · {{ c.updated }}</span>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8C8C0" stroke-width="2" stroke-linecap="round"><path d="M9 18l6-6-6-6"></path></svg>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;width:100%;border-top:1px solid #F2F2EE;padding-top:11px;">
+              <sc-for list="{{ c.preview }}" as="t" hint-placeholder-count="3"><span style="font-size:12.5px;color:#6B6B62;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t }}</span></sc-for>
+              <sc-if value="{{ c.emptyPreview }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#A8A8A0;">아직 담은 문제가 없습니다</span></sc-if>
+            </div>
+          </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== 문제집 상세 ========== -->
+      <sc-if value="{{ isColDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:1000px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
+          <button onClick="{{ backToCollections }}" style="font-family:inherit;cursor:pointer;background:transparent;border:none;font-size:13px;color:#6B6B62;font-weight:600;display:flex;align-items:center;gap:6px;padding:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>문제집 목록</button>
+          <button onClick="{{ deleteCol }}" style="font-family:inherit;cursor:pointer;background:#fff;color:#DC2626;border:1px solid #F0D8D4;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;">문제집 삭제</button>
+        </div>
+
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:22px 24px;display:flex;align-items:center;gap:16px;">
+          <div style="width:46px;height:46px;border-radius:12px;background:#EEF0FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11M3 12h11M3 18h7"></path><path d="M17 11l5 3-5 3z"></path></svg></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+            <span style="font-size:18px;font-weight:700;letter-spacing:-.3px;">{{ colName }}</span>
+            <span style="font-size:13px;color:#9A9A90;">{{ colCountText }} · {{ colVis }}</span>
+          </div>
+          <sc-if value="{{ colHasItems }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ startCol }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;">첫 문제부터 풀기</button>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ colHasItems }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+          <div style="display:flex;align-items:center;gap:16px;padding:13px 22px;background:#FAFAF7;border-bottom:1px solid #ECECE8;font-size:12px;font-weight:600;color:#A8A89E;">
+            <span style="width:28px;flex-shrink:0;text-align:center;">#</span>
+            <span style="flex:1;min-width:0;">제목</span>
+            <span style="width:70px;flex-shrink:0;text-align:center;">유형</span>
+            <span style="width:60px;flex-shrink:0;text-align:center;">난이도</span>
+            <span style="width:84px;flex-shrink:0;text-align:center;">상태</span>
+            <span style="width:52px;flex-shrink:0;"></span>
+          </div>
+          <sc-for list="{{ colItems }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:16px;width:100%;border-bottom:1px solid #F2F2EE;padding:15px 22px;">
+            <span class="mono" onClick="{{ p.onOpen }}" style="width:28px;flex-shrink:0;text-align:center;font-size:13px;font-weight:600;color:#A8A8A0;cursor:pointer;">{{ p.no }}</span>
+            <span onClick="{{ p.onOpen }}" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;cursor:pointer;">
+              <span style="font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.title }}</span>
+              <span style="font-size:12px;color:#9A9A90;">{{ p.cat }}</span>
+            </span>
+            <span style="width:70px;flex-shrink:0;display:flex;justify-content:center;"><span style="{{ p.typeStyle }}">{{ p.type }}</span></span>
+            <span style="width:60px;flex-shrink:0;text-align:center;font-size:12.5px;font-weight:700;color:{{ p.diffColor }};">{{ p.lv }}</span>
+            <span style="width:84px;flex-shrink:0;display:flex;justify-content:center;"><span style="{{ p.statusStyle }}">{{ p.status }}</span></span>
+            <span style="width:52px;flex-shrink:0;display:flex;justify-content:flex-end;"><button onClick="{{ p.onRemove }}" style="font-family:inherit;cursor:pointer;background:transparent;border:none;padding:4px;font-size:12px;font-weight:600;color:#A8A8A0;" style-hover="color:#DC2626;">제거</button></span>
+          </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ colEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px dashed #DEDED6;border-radius:16px;padding:52px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+          <span style="font-size:14.5px;font-weight:600;">아직 담은 문제가 없습니다</span>
+          <span style="font-size:13px;color:#9A9A90;">문제 풀이 화면 오른쪽 위의 <b>문제집에 저장</b>으로 담을 수 있어요</span>
+          <button onClick="{{ nav.solve }}" style="margin-top:10px;font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13.5px;font-weight:600;">문제 풀러 가기</button>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ========== WRONG NOTES ========== -->
+      <sc-if value="{{ isWrong }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <sc-for list="{{ wrongFilterChips }}" as="chip" hint-placeholder-count="5"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <sc-for list="{{ wrongList }}" as="w" hint-placeholder-count="5">
+          <div onClick="{{ w.onOpen }}" style="background:#fff;border:1px solid #ECECE8;border-radius:13px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;cursor:pointer;transition:border-color .12s,box-shadow .12s;" style-hover="border-color:#D4D4CC;box-shadow:0 2px 10px rgba(0,0,0,.04);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+              <div style="display:flex;align-items:flex-start;gap:10px;flex:1;">
+                <button onClick="{{ w.onBookmark }}" title="북마크" style="{{ w.bmStyle }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="{{ w.bmFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path></svg></button>
+                <div style="font-size:15px;font-weight:600;line-height:1.5;flex:1;">{{ w.q }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                
+                <button onClick="{{ w.onDelete }}" title="오답노트에서 삭제" style="font-family:inherit;cursor:pointer;background:transparent;border:none;padding:4px;display:flex;align-items:center;justify-content:center;color:#B0B0A6;border-radius:6px;" style-hover="background:#F1F1ED;color:#DC2626;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg></button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#6B6B62;background:#F1F1ED;padding:3px 9px;border-radius:6px;font-weight:500;">{{ w.cat }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ w.diffColor }};">난이도 {{ w.diff }}</span>
+                
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:12px;color:#A8A8A0;font-weight:500;">{{ w.solvedAt }}</span>
+                <button onClick="{{ w.onRetry }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12.5px;font-weight:600;">재풀이</button>
+              </div>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== WRONG DETAIL (문제 풀이 꼬리질문 완료 화면과 동일 형태) ========== -->
+      <sc-if value="{{ isWrongDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button onClick="{{ wrongDetail.onBack }}" style="font-family:inherit;cursor:pointer;background:transparent;border:none;font-size:13px;color:#6B6B62;font-weight:600;display:flex;align-items:center;gap:6px;padding:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>돌아가기</button>
+        </div>
+
+        <div style="display:flex;gap:18px;align-items:flex-start;">
+          <!-- LEFT : 문제 설명 (본 질문 + 꼬리질문 목록) -->
+          <div style="flex:1;min-width:0;background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+            <div style="background:#FAFAF7;border-bottom:1px solid #ECECE8;padding:13px 22px;display:flex;align-items:center;gap:9px;">
+              <span style="font-size:12px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:3px 10px;border-radius:6px;">객관식</span>
+              <span style="font-size:12px;font-weight:600;color:{{ wrongDetail.diffColor }};background:{{ wrongDetail.diffBg }};padding:3px 9px;border-radius:6px;">난이도 {{ wrongDetail.diff }}</span>
+              <span style="margin-left:auto;font-size:12px;font-weight:600;color:#6B6B62;background:#F1F1ED;padding:3px 10px;border-radius:6px;">{{ wrongDetail.cat }}</span>
+            </div>
+            <div style="padding:24px 22px;display:flex;flex-direction:column;gap:14px;">
+              <sc-for list="{{ wrongDetail.qList }}" as="q" hint-placeholder-count="1">
+                <div onClick="{{ q.onClick }}" style="{{ q.wrapStyle }}">
+                  <span style="{{ q.labelStyle }}">{{ q.label }}</span>
+                  <div style="font-size:15.5px;font-weight:600;line-height:1.55;color:#1C1C1A;">{{ q.text }}</div>
+                </div>
+              </sc-for>
+              <div style="font-size:12px;color:#A8A8A0;">{{ wrongDetail.source }} · {{ wrongDetail.solvedAt }}</div>
+            </div>
+          </div>
+
+          <!-- RIGHT : 답안 (탭 + 선택지 + 해설) -->
+          <div style="flex:1.15;min-width:0;display:flex;flex-direction:column;gap:14px;">
+            <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;overflow:hidden;">
+              <div style="background: #FAFAF7; border-bottom: 1px solid #ECECE8; display: flex; align-items: center; gap: 0; padding: 0 8px; overflow-x: auto; padding-left: 10px; padding-right: 10px">
+                <sc-for list="{{ wrongDetail.tabs }}" as="t" hint-placeholder-count="1"><button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}<span style="font-weight:700;color:{{ t.markColor }};">{{ t.mark }}</span></button></sc-for>
+                <button onClick="{{ wrongDetail.onBookmark }}" title="북마크" style="font-family: inherit; cursor: pointer; background: transparent; border: none; padding: 2px; margin-left: auto; display: flex; color: {{ wrongDetail.bmColor }}"></button><svg width="18" height="18" viewBox="0 0 24 24" fill="{{ wrongDetail.bmFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path></svg>
+              </div>
+              <div style="padding:18px 22px 6px;display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:2px 9px;border-radius:5px;">{{ wrongDetail.activeLabel }}</span>
+                <span style="font-size:12px;font-weight:600;color:#9A9A90;">{{ wrongDetail.activeNote }}</span>
+              </div>
+              <div style="padding:14px 22px 20px;display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ wrongDetail.options }}" as="opt" hint-placeholder-count="4">
+                  <div style="{{ opt.style }}">
+                    <span style="{{ opt.numStyle }}">{{ opt.num }}</span>
+                    <span style="flex:1;font-size:14.5px;line-height:1.5;">{{ opt.text }}</span>
+                    <span style="font-size:13px;font-weight:700;color:{{ opt.markColor }};">{{ opt.mark }}</span>
+                  </div>
+                </sc-for>
+                <div style="border-top:1px dashed #E6E6E0;margin-top:6px;padding-top:16px;display:flex;flex-direction:column;gap:12px;">
+                  <div style="font-size:15px;font-weight:700;color:{{ wrongDetail.resultIndColor }};">{{ wrongDetail.resultIndText }}</div>
+                  <div style="background:#FAFAF7;border-radius:12px;padding:16px 18px;">
+                    <div style="font-size:12px;font-weight:600;color:#8A8A80;margin-bottom:7px;">정답 해설</div>
+                    <div style="font-size:14px;line-height:1.65;color:#3A3A34;">{{ wrongDetail.explanation }}</div>
+                  </div>
+                  <sc-if value="{{ wrongDetail.wrongPicked }}" hint-placeholder-val="{{ false }}">
+                  <div style="background:#FEF4F2;border:1px solid #F6DAD3;border-radius:12px;padding:16px 18px;">
+                    <div style="font-size:12px;font-weight:600;color:#C2410C;margin-bottom:7px;">{{ wrongDetail.wrongPickedLabel }} · 왜 틀렸나</div>
+                    <div style="font-size:14px;line-height:1.65;color:#7A342A;">{{ wrongDetail.wrongExplain }}</div>
+                  </div>
+                  </sc-if>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ isInterview }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:780px;display:flex;flex-direction:column;gap:18px;">
+        <div style="background:#F0EDFF;border:1px solid #E0D8FF;border-radius:13px;padding:14px 18px;display:flex;align-items:center;gap:11px;">
+          <span style="font-size:11px;font-weight:700;color:#fff;background:#6D28D9;padding:4px 9px;border-radius:6px;flex-shrink:0;">AI</span>
+          <span style="font-size:13px;color:#5B21B6;line-height:1.5;">AI는 면접 질문과 피드백에만 사용됩니다. 문제 추천·오답 분석·학습 계획에는 사용하지 않아요. <b>하루 1회</b> 진행할 수 있습니다.</span>
+        </div>
+
+        <!-- intro -->
+        <sc-if value="{{ ivIntro }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:22px;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:11px;">면접 카테고리</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <sc-for list="{{ ivCatChips }}" as="chip" hint-placeholder-count="8"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for>
+            </div>
+          </div>
+          <div style="background:#FAFAF7;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:600;color:#8A8A80;">오늘의 면접 진행 순서</span>
+            <span style="font-size:13.5px;color:#3A3A34;line-height:1.7;">질문 1개 제공 → 답변 입력 → AI 피드백 → 꼬리 질문 1개 → 개선 답변 예시 → 결과 저장</span>
+          </div>
+          <button onClick="{{ startInterview }}" style="align-self:flex-start;font-family:inherit;cursor:pointer;background:#6D28D9;color:#fff;border:none;border-radius:11px;padding:13px 28px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;">면접 시작<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+        </div>
+        </sc-if>
+
+        <!-- answering -->
+        <sc-if value="{{ ivAnswering }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;font-weight:600;color:#6D28D9;background:#F0EDFF;padding:4px 10px;border-radius:6px;">{{ ivCat }}</span>
+            <span style="font-size:12px;color:#A8A8A0;">질문 1 / 1</span>
+          </div>
+          <div style="display:flex;gap:13px;align-items:flex-start;">
+            <div style="width:34px;height:34px;border-radius:9px;background:#6D28D9;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-size:12px;font-weight:700;">AI</div>
+            <div style="font-size:18px;font-weight:600;line-height:1.55;letter-spacing:-.2px;padding-top:4px;">{{ ivQuestion }}</div>
+          </div>
+          <textarea oninput="{{ setIvAnswer }}" placeholder="답변을 입력하세요. 핵심 개념과 근거를 함께 설명하면 더 정확한 피드백을 받을 수 있어요." style="width:100%;min-height:150px;resize:vertical;border:1px solid #E0E0DA;border-radius:12px;padding:16px;font-family:inherit;font-size:14.5px;line-height:1.65;color:#1C1C1A;background:#FAFAF7;">{{ ivAnswer }}</textarea>
+          <button onClick="{{ submitIv }}" style="align-self:flex-end;font-family:inherit;cursor:pointer;background:#6D28D9;color:#fff;border:none;border-radius:11px;padding:12px 26px;font-size:14.5px;font-weight:600;">답변 제출 · AI 피드백 받기</button>
+        </div>
+        </sc-if>
+
+        <!-- feedback -->
+        <sc-if value="{{ ivFeedback }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:8px;">
+            <span style="font-size:12px;font-weight:600;color:#6D28D9;background:#F0EDFF;padding:4px 10px;border-radius:6px;align-self:flex-start;">{{ ivCat }}</span>
+            <div style="font-size:12px;color:#8A8A80;margin-top:4px;">질문</div>
+            <div style="font-size:16px;font-weight:600;line-height:1.55;">{{ ivQuestion }}</div>
+            <div style="font-size:12px;color:#8A8A80;margin-top:8px;">내 답변</div>
+            <div style="font-size:14px;line-height:1.6;color:#5A5A52;background:#FAFAF7;border-radius:10px;padding:14px;">{{ ivAnswerDisplay }}</div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:13px;">
+            <div style="display:flex;align-items:center;gap:9px;"><div style="width:28px;height:28px;border-radius:8px;background:#6D28D9;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">AI</div><span style="font-size:15px;font-weight:700;">피드백</span></div>
+            <div style="font-size:14.5px;line-height:1.7;color:#3A3A34;">{{ ivFeedbackText }}</div>
+          </div>
+
+          <div style="background:#F0EDFF;border:1px solid #E0D8FF;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:13px;font-weight:700;color:#5B21B6;">꼬리 질문</div>
+            <div style="font-size:15.5px;font-weight:600;line-height:1.55;color:#1C1C1A;">{{ ivFollowup }}</div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:11px;">
+            <div style="font-size:13px;font-weight:700;color:#16A34A;">개선 답변 예시</div>
+            <div style="font-size:14.5px;line-height:1.75;color:#3A3A34;background:#F2FBF5;border-radius:10px;padding:16px;">{{ ivImproved }}</div>
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:4px;">
+              <span style="font-size:12px;color:#A8A8A0;">관련 키워드</span>
+              <sc-for list="{{ ivKeywords }}" as="kw" hint-placeholder-count="4"><span style="font-size:12px;font-weight:500;color:#6B6B62;background:#F1F1ED;padding:4px 10px;border-radius:20px;">{{ kw }}</span></sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button onClick="{{ resetInterview }}" style="flex:1;font-family:inherit;cursor:pointer;background:#fff;border:1px solid #DCDCD4;border-radius:11px;padding:13px;font-size:14.5px;font-weight:600;color:#1C1C1A;">처음으로</button>
+            <button onClick="{{ saveInterview }}" style="flex:1;font-family:inherit;cursor:pointer;background:#16A34A;color:#fff;border:none;border-radius:11px;padding:13px;font-size:14.5px;font-weight:600;">면접 결과 저장</button>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ========== MOCK ========== -->
+      <sc-if value="{{ isMock }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <sc-if value="{{ mockSetup }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:760px;display:flex;flex-direction:column;gap:18px;">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:26px 28px;display:flex;flex-direction:column;gap:22px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:11px;">진단 범위</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <sc-for list="{{ mockTypeChips }}" as="chip" hint-placeholder-count="8"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for>
+              </div>
+            </div>
+            <div style="background:#FAFAF7;border-radius:12px;padding:18px 20px;font-size:13.5px;color:#3A3A34;line-height:1.7;">난이도가 혼합되어 출제되며, 정답률과 문제 난이도를 기반으로 <b>A~D 등급</b>이 계산됩니다. AI 분석은 사용하지 않습니다.</div>
+          </div>
+          <button onClick="{{ startMock }}" style="align-self:flex-start;font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:11px;padding:13px 28px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;">모의 진단 시작<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ mockResult }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:16px;">
+            <div style="background:#1C1C1A;border-radius:16px;padding:26px 30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;min-width:200px;">
+              <span style="font-size:12.5px;color:#A8A8A0;">전체 등급</span>
+              <span class="mono" style="font-size:56px;font-weight:700;line-height:1;color:#5DDC8A;">B</span>
+              <span style="font-size:12px;color:#A8A8A0;">이전 진단 C → <b style="color:#5DDC8A;">B</b> 상승</span>
+            </div>
+            <div style="flex:1;background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:13px;">
+              <div style="font-size:13px;font-weight:600;color:#8A8A80;">취약 카테고리</div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:600;color:#DC2626;background:#FEF2F2;padding:7px 14px;border-radius:9px;">디자인패턴 · 58%</span>
+                <span style="font-size:13px;font-weight:600;color:#C2410C;background:#FEF2E8;padding:7px 14px;border-radius:9px;">운영체제 · 63%</span>
+              </div>
+              <div style="font-size:13px;color:#6B6B62;line-height:1.6;margin-top:4px;">위 카테고리를 집중 학습하면 다음 진단 등급 상승에 도움이 됩니다.</div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;">
+            <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:18px;">카테고리별 등급 · 정답률</div>
+            <div style="display:flex;flex-direction:column;gap:15px;">
+              <sc-for list="{{ catStats }}" as="c" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:16px;">
+                <span style="width:80px;font-size:13.5px;font-weight:600;flex-shrink:0;">{{ c.name }}</span>
+                <span class="mono" style="width:24px;font-size:16px;font-weight:700;color:{{ c.gradeColor }};flex-shrink:0;">{{ c.grade }}</span>
+                <div style="flex:1;height:9px;background:#F1F1ED;border-radius:6px;overflow:hidden;"><div style="height:100%;background:{{ c.gradeColor }};border-radius:6px;width:{{ c.accPct }};"></div></div>
+                <span class="mono" style="width:42px;text-align:right;font-size:13px;font-weight:600;color:#6B6B62;flex-shrink:0;">{{ c.acc }}%</span>
+                <span style="width:54px;text-align:right;font-size:12px;color:#B0B0A6;flex-shrink:0;">{{ c.change }}</span>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <button onClick="{{ resetMock }}" style="align-self:flex-start;font-family:inherit;cursor:pointer;background:#fff;border:1px solid #DCDCD4;border-radius:11px;padding:12px 24px;font-size:14px;font-weight:600;color:#1C1C1A;">다시 진단하기</button>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ========== RECORDS (grass) ========== -->
+      <sc-if value="{{ isRecords }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:26px 28px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+            <div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:15px;font-weight:700;">지난 1년 학습 기록</span><span class="mono" style="font-size:13px;color:#9A9A90;">{{ totalLearnDays }}일 학습</span></div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#9A9A90;">적음<sc-for list="{{ grassLegend }}" as="c" hint-placeholder-count="5"><span style="width:12px;height:12px;border-radius:3px;background:{{ c }};"></span></sc-for>많음</div>
+          </div>
+          <div style="overflow-x:auto;padding-bottom:6px;">
+            <div style="display:flex;gap:3px;min-width:max-content;">
+              <sc-for list="{{ grassWeeks }}" as="week" hint-placeholder-count="53">
+                <div style="display:flex;flex-direction:column;gap:3px;">
+                  <sc-for list="{{ week.days }}" as="day" hint-placeholder-count="7">
+                    <div title="{{ day.title }}" onClick="{{ day.onClick }}" style="width:13px;height:13px;border-radius:3px;background:{{ day.color }};cursor:pointer;"></div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:x;gap:16px;margin-top:18px;padding-top:16px;border-top:1px solid #F0F0EC;">
+            <sc-for list="{{ levelGuide }}" as="g" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:7px;"><span style="width:12px;height:12px;border-radius:3px;background:{{ g.color }};flex-shrink:0;"></span><span style="font-size:12px;color:#6B6B62;">{{ g.label }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasGrassSel }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#1C1C1A;border-radius:14px;padding:18px 22px;display:flex;align-items:center;gap:18px;color:#fff;">
+          <div style="width:14px;height:14px;border-radius:4px;background:{{ grassSelColor }};"></div>
+          <span style="font-size:14px;font-weight:600;">{{ grassSelText }}</span>
+          <span style="font-size:13px;color:#A8A8A0;">{{ grassSelDetail }}</span>
+        </div>
+        </sc-if>
+
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:13px;">최근 학습 기록</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <sc-for list="{{ records }}" as="r" hint-placeholder-count="5">
+            <div style="background:#fff;border:1px solid #ECECE8;border-radius:13px;padding:16px 20px;display:flex;align-items:center;gap:20px;">
+              <div style="display:flex;flex-direction:column;gap:2px;width:96px;flex-shrink:0;"><span class="mono" style="font-size:13.5px;font-weight:600;">{{ r.date }}</span><span style="font-size:11.5px;color:#A8A8A0;">{{ r.time }}</span></div>
+              <span style="font-size:12px;font-weight:600;color:#4F46E5;background:#EEF0FF;padding:4px 10px;border-radius:6px;flex-shrink:0;">{{ r.method }}</span>
+              <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;">
+                <sc-for list="{{ r.cats }}" as="cat" hint-placeholder-count="2"><span style="font-size:12px;color:#6B6B62;background:#F1F1ED;padding:3px 9px;border-radius:6px;">{{ cat }}</span></sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;flex-shrink:0;">
+                <span class="mono" style="font-size:13px;color:#6B6B62;">{{ r.solved }}문제</span>
+                <span class="mono" style="font-size:13px;color:#16A34A;font-weight:600;">정답 {{ r.correct }}</span>
+                <span class="mono" style="font-size:13px;color:#DC2626;font-weight:600;">오답 {{ r.wrong }}</span>
+                <span style="font-size:12px;font-weight:600;color:#fff;background:#1C1C1A;padding:4px 10px;border-radius:6px;">+{{ r.score }}</span>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== PROGRESS ========== -->
+      <sc-if value="{{ isProgress }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:22px;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:13px;">
+          <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="6">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:13px;padding:18px 20px;display:flex;flex-direction:column;gap:7px;">
+            <span style="font-size:12.5px;color:#8A8A80;font-weight:500;">{{ m.label }}</span>
+            <div style="display:flex;align-items:baseline;gap:5px;"><span class="mono" style="font-size:26px;font-weight:700;color:{{ m.color }};">{{ m.value }}</span><span style="font-size:12.5px;color:#A8A8A0;">{{ m.unit }}</span></div>
+          </div>
+          </sc-for>
+        </div>
+
+        
+
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#8A8A80;margin-bottom:13px;">카테고리별 성장 곡선</div>
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:18px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <span style="font-size:17px;font-weight:700;letter-spacing:-.2px;color:{{ growthChart.color }};">{{ growthChart.cat }}</span>
+              <span class="mono" style="font-size:14px;font-weight:700;color:#6B6B62;">{{ growthChart.path }}</span>
+            </div>
+            <svg viewBox="0 0 700 210" style="width:100%;height:auto;overflow:visible;font-family:'Pretendard',sans-serif;">
+              <sc-for list="{{ growthChart.gridlines }}" as="gl" hint-placeholder-count="4">
+                <line x1="54" y1="{{ gl.y }}" x2="656" y2="{{ gl.y }}" stroke="#F0F0EC" stroke-width="1"></line>
+                <text x="34" y="{{ gl.y }}" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#B0B0A6">{{ gl.label }}</text>
+              </sc-for>
+              <polygon points="{{ growthChart.area }}" fill="{{ growthChart.color }}" opacity="0.07"></polygon>
+              <polyline points="{{ growthChart.points }}" fill="none" stroke="{{ growthChart.color }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+              <sc-for list="{{ growthChart.dots }}" as="d" hint-placeholder-count="8">
+                <circle cx="{{ d.cx }}" cy="{{ d.cy }}" r="2.5" fill="#fff" stroke="{{ growthChart.color }}" stroke-width="2"></circle>
+                <text x="{{ d.labelX }}" y="{{ d.labelY }}" text-anchor="middle" font-size="12.5" font-weight="700" fill="{{ growthChart.color }}">{{ d.grade }}</text>
+              </sc-for>
+              <sc-for list="{{ growthChart.xlabels }}" as="xl" hint-placeholder-count="8">
+                <text x="{{ xl.x }}" y="206" text-anchor="middle" font-size="12" font-weight="500" fill="#A8A8A0">{{ xl.label }}</text>
+              </sc-for>
+            </svg>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;border-top:1px solid #F2F2EE;padding-top:16px;">
+              <sc-for list="{{ growthCatChips }}" as="chip" hint-placeholder-count="7"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== WEEKLY ========== -->
+      <sc-if value="{{ isWeekly }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:900px;display:flex;flex-direction:column;gap:18px;">
+        <div style="background:#1C1C1A;border-radius:16px;padding:24px 28px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:20px;">
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <span style="font-size:12.5px;color:#A8A8A0;">{{ weekRange }}</span>
+            <span style="font-size:20px;font-weight:700;">이번 주 학습 요약</span>
+          </div>
+          <div style="display:flex;gap:28px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span class="mono" style="font-size:30px;font-weight:700;">{{ weeklyDays }}</span><span style="font-size:11.5px;color:#A8A8A0;">학습일 / 7</span></div>
+            <div style="width:1px;background:rgba(255,255,255,.12);"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;"><span class="mono" style="font-size:30px;font-weight:700;color:#5DDC8A;">{{ weeklyRate }}%</span><span style="font-size:11.5px;color:#A8A8A0;">평균 정답률</span></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:13px;">
+          <sc-for list="{{ weeklyCards }}" as="w" hint-placeholder-count="6">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:13px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="display:flex;flex-direction:column;gap:5px;"><span style="font-size:12.5px;color:#8A8A80;font-weight:500;">{{ w.label }}</span><span style="font-size:17px;font-weight:700;">{{ w.value }}</span></div>
+            <span class="mono" style="font-size:13px;font-weight:600;color:{{ w.deltaColor }};">{{ w.delta }}</span>
+          </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#FAFAF7;border:1px solid #ECECE8;border-radius:13px;padding:18px 22px;display:flex;align-items:center;gap:13px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6B62" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+          <span style="font-size:13px;color:#6B6B62;line-height:1.6;">주간 리포트는 AI 없이 정해진 템플릿과 데이터 계산으로 생성됩니다. 매주 월요일 이메일로도 발송돼요.</span>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ========== MYPAGE ========== -->
+      <sc-if value="{{ isMypage }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:720px;display:flex;flex-direction:column;gap:18px;">
+
+        <!-- profile card -->
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:26px 28px;">
+          <div style="display:flex;align-items:center;gap:18px;">
+            <div style="width:66px;height:66px;border-radius:50%;background:#1C1C1A;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="color:#fff;font-size:26px;font-weight:700;">{{ mp.initial }}</span></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+              <span style="font-size:20px;font-weight:700;letter-spacing:-.3px;">{{ mp.nickname }}</span>
+              <span style="font-size:13.5px;color:#9A9A90;">{{ mp.email }}</span>
+              <span style="font-size:12.5px;font-weight:600;color:#4F46E5;background:#EEF0FF;padding:3px 10px;border-radius:6px;width:fit-content;margin-top:3px;">{{ mp.job }}</span>
+            </div>
+            <sc-if value="{{ mpEditView }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ mpStartEdit }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13.5px;font-weight:600;flex-shrink:0;">프로필 수정</button>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <sc-for list="{{ mpStats }}" as="st" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #ECECE8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+            <span style="font-size:12px;font-weight:600;color:#9A9A90;">{{ st.label }}</span>
+            <span style="font-size:24px;font-weight:700;letter-spacing:-.5px;">{{ st.value }}<span style="font-size:14px;font-weight:600;color:#A8A8A0;margin-left:2px;">{{ st.unit }}</span></span>
+          </div>
+          </sc-for>
+        </div>
+
+        <!-- detail: view mode -->
+        <sc-if value="{{ mpViewMode }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:8px 26px;">
+          <div style="display:flex;flex-direction:column;gap:3px;padding:18px 0;border-bottom:1px solid #F0F0EC;"><span style="font-size:12.5px;font-weight:600;color:#9A9A90;">닉네임</span><span style="font-size:14.5px;font-weight:600;color:#1C1C1A;">{{ mp.nickname }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px;padding:18px 0;border-bottom:1px solid #F0F0EC;"><span style="font-size:12.5px;font-weight:600;color:#9A9A90;">이메일</span><span style="font-size:14.5px;font-weight:600;color:#1C1C1A;">{{ mp.email }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px;padding:18px 0;"><span style="font-size:12.5px;font-weight:600;color:#9A9A90;">최소 학습 목표</span><span style="font-size:14.5px;font-weight:600;color:#1C1C1A;">{{ mp.goalText }}</span></div>
+          
+        </div>
+        </sc-if>
+
+        <!-- detail: edit mode -->
+        <sc-if value="{{ mpEditing }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:24px 26px;display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-direction:column;gap:7px;"><span style="font-size:12.5px;font-weight:600;color:#8A8A80;">닉네임</span><input value="{{ mpDraft.nickname }}" oninput="{{ mpSetNickname }}" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:12px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;"></div>
+          <div style="display:flex;flex-direction:column;gap:7px;"><span style="font-size:12.5px;font-weight:600;color:#8A8A80;">이메일</span><input value="{{ mpDraft.email }}" oninput="{{ mpSetEmail }}" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:12px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;"></div>
+          <div style="display:flex;flex-direction:column;gap:7px;"><span style="font-size:12.5px;font-weight:600;color:#8A8A80;">직무</span><input value="{{ mpDraft.job }}" oninput="{{ mpSetJob }}" style="width:100%;border:1px solid #E0E0DA;border-radius:11px;padding:12px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;"></div>
+          <div style="display:flex;flex-direction:column;gap:7px;"><span style="font-size:12.5px;font-weight:600;color:#8A8A80;">최소 학습 목표 문제 개수</span><div style="display:flex;align-items:center;gap:10px;"><input type="number" min="1" value="{{ mpDraft.goal }}" oninput="{{ mpSetGoal }}" style="width:120px;border:1px solid #E0E0DA;border-radius:11px;padding:12px 15px;font-family:inherit;font-size:14px;background:#FAFAF7;color:#1C1C1A;"><span style="font-size:14px;color:#6B6B62;">개 / 일</span></div></div>
+          
+          <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:2px;">
+            <button onClick="{{ mpCancel }}" style="font-family:inherit;cursor:pointer;background:#fff;color:#6B6B62;border:1px solid #DCDCD4;border-radius:10px;padding:11px 22px;font-size:13.5px;font-weight:600;">취소</button>
+            <button onClick="{{ mpSave }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:13.5px;font-weight:600;">저장</button>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ========== SETTINGS ========== -->
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:720px;display:flex;flex-direction:column;gap:18px;">
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:8px 26px;">
+          <sc-for list="{{ notifList }}" as="n" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid {{ n.border }};">
+            <div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:14.5px;font-weight:600;">{{ n.label }}</span><span style="font-size:12.5px;color:#9A9A90;">{{ n.desc }}</span></div>
+            <button onClick="{{ n.onToggle }}" style="{{ n.trackStyle }}"><span style="{{ n.knobStyle }}"></span></button>
+          </div>
+          </sc-for>
+        </div>
+
+        <div style="background:#fff;border:1px solid #ECECE8;border-radius:16px;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:14.5px;font-weight:600;">알림 시간</span><span style="font-size:12.5px;color:#9A9A90;">매일 리마인드를 받을 시간을 설정합니다</span></div>
+          <div style="display:flex;gap:8px;">
+            <sc-for list="{{ timeChips }}" as="chip" hint-placeholder-count="4"><button style="{{ chip.style }}" onClick="{{ chip.onClick }}">{{ chip.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="background:#FAFAF7;border:1px solid #ECECE8;border-radius:13px;padding:20px 24px;display:flex;flex-direction:column;gap:11px;">
+          <span style="font-size:13px;font-weight:600;color:#8A8A80;">발송 조건</span>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#5A5A52;line-height:1.5;"><span style="color:#C2410C;">•</span>오늘 학습 기록이 없으면 지정한 시간에 리마인드 발송</div>
+            <div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#5A5A52;line-height:1.5;"><span style="color:#C2410C;">•</span>연속 학습 중인데 당일 기록이 없으면 저녁에 중단 방지 알림</div>
+            <div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#5A5A52;line-height:1.5;"><span style="color:#C2410C;">•</span>미복습 오답이 일정 개수 이상이면 복습 알림</div>
+            <div style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:#5A5A52;line-height:1.5;"><span style="color:#C2410C;">•</span>매주 월요일에 주간 리포트 이메일 발송</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <!-- ========== 문제집에 저장 모달 ========== -->
+  <sc-if value="{{ cmOpen }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:60;background:rgba(28,28,26,.42);display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div style="width:100%;max-width:400px;background:#fff;border:1px solid #ECECE8;border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.24);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:20px 22px 15px;border-bottom:1px solid #F2F2EE;display:flex;flex-direction:column;gap:4px;">
+        <span style="font-size:16px;font-weight:700;letter-spacing:-.2px;">문제집에 저장</span>
+        
+      </div>
+      <div style="padding:8px;display:flex;flex-direction:column;gap:2px;max-height:264px;overflow-y:auto;">
+        <sc-for list="{{ cmList }}" as="c" hint-placeholder-count="3">
+        <button onClick="{{ c.onToggle }}" style="{{ c.rowStyle }}" style-hover="background:#FAFAF7;">
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;text-align:left;">
+            <span style="font-size:14px;font-weight:600;color:#1C1C1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.name }}</span>
+            <span style="font-size:11.5px;color:#A8A8A0;">{{ c.countText }}</span>
+          </span>
+          <span style="{{ c.boxStyle }}">{{ c.mark }}</span>
+        </button>
+        </sc-for>
+      </div>
+      <div style="border-top:1px solid #F2F2EE;padding:12px 14px 14px;display:flex;flex-direction:column;gap:11px;">
+        <sc-if value="{{ cmNewClosed }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ cmOpenNew }}" style="font-family:inherit;cursor:pointer;background:transparent;border:none;padding:8px 10px;border-radius:9px;display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:#4F46E5;" style-hover="background:#F5F6FF;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>새 문제집 만들기</button>
+        </sc-if>
+        <sc-if value="{{ cmNewOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:10px;background:#FAFAF7;border:1px solid #ECECE8;border-radius:12px;padding:14px;">
+          <input oninput="{{ setCmName }}" value="{{ cmNewName }}" placeholder="문제집 이름" style="width:100%;border:1px solid #E0E0DA;border-radius:10px;padding:11px 13px;font-family:inherit;font-size:13.5px;background:#fff;color:#1C1C1A;">
+          
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button onClick="{{ cmCancelNew }}" style="font-family:inherit;cursor:pointer;background:transparent;color:#6B6B62;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;">취소</button>
+            <button onClick="{{ cmCreate }}" style="{{ cmCreateStyle }}">만들기</button>
+          </div>
+        </div>
+        </sc-if>
+        <button onClick="{{ closeCm }}" style="font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;">완료</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = {
+    view: 'home',
+    profileOpen: false,
+    loggedOut: false,
+    authMode: 'login',
+    // quiz
+    quizStage: 'setup', // setup | quiz | result
+    qIdx: 0, qStep: 0, selected: null, checked: false, correctCount: 0,
+    // 객관식 인터뷰 (본 질문 + 꼬리질문 탭)
+    mcqState: [{selected:null,checked:false}], mcqRevealed: 1, mcqTab: 0,
+    cfgCat: '전체', cfgDiff: '전체', cfgCount: 10, cfgMode: '랜덤',
+    // problem bank filters
+    pbType: '전체', pbDiff: '전체', pbCat: '전체', pbSearch: '',
+    solveType: '객관식', descThread: [], descDraft: '', descOpen: [], descSavedWrong: false,
+    // 문제집
+    collections: [
+      { id:1, name:'면접 D-7 벼락치기', vis:'비공개', items:[0,2,5], updated:'2026.06.24' },
+      { id:2, name:'네트워크 집중 보완', vis:'공개', items:[7,8,0], updated:'2026.06.22' },
+      { id:3, name:'자주 틀리는 DB', vis:'비공개', items:[3,5], updated:'2026.06.18' },
+    ],
+    curPb: 0, colDetailId: null,
+    cmOpen: false, cmNewOpen: false, cmNewName: '', cmNewVis: '비공개',
+    clNewOpen: false, clNewName: '', clNewVis: '비공개',
+    // wrong
+    wrongFilter: '전체', wrongDeleted: [], wrongBookmarked: [0], wrongDetailIdx: null, wdTab: 0,
+    // interview
+    ivStage: 'intro', ivCat: '네트워크', ivAnswer: '',
+    // grass
+    grassSel: null,
+    growthCat: '네트워크',
+    // mypage
+    profileEdit: false,
+    profile: { nickname:'지민', email:'jimin.dev@gmail.com', job:'백엔드 개발 준비생', goal:'10', bio:'CS 기초를 탄탄히 다지는 중입니다.' },
+    profileDraft: null,
+    // settings
+    notif: { daily: true, streak: true, wrong: true, interview: false, weekly: true },
+    notifTime: '오후 9시',
+  };
+
+  categories = ['전체','DB','네트워크','알고리즘','자료구조','운영체제','디자인패턴','언어'];
+
+  questions = [
+    { cat:'네트워크', diff:'중', text:'TCP와 UDP의 가장 핵심적인 차이로 옳은 것은?',
+      options:['TCP는 연결 지향형으로 데이터 전달의 신뢰성을 보장하고, UDP는 비연결형으로 속도를 우선한다.','TCP는 비연결형이고 UDP는 연결을 수립한 뒤 통신한다.','두 프로토콜 모두 신뢰성을 보장하며 TCP가 항상 더 느리다.','UDP는 흐름 제어와 혼잡 제어를 모두 수행한다.'],
+      answer:0, explanation:'TCP는 3-way handshake로 연결을 수립하고 순서 보장·재전송·흐름 제어를 제공한다. UDP는 이런 보장 없이 헤더가 작고 지연이 적어 실시간 스트리밍·DNS 등에 쓰인다.',
+      optExp:['','TCP와 UDP의 연결 방식이 반대로 서술되었다. TCP가 연결 지향형, UDP가 비연결형이다.','UDP는 신뢰성을 보장하지 않으며, 속도는 상황에 따라 다르므로 TCP가 항상 느리다는 서술은 틀렸다.','흐름 제어와 혼잡 제어는 TCP의 기능이다. UDP는 이를 수행하지 않는다.'],
+      tags:['TCP','UDP','전송 계층'],
+      followups:[
+        { text:'그렇다면 실시간 음성 통화에 UDP가 적합한 가장 큰 이유는?',
+          options:['약간의 패킷 손실보다 낮은 지연이 더 중요하기 때문','재전송 덩분에 음질이 더 좋아지기 때문','UDP가 TCP보다 보안이 강하기 때문','UDP가 순서 보장을 해주기 때문'],
+          answer:0, explanation:'실시간 통화는 약간의 패킷 손실보다 지연이 적은 것이 품질에 더 중요하므로, 재전송·흐름 제어가 없는 UDP가 유리하다.',
+          optExp:['','재전송은 오히려 지연을 늘려 실시간성을 해친다.','UDP는 보안과 직접 관련이 없다.','순서 보장은 TCP의 특징이다.'] },
+        { text:'TCP의 3-way handshake가 필요한 이유로 가장 적절한 것은?',
+          options:['양쪽의 초기 순서 번호를 교환하고 연결을 확립하기 위해','전송 속도를 높이기 위해','패킷 크기를 줄이기 위해','암호화 키를 교환하기 위해'],
+          answer:0, explanation:'3-way handshake는 양쪽이 서로의 초기 순서 번호(ISN)를 교환하고 서로 통신 준비가 되었음을 확인해 신뢰성 있는 연결을 수립하기 위해 필요하다.',
+          optExp:['','핸드쉐이크는 속도 향상과 무관하다.','패킷 크기와 무관하다.','TCP 기본 핸드쉐이크는 암호화 키를 교환하지 않는다(TLS는 별도).'] } ] },
+    { cat:'자료구조', diff:'하', text:'해시 테이블의 평균 탐색 시간 복잡도는?',
+      options:['O(1) — 좋은 해시 함수와 적절한 부하율에서는 상수 시간에 가깝다.','O(n) — 항상 모든 원소를 순회해야 하기 때문이다.','O(log n) — 내부적으로 정렬된 트리 구조이기 때문이다.','O(n log n) — 삽입할 때마다 정렬이 필요하기 때문이다.'],
+      answer:0, explanation:'해시 테이블은 키를 해시 함수로 인덱스에 매핑해 평균 O(1) 접근이 가능하다. 다만 충돌이 많아지면 최악의 경우 O(n)까지 저하될 수 있다.',
+      optExp:['','O(n)은 충돌이 극심해 모든 원소를 순회해야 하는 최악의 경우일 뿐, 평균적인 상황은 아니다.','O(log n)은 균형 이진 탐색 트리 등의 복잡도다. 해시 테이블은 트리 구조가 아니다.','O(n log n)은 비교 기반 정렬의 복잡도다. 해시 삽입은 정렬을 필요로 하지 않는다.'],
+      tags:['해시','시간복잡도'],
+      followups:[
+        { text:'해시 충돌을 해결하는 방식으로 올바른 것은?',
+          options:['체이닝(연결 리스트)과 개방 주소법(선형 탐사 등)','키를 정렬해 이진 탐색으로 찾는다','테이블을 항상 2배로 늘린다','충돌은 해시에서 발생하지 않는다'],
+          answer:0, explanation:'대표적인 충돌 해결은 같은 버킷을 연결 리스트로 묶는 체이닝과, 빈 슬롯을 탐사해 넣는 개방 주소법이 있다.',
+          optExp:['','해시는 정렬/이진탐색과 무관하다.','재해싱(rehashing)은 부하율이 높을 때 하며 항상은 아니다.','충돌은 비둘기 원리상 발생한다.'] },
+        { text:'부하율(load factor)이 높아질 때 나타나는 현상으로 올바른 것은?',
+          options:['충돌이 증가해 탐색 성능이 저하된다','항상 O(1)이 유지된다','메모리 사용량이 줄어든다','키가 자동으로 정렬된다'],
+          answer:0, explanation:'부하율이 높아지면 한 버킷에 원소가 몰려 충돌이 늘고 탐색·삽입 성능이 저하된다. 그래서 임계치를 넘으면 rehashing으로 테이블을 확장한다.',
+          optExp:['','부하율이 높으면 O(1)이 깨진다.','부하율이 높다는 건 메모리가 빽빽하다는 뜻이다.','해시는 정렬과 무관하다.'] } ] },
+    { cat:'운영체제', diff:'상', text:'교착 상태(Deadlock)의 발생 필요조건이 아닌 것은?',
+      options:['선점 가능(Preemption) — 자원을 강제로 회수할 수 있다.','상호 배제(Mutual Exclusion)','점유와 대기(Hold and Wait)','순환 대기(Circular Wait)'],
+      answer:0, explanation:'교착 상태의 4가지 필요조건은 상호 배제, 점유와 대기, 비선점, 순환 대기다. "선점 가능"은 오히려 교착을 예방하는 조건이므로 발생 조건이 아니다.',
+      optExp:['','상호 배제는 자원을 한 번에 하나의 프로세스만 쓸 수 있는 조건으로, 교착의 실제 필요조건이 맞다.','점유와 대기는 자원을 점유한 채 다른 자원을 기다리는 상태로, 교착의 필요조건이 맞다.','순환 대기는 프로세스들이 원형으로 서로의 자원을 기다리는 상태로, 교착의 필요조건이 맞다.'],
+      tags:['교착상태','동기화'],
+      followups:[
+        { text:'교착 상태를 예방하는 기법으로 가장 적절한 것은?',
+          options:['4가지 필요조건 중 최소 하나가 성립하지 않도록 만든다','모든 프로세스를 순차로만 실행한다','CPU 클럭을 높인다','메모리를 늘린다'],
+          answer:0, explanation:'교착 예방은 상호배제·점유와대기·비선점·순환대기 중 적어도 하나가 성립하지 않도록 설계하는 것이다.',
+          optExp:['','순차 실행은 비현실적이며 예방 기법이 아니다.','클럭 속도는 교착과 무관하다.','메모리 증설은 근본 해결이 아니다.'] },
+        { text:'교착 회피(avoidance) 기법의 대표적인 알고리즘은?',
+          options:['은행원 알고리즘(Banker’s Algorithm)','라운드 로빈','LRU 교체','다익스트라'],
+          answer:0, explanation:'은행원 알고리즘은 자원 할당 전 안전 상태를 유지할 수 있는지 검사해 교착을 회피하는 대표 기법이다.',
+          optExp:['','라운드 로빈은 CPU 스케줄링 기법이다.','LRU는 페이지 교체 알고리즘이다.','다익스트라는 최단경로 알고리즘이다.'] } ] },
+    { cat:'DB', diff:'중', text:'트랜잭션의 ACID 중 격리성(Isolation)에 대한 설명으로 옳은 것은?',
+      options:['동시에 실행되는 트랜잭션이 서로의 중간 결과에 영향을 주지 않도록 한다.','트랜잭션이 완료되면 그 결과가 영구적으로 저장된다.','트랜잭션의 모든 연산이 전부 수행되거나 전혀 수행되지 않는다.','트랜잭션 수행 후에도 데이터 무결성 제약이 유지된다.'],
+      answer:0, explanation:'격리성은 동시 실행되는 트랜잭션들이 독립적으로 수행되는 것처럼 보이게 한다. 나머지 보기는 각각 지속성(Durability), 원자성(Atomicity), 일관성(Consistency)에 대한 설명이다.',
+      optExp:['','이는 지속성(Durability)에 대한 설명이다. 트랜잭션이 완료되면 결과가 영구 저장된다는 성질이다.','이는 원자성(Atomicity)에 대한 설명이다. 모든 연산이 전부 수행되거나 전혀 수행되지 않는 성질이다.','이는 일관성(Consistency)에 대한 설명이다. 트랜잭션 전후 데이터 무결성 제약이 유지되는 성질이다.'],
+      tags:['트랜잭션','ACID'],
+      followups:[
+        { text:'격리 수준이 낮을 때 발생할 수 있는 문제로 올바른 것은?',
+          options:['Dirty Read, Non-Repeatable Read, Phantom Read','교착 상태만 발생한다','성능이 항상 느려진다','데이터가 영구 삭제된다'],
+          answer:0, explanation:'격리 수준이 낮을수록 동시성은 좋아지지만 Dirty Read, Non-Repeatable Read, Phantom Read 같은 이상 현상이 나타날 수 있다.',
+          optExp:['','이상 현상은 교착만의 문제가 아니다.','격리 수준이 낮을수록 오히려 동시성은 높아진다.','격리 수준과 데이터 삭제는 무관하다.'] },
+        { text:'대부분의 RDBMS가 기본값으로 사용하는 격리 수준은?',
+          options:['READ COMMITTED (일부는 REPEATABLE READ)','SERIALIZABLE','READ UNCOMMITTED','격리 수준이 없다'],
+          answer:0, explanation:'많은 RDBMS는 성능과 정합성의 균형을 위해 READ COMMITTED를 기본으로 쓰며(MySQL InnoDB는 REPEATABLE READ) SERIALIZABLE은 비용이 커 잘 쓰지 않는다.',
+          optExp:['','SERIALIZABLE은 가장 엄격하지만 비용이 커 기본값은 아니다.','READ UNCOMMITTED는 Dirty Read를 허용해 거의 쓰지 않는다.','RDBMS는 모두 격리 수준을 가진다.'] } ] },
+  ];
+
+  descQuestions = [
+    { cat:'네트워크', diff:'중', text:'TCP의 흐름 제어(Flow Control)와 혼잡 제어(Congestion Control)의 차이를 설명하시오.',
+      model:'흐름 제어는 수신자의 처리 속도에 맞춰 송신량을 조절하는 것으로, 수신 버퍼가 넘치지 않도록 슬라이딩 윈도우로 송신 윈도우 크기를 조정합니다. 혼잡 제어는 네트워크 전체의 혼잡을 막기 위한 것으로, 느린 시작(Slow Start)·혼잡 회피 등으로 전송 속도를 조절합니다. 즉 흐름 제어는 종단 간(수신자) 문제, 혼잡 제어는 네트워크 경로 전체의 문제를 다룹니다.',
+      keywords:['흐름 제어','혼잡 제어','슬라이딩 윈도우','느린 시작','수신 버퍼'],
+      followups:['슬라이딩 윈도우가 흐름 제어에서 구체적으로 어떻게 동작하는지 설명해 주세요.','혼잡이 감지되었을 때 TCP는 전송 속도를 어떻게 조절하나요?'],
+      feedbacks:['흐름 제어와 혼잡 제어의 목적 차이(수신자 보호 vs 네트워크 보호)를 명확히 구분하면 더 좋습니다.','슬라이딩 윈도우와 수신 윈도우(rwnd)의 관계를 언급하면 완성도가 높아집니다.','혼잡 윈도우(cwnd) 조절 단계(느린 시작 등)를 함께 설명하면 좋습니다.'],
+      followupModels:['수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 ACK를 받지 않은 데이터를 보낼 수 있게 하여, 수신 버퍼가 넘치지 않도록 전송량을 실시간으로 조절합니다.','혼잡이 감지되면 혼잡 윈도우(cwnd)를 줄입니다. 느린 시작·혼잡 회피·빠른 회복 단계로 cwnd를 조절해 네트워크 혼잡을 완화합니다.'] },
+    { cat:'DB', diff:'상', text:'정규화와 반정규화를 각각 언제 사용하는지, 트레이드오프와 함께 설명하시오.',
+      model:'정규화는 데이터 중복과 이상 현상을 제거해 무결성을 높이는 과정으로, 삽입·갱신·삭제 이상을 방지하지만 조인이 많아져 조회 성능이 떨어질 수 있습니다. 반정규화는 의도적으로 중복을 허용해 조인을 줄이고 조회 성능을 높이는 기법으로, 읽기가 많고 성능이 중요한 경우 사용하지만 데이터 정합성 관리 부담이 늘어납니다. 일반적으로 정규화를 기본으로 하되, 성능 병목이 명확한 부분에 한해 반정규화를 적용합니다.',
+      keywords:['정규화','반정규화','이상 현상','조인','무결성','조회 성능'],
+      followups:['반정규화를 적용했을 때 데이터 정합성은 어떻게 유지하나요?','어떤 기준으로 반정규화 대상 테이블을 선정하나요?'],
+      feedbacks:['정규화의 이점(무결성)과 반정규화의 이점(조회 성능)을 트레이드오프로 대비하면 좋습니다.','정합성 유지 수단을 구체적으로 제시하면 설득력이 높아집니다.','선정 기준을 읽기/쓰기 비율 관점에서 설명하면 좋습니다.'],
+      followupModels:['트리거, 애플리케이션 레벨 갱신, 배치 동기화 등으로 중복 데이터의 정합성을 맞춥니다. 갱신 비용이 늘어나는 트레이드오프를 감수합니다.','조회가 빈번하고 조인 비용이 큼 테이블, 읽기 대비 쓰기가 적은 데이터를 우선 반정규화 대상으로 삼습니다.'] },
+    { cat:'운영체제', diff:'중', text:'세마포어(Semaphore)와 뮤텍스(Mutex)의 차이를 설명하시오.',
+      model:'뮤텍스는 하나의 자원에 대한 상호 배제를 보장하는 잠금으로, 락을 획득한 스레드만 해제할 수 있습니다(소유권 있음). 세마포어는 정해진 개수만큼의 자원 접근을 허용하는 카운터로, 소유권 개념이 없어 다른 스레드가 signal 할 수 있습니다. 즉 뮤텍스는 카운트가 1인 이진 잠금에 가깝고, 세마포어는 여러 자원 접근을 제어하는 일반화된 형태입니다.',
+      keywords:['뮤텍스','세마포어','상호 배제','소유권','카운터'],
+      followups:['뮤텍스의 ‘소유권’ 개념이 왜 중요한가요?','카운팅 세마포어는 어떤 상황에서 유용한가요?'],
+      feedbacks:['소유권 유무와 카운터 개념을 축으로 두 개념을 구분한 점이 좋습니다.','우선순위 역전 등 소유권이 주는 안전성 이점을 언급하면 좋습니다.','커넥션 풀 같은 구체적 예시를 들면 더 명확합니다.'],
+      followupModels:['뮤텍스는 락을 획득한 스레드만 해제할 수 있어, 잘못된 해제·우선순위 역전 처리 등 안전성을 확보할 수 있습니다.','동일 자원이 N개 있어 동시에 N개까지 접근을 허용해야 하는 상황(커넥션 풀, 제한된 버퍼 등)에 유용합니다.'] },
+    { cat:'알고리즘', diff:'상', text:'DFS와 BFS의 차이와, 각각 어떤 상황에 적합한지 설명하시오.',
+      model:'DFS는 한 경로를 끝까지 탐색한 뒤 되돌아오는 방식으로 스택(또는 재귀)을 사용하며, 경로 존재 여부·백트래킹·사이클 탐지에 적합합니다. BFS는 가까운 노드부터 레벨 단위로 탐색하며 큐를 사용하고, 가중치가 같은 그래프에서 최단 경로를 찾을 때 적합합니다. 메모리는 보통 DFS가 적게 쓰고, 최단 거리 보장은 BFS가 가능합니다.',
+      keywords:['DFS','BFS','스택','큐','최단 경로','백트래킹'],
+      followups:['가중치가 있는 그래프에서 최단 경로를 구하려면 무엇을 쓰나요?','DFS를 재귀로 구현할 때 주의할 점은 무엇인가요?'],
+      feedbacks:['탐색 자료구조(스택/큐)와 적합 상황을 짝지어 설명한 점이 좋습니다.','가중치 유무에 따른 알고리즘 선택을 명확히 하면 좋습니다.','스택 오버플로와 방문 체크를 함께 언급하면 좋습니다.'],
+      followupModels:['음이 아닌 가중치는 다익스트라, 음의 가중치가 있으면 벨만-포드를 쓰며, 모든 간선 가중치가 같으면 BFS로도 최단 경로를 구할 수 있습니다.','재귀 깊이가 깊어지면 스택 오버플로가 발생할 수 있어, 방문 체크와 반복(명시적 스택) 구현을 고려해야 합니다.'] },
+  ];
+
+  lvBadge(d){ return d || '중'; }
+
+  // 문제은행 — qi는 객관식이면 questions[], 서술형이면 descQuestions[]의 인덱스
+  problemBank = [
+    { type:'객관식', qi:0, title:'TCP와 UDP의 핵심 차이', cat:'네트워크', keywords:['네트워크','TCP/UDP','전송 계층'], diff:'중', solved:1284, rate:62, status:'완료' },
+    { type:'서술형', qi:3, title:'DFS와 BFS, 언제 무엇을 쓰는가', cat:'알고리즘', keywords:['알고리즘','그래프 탐색','DFS/BFS'], diff:'상', solved:687, rate:41, status:'안 푼 문제' },
+    { type:'객관식', qi:2, title:'교착 상태(Deadlock)의 발생 조건', cat:'운영체제', keywords:['운영체제','교착 상태','동시성'], diff:'상', solved:734, rate:38, status:'오답' },
+    { type:'서술형', qi:1, title:'정규화와 반정규화의 트레이드오프', cat:'DB', keywords:['데이터베이스','정규화','스키마 설계'], diff:'상', solved:516, rate:33, status:'안 푼 문제' },
+    { type:'객관식', qi:1, title:'해시 테이블의 평균 탐색 복잡도', cat:'자료구조', keywords:['자료구조','해시 테이블','시간 복잡도'], diff:'하', solved:2031, rate:81, status:'완료' },
+    { type:'객관식', qi:3, title:'트랜잭션 ACID — 격리성', cat:'DB', keywords:['데이터베이스','트랜잭션','격리 수준'], diff:'중', solved:1102, rate:57, status:'안 푼 문제' },
+    { type:'서술형', qi:2, title:'세마포어와 뮤텍스의 차이', cat:'운영체제', keywords:['운영체제','동기화','세마포어/뮤텍스'], diff:'중', solved:923, rate:51, status:'오답' },
+    { type:'서술형', qi:0, title:'TCP 흐름 제어 vs 혼잡 제어', cat:'네트워크', keywords:['네트워크','TCP','흐름/혼잡 제어'], diff:'중', solved:842, rate:45, status:'안 푼 문제' },
+    { type:'객관식', qi:0, title:'3-way handshake의 동작 과정', cat:'네트워크', keywords:['네트워크','TCP','연결 수립'], diff:'중', solved:611, rate:49, status:'안 푼 문제' },
+    { type:'객관식', qi:1, title:'배열과 연결 리스트의 접근 비용', cat:'자료구조', keywords:['자료구조','배열/연결 리스트','시간 복잡도'], diff:'하', solved:1760, rate:78, status:'완료' },
+    { type:'서술형', qi:1, title:'인덱스를 무분별하게 늘리면 안 되는 이유', cat:'DB', keywords:['데이터베이스','인덱스','쿼리 성능'], diff:'중', solved:498, rate:39, status:'안 푼 문제' },
+    { type:'객관식', qi:2, title:'프로세스 스케줄링 기법 비교', cat:'운영체제', keywords:['운영체제','스케줄링','CPU'], diff:'상', solved:402, rate:35, status:'안 푼 문제' },
+  ];
+
+  catStatsData = [
+    { name:'DB', acc:82, count:64, grade:'A', change:'B→A' },
+    { name:'네트워크', acc:71, count:58, grade:'B', change:'C→B' },
+    { name:'알고리즘', acc:66, count:90, grade:'B', change:'C→B' },
+    { name:'자료구조', acc:74, count:52, grade:'B', change:'B→B' },
+    { name:'운영체제', acc:63, count:47, grade:'C', change:'D→C' },
+    { name:'디자인패턴', acc:58, count:31, grade:'C', change:'C→C' },
+    { name:'언어', acc:79, count:43, grade:'A', change:'B→A' },
+  ];
+
+  growthData = [
+    { cat:'네트워크', grades:['D','C','C','B','B','B','B','B'] },
+    { cat:'운영체제', grades:['D','D','C','C','C','B','B','B'] },
+    { cat:'DB', grades:['C','C','B','B','B','A','A','A'] },
+    { cat:'알고리즘', grades:['D','C','C','C','B','B','B','A'] },
+    { cat:'자료구조', grades:['D','C','C','B','B','B','B','B'] },
+    { cat:'언어', grades:['C','B','B','B','B','A','A','A'] },
+    { cat:'디자인 패턴', grades:['D','D','C','C','B','B','B','A'] },
+  ];
+
+  wrongData = [
+    { q:'TCP 3-way handshake 과정에서 SYN, SYN-ACK, ACK 패킷의 순서로 옳은 것은?', cat:'네트워크', diff:'중', status:'미복습', repeat:3, source:'문제 풀이', solvedAt:'2026.06.25',
+      options:['SYN → ACK → SYN-ACK','SYN → SYN-ACK → ACK','ACK → SYN → SYN-ACK','SYN-ACK → SYN → ACK'],
+      myAnswer:0, correctAnswer:1,
+      explanation:'클라이언트가 SYN을 보내 연결을 요청하고, 서버가 SYN-ACK로 응답하며, 마지막으로 클라이언트가 ACK를 보내 연결이 수립된다. 3-way handshake의 정확한 순서는 SYN → SYN-ACK → ACK 이다.',
+      wrongExp:'SYN 다음에 바로 ACK가 오는 것으로 골랐지만, 서버의 응답인 SYN-ACK 단계가 빠졌습니다. 연결 수립은 반드시 SYN → SYN-ACK → ACK 3단계를 거칩니다.',
+      followups:[
+        { text:'연결을 종료할 때 사용하는 방식으로 올바른 것은?', options:['4-way handshake','3-way handshake','2-way handshake','핸드쉐이크 없이 종료'], answer:0, myAnswer:2,
+          explanation:'TCP 연결 종료는 FIN·ACK를 주고받는 4-way handshake로 이뤄진다.', wrongExp:'2-way로 골랐지만, 종료는 양쪽이 각각 FIN과 ACK를 주고받는 4단계를 거칩니다.' },
+        { text:'마지막 ACK가 유실되면 어떻게 되는가?', options:['서버가 SYN-ACK를 재전송하며 재시도한다','연결이 즉시 성립된다','클라이언트가 데이터를 먼저 보낸다','연결이 영구히 끊긴다'], answer:0, myAnswer:0,
+          explanation:'ACK가 유실되면 서버는 타임아웃 후 SYN-ACK를 재전송해 재시도한다.', wrongExp:'' },
+      ] },
+    { q:'DB 인덱스로 B-Tree 대신 B+Tree를 주로 사용하는 이유로 옳은 것은?', cat:'DB', diff:'상', status:'미복습', repeat:2, source:'자가진단', solvedAt:'2026.06.24',
+      options:['모든 데이터를 내부 노드에 저장해 탐색이 빠르다','리프 노드가 연결 리스트로 이어져 범위 검색에 유리하다','트리 높이가 항상 1로 유지된다','중복 키를 저장할 수 없다'],
+      myAnswer:0, correctAnswer:1,
+      explanation:'B+Tree는 실제 데이터를 리프 노드에만 저장하고, 리프 노드끼리 연결 리스트로 이어져 있어 순차·범위 검색에 매우 유리하다. 그래서 DB 인덱스에 널리 쓰인다.',
+      wrongExp:'내부 노드에도 데이터를 저장하는 것은 B-Tree의 특성입니다. B+Tree는 데이터를 리프에만 두어 범위 검색 성능을 확보한다는 점을 놓쳤습니다.',
+      followups:[
+        { text:'인덱스를 무분별하게 늘릴 때 생기는 문제로 올바른 것은?', options:['쓰기 성능 저하와 저장 공간 증가','조회가 불가능해진다','트리가 사라진다','정합성이 깨진다'], answer:0, myAnswer:1,
+          explanation:'인덱스가 많으면 INSERT/UPDATE 시 인덱스도 갱신해야 해 쓰기 성능이 떨어지고 저장 공간도 늘어난다.', wrongExp:'조회 불가로 골랐지만, 인덱스가 많아도 조회는 가능합니다. 문제는 쓰기 성능과 저장 공간입니다.' },
+        { text:'B+Tree에서 범위 검색이 빠른 핵심 이유는?', options:['리프 노드가 연결 리스트로 이어져 있다','트리 높이가 0이다','키가 정렬되지 않는다','내부 노드에 데이터가 있다'], answer:0, myAnswer:0,
+          explanation:'리프 노드가 순서대로 연결되어 있어 범위 검색 시 순차 이동만으로 빠르게 찾는다.', wrongExp:'' },
+      ] },
+    { q:'프로세스와 스레드의 메모리 공유에 대한 설명으로 옳은 것은?', cat:'운영체제', diff:'중', status:'미복습', repeat:1, source:'문제 풀이', solvedAt:'2026.06.24',
+      options:['스레드는 스택까지 모두 공유한다','프로세스끼리 기본적으로 힙을 공유한다','스레드는 코드·데이터·힙을 공유하고 스택은 개별로 가진다','프로세스와 스레드는 메모리 구조가 동일하다'],
+      myAnswer:1, correctAnswer:2,
+      explanation:'같은 프로세스 내 스레드들은 코드·데이터·힙 영역을 공유하지만, 각 스레드는 독립된 스택과 레지스터를 갖는다. 프로세스끼리는 기본적으로 메모리를 공유하지 않는다.',
+      wrongExp:'프로세스끼리 힙을 공유한다고 골랐지만, 프로세스는 기본적으로 독립된 메모리 공간을 가집니다. 힙·데이터를 공유하는 것은 같은 프로세스 내 스레드입니다.',
+      followups:[
+        { text:'멀티스레드 환경의 대표적인 위험은?', options:['경쟁 상태(Race Condition)','메모리 절약','무조건 속도 향상','컨텍스트 스위칭 제거'], answer:0, myAnswer:0,
+          explanation:'여러 스레드가 공유 자원에 동시 접근하면 경쟁 상태가 발생해 결과가 비결정적이 된다.', wrongExp:'' },
+        { text:'스레드 동기화 도구가 아닌 것은?', options:['페이지 테이블','뮤텍스','세마포어','모니터'], answer:0, myAnswer:0,
+          explanation:'페이지 테이블은 가상 메모리 주소 변환용이며 동기화 도구가 아니다.', wrongExp:'' },
+      ] },
+    { q:'정규화 단계 중 부분 함수 종속을 제거하는 단계는?', cat:'DB', diff:'중', status:'미복습', repeat:1, source:'재풀이', solvedAt:'2026.06.23',
+      options:['제1정규형(1NF)','제2정규형(2NF)','제3정규형(3NF)','BCNF'],
+      myAnswer:2, correctAnswer:1,
+      explanation:'2NF는 기본키의 일부에만 종속되는 부분 함수 종속을 제거한다. 1NF는 원자값, 3NF는 이행적 종속 제거를 다룬다.',
+      wrongExp:'3NF로 골랐지만 3NF가 제거하는 것은 이행적 함수 종속입니다. 부분 함수 종속을 제거하는 단계는 2NF입니다.',
+      followups:[
+        { text:'이행적 함수 종속을 제거하는 단계는?', options:['3NF','1NF','2NF','0NF'], answer:0, myAnswer:2,
+          explanation:'3NF는 기본키가 아닌 속성에 종속되는 이행적 함수 종속을 제거한다.', wrongExp:'2NF로 골랐지만 2NF는 부분 종속 제거 단계입니다. 이행적 종속은 3NF에서 제거합니다.' },
+        { text:'과도한 정규화의 단점으로 올바른 것은?', options:['조인 증가로 조회 성능이 저하될 수 있다','데이터 중복이 늘어난다','이상 현상이 늘어난다','무결성이 약해진다'], answer:0, myAnswer:0,
+          explanation:'정규화를 과도하게 하면 테이블이 나뉘어 조인이 많아지고 조회 성능이 떨어질 수 있다.', wrongExp:'' },
+      ] },
+    { q:'다익스트라 알고리즘이 음의 가중치 간선에서 올바르게 동작하지 않는 이유는?', cat:'알고리즘', diff:'상', status:'미복습', repeat:1, source:'직접 저장', solvedAt:'2026.06.22',
+      options:['우선순위 큐를 사용하기 때문','한 번 확정한 최단 거리를 다시 갱신하지 않기 때문','시간복잡도가 너무 크기 때문','방문 배열을 쓰지 않기 때문'],
+      myAnswer:3, correctAnswer:1,
+      explanation:'다익스트라는 방문 확정된 노드의 최단 거리를 더 이상 갱신하지 않는 그리디 방식이다. 음의 간선이 있으면 나중에 더 짧은 경로가 나타날 수 있어 결과가 틀어진다. 이 경우 벨만-포드를 써야 한다.',
+      wrongExp:'방문 배열 유무가 원인이 아닙니다. 핵심은 한 번 확정한 최단 거리를 다시 갱신하지 않는 그리디 특성 때문에 음의 간선을 제대로 처리하지 못한다는 점입니다.',
+      followups:[
+        { text:'음의 가중치에서 최단 경로를 구하는 알고리즘은?', options:['벨만-포드','다익스트라','BFS','이분 탐색'], answer:0, myAnswer:0,
+          explanation:'벨만-포드는 간선을 반복 이완해 음의 가중치에서도 최단 경로를 구한다.', wrongExp:'' },
+        { text:'우선순위 큐를 쓴 다익스트라의 시간복잡도는?', options:['O(E log V)','O(V^2 log V)','O(V!)','O(1)'], answer:0, myAnswer:1,
+          explanation:'우선순위 큐(민힙) 기반 다익스트라의 시간복잡도는 O(E log V)이다.', wrongExp:'O(V^2 log V)로 골랐지만, 민힙을 쓰면 O(E log V)입니다. O(V^2)는 배열 구현 경우입니다.' },
+      ] },
+    { q:'옵저버 패턴과 발행-구독(Pub-Sub) 패턴의 차이로 옳은 것은?', cat:'디자인패턴', diff:'중', status:'미복습', repeat:2, source:'문제 풀이', solvedAt:'2026.06.21',
+      options:['둘은 완전히 동일한 패턴이다','옵저버는 주체와 관찰자가 직접 연결되고, Pub-Sub은 브로커를 통해 느슨히 결합된다','Pub-Sub은 관찰자가 하나만 가능하다','옵저버 패턴은 비동기에서만 쓰인다'],
+      myAnswer:0, correctAnswer:1,
+      explanation:'옵저버 패턴은 주체(Subject)가 관찰자(Observer)를 직접 알고 통지한다. Pub-Sub은 발행자와 구독자 사이에 메시지 브로커/채널이 끼어 서로를 몰라도 되는 느슨한 결합을 만든다.',
+      wrongExp:'두 패턴을 동일하다고 골랐지만, 결합도에서 분명히 다릅니다. 옵저버는 직접 결합, Pub-Sub은 브로커를 통한 느슨한 결합입니다.',
+      followups:[
+        { text:'Pub-Sub이 느슨한 결합을 만드는 핵심 요소는?', options:['메시지 브로커/채널','직접 참조','상속','전역 변수'], answer:0, myAnswer:0,
+          explanation:'발행자와 구독자 사이에 브로커/채널이 끼어 서로를 몰라도 되는 느슨한 결합을 만든다.', wrongExp:'' },
+        { text:'옵저버 패턴의 대표적인 사용처는?', options:['UI 이벤트 리스너','정렬 알고리즘','메모리 할당','파일 압축'], answer:0, myAnswer:0,
+          explanation:'상태 변화를 여러 구성요소에 알려야 하는 UI 이벤트 리스너가 대표적인 예다.', wrongExp:'' },
+      ] },
+  ];
+
+  recordsData = [
+    { date:'06.25', time:'18분', method:'문제 풀이', cats:['네트워크','DB'], solved:12, correct:9, wrong:3, score:24 },
+    { date:'06.24', time:'9분', method:'1일 1면접', cats:['운영체제'], solved:1, correct:1, wrong:0, score:12 },
+    { date:'06.24', time:'14분', method:'오답 복습', cats:['알고리즘'], solved:6, correct:5, wrong:1, score:16 },
+    { date:'06.23', time:'22분', method:'모의 진단', cats:['전체'], solved:20, correct:13, wrong:7, score:30 },
+    { date:'06.22', time:'11분', method:'카테고리별', cats:['자료구조'], solved:10, correct:8, wrong:2, score:20 },
+  ];
+
+  ivBank = {
+    '네트워크': { q:'HTTP와 HTTPS의 차이를 설명하고, HTTPS가 보안을 제공하는 원리를 말씀해 주세요.',
+      feedback:'핵심 개념인 SSL/TLS 암호화를 언급한 점은 좋습니다. 다만 대칭키와 비대칭키가 함께 쓰이는 하이브리드 방식과, 인증서를 통한 서버 신원 확인 과정을 함께 설명하면 답변의 깊이가 올라갑니다.',
+      followup:'TLS 핸드셰이크 과정에서 대칭키는 어떻게 안전하게 교환되나요?',
+      improved:'HTTPS는 HTTP에 SSL/TLS 계층을 더한 것입니다. 연결 초기에 비대칭키로 안전하게 세션키(대칭키)를 교환하고, 이후 통신은 빠른 대칭키로 암호화합니다. 또한 CA가 발급한 인증서로 서버의 신원을 검증해 중간자 공격을 방지합니다.',
+      keywords:['SSL/TLS','대칭키/비대칭키','인증서','핸드셰이크'] },
+    '운영체제': { q:'프로세스와 스레드의 차이를 설명하고, 멀티스레드의 장단점을 말씀해 주세요.',
+      feedback:'메모리 공유 관점에서 잘 접근했습니다. Context Switching 비용 차이와 동기화 문제(경쟁 상태)를 추가하면 실무적인 답변이 됩니다.',
+      followup:'멀티스레드 환경에서 경쟁 상태(Race Condition)는 어떻게 방지하나요?',
+      improved:'프로세스는 독립된 메모리 공간을 갖고, 스레드는 같은 프로세스의 Heap·Data 영역을 공유하며 Stack만 별도로 가집니다. 스레드는 생성·전환 비용이 낮아 효율적이지만, 공유 자원 접근 시 동기화가 필요하며 한 스레드의 오류가 전체에 영향을 줄 수 있습니다.',
+      keywords:['메모리 공유','Context Switching','경쟁 상태','동기화'] },
+    'DB': { q:'인덱스가 조회 성능을 높이는 원리와, 인덱스를 무분별하게 추가하면 안 되는 이유를 설명해 주세요.',
+      feedback:'B+Tree 기반 탐색 원리를 언급하면 좋겠습니다. 쓰기 비용 증가와 저장 공간 측면의 트레이드오프를 함께 설명한 점은 훌륭합니다.',
+      followup:'복합 인덱스에서 컬럼 순서가 중요한 이유는 무엇인가요?',
+      improved:'인덱스는 B+Tree로 정렬된 구조를 유지해 전체 스캔 없이 O(log n)으로 데이터를 찾게 합니다. 다만 INSERT/UPDATE/DELETE마다 인덱스도 갱신되어 쓰기 성능이 저하되고 저장 공간을 추가로 쓰므로, 조회가 잦은 컬럼에 선별적으로 적용해야 합니다.',
+      keywords:['B+Tree','인덱스','쓰기 비용','복합 인덱스'] },
+    '전체': { q:'REST API를 설계할 때 지켜야 할 핵심 원칙을 설명해 주세요.',
+      feedback:'자원 중심 URI 설계를 잘 짚었습니다. HTTP 메서드의 멱등성과 상태 코드의 의미를 추가하면 더 탄탄한 답변이 됩니다.',
+      followup:'PUT과 PATCH의 차이, 그리고 멱등성 관점에서의 차이를 설명해 주세요.',
+      improved:'REST API는 자원을 URI로 식별하고(/users/1), 행위는 HTTP 메서드(GET/POST/PUT/DELETE)로 표현합니다. 무상태성을 지키고, 응답에는 의미에 맞는 상태 코드를 반환해야 합니다. URI에는 동사 대신 명사를 사용하는 것이 원칙입니다.',
+      keywords:['자원 중심 URI','무상태성','HTTP 메서드','상태 코드'] },
+  };
+
+  // ----- grass -----
+  grassColors = ['#EBEDF0','#9BE9A8','#40C463','#30A14E','#216E39'];
+  grassWeeksData = (function(){
+    const colors = ['#EBEDF0','#9BE9A8','#40C463','#30A14E','#216E39'];
+    const counts = [0,3,7,13,23];
+    let seed = 7;
+    const rnd = () => { seed = (seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; };
+    const weeks = [];
+    for (let w=0; w<53; w++){
+      const days = [];
+      const recency = w/52;
+      for (let d=0; d<7; d++){
+        let level = 0;
+        if (rnd() < 0.32 + recency*0.45){
+          level = 1 + Math.floor(rnd()*(1 + recency*3.4));
+          if (level>4) level=4;
+        }
+        const cnt = level===0 ? 0 : counts[level] + Math.floor(rnd()*4);
+        days.push({ level, color: colors[level], count: cnt, w, d });
+      }
+      weeks.push({ days });
+    }
+    return weeks;
+  })();
+
+  gradeColor(g){ return { A:'#16A34A', B:'#4F46E5', C:'#D97706', D:'#DC2626' }[g] || '#6B6B62'; }
+  diffColor(d){ return { '하':'#16A34A', '중':'#D97706', '상':'#DC2626' }[d] || '#6B6B62'; }
+  weakData = [
+    { category:'#TCP/IP', acc:48, accPct:'48%', wrong:9, barWidth:'48%', barColor:'#DC7A5A' },
+    { category:'#해시', acc:55, accPct:'55%', wrong:7, barWidth:'55%', barColor:'#DC7A5A' },
+    { category:'#인덱스', acc:61, accPct:'61%', wrong:6, barWidth:'61%', barColor:'#D9A34A' },
+    { category:'#TLS', acc:66, accPct:'66%', wrong:4, barWidth:'66%', barColor:'#D9A34A' },
+  ];
+
+  genPool = [
+    { level:2, category:'Network', tag:'#TCP/IP', type:'서술형',
+      title:'TCP가 신뢰성을 보장하는 방식을 설명하세요',
+      body:'TCP는 패킷 손실과 순서 변경이 발생하는 네트워크 위에서도 데이터가 온전히 전달되도록 설계되어 있습니다. TCP가 신뢰성을 확보하기 위해 사용하는 기법들을 순서대로 설명하고, 각 기법이 어떤 문제를 해결하는지 함께 서술하세요.',
+      keywords:['시퀀스 번호','ACK','재전송 타이머','흐름 제어','혼잡 제어'] },
+    { level:2, category:'Data Structures', tag:'#해시', type:'서술형',
+      title:'해시 테이블의 충돌이 발생하는 이유와 해결 방식을 설명하세요',
+      body:'키를 고정된 크기의 버킷에 매핑하는 과정에서 서로 다른 키가 같은 위치를 차지하는 상황이 생깁니다. 충돌이 발생하는 원리를 설명하고, 대표적인 두 가지 해결 전략의 동작 방식과 각각의 조회 성능 특성을 비교해 서술하세요.',
+      keywords:['해시 함수','체이닝','개방 주소법','적재율','재해싱'] },
+    { level:2, category:'Database', tag:'#인덱스', type:'서술형',
+      title:'인덱스가 조회 성능을 높이는 이유를 설명하세요',
+      body:'같은 테이블에 같은 조건으로 질의해도 인덱스 유무에 따라 응답 시간이 크게 달라집니다. 인덱스의 자료구조 관점에서 조회가 빨라지는 이유를 설명하고, 인덱스를 추가할 때 감수해야 하는 비용도 함께 서술하세요.',
+      keywords:['B+트리','풀 스캔','선택도','쓰기 오버헤드','복합 인덱스 순서'] },
+    { level:3, category:'Network', tag:'#TLS', type:'서술형',
+      title:'HTTPS 연결이 수립되는 과정을 설명하세요',
+      body:'클라이언트가 HTTPS로 서버에 처음 접속할 때, 실제 데이터가 오가기 전까지 여러 단계의 협상이 이루어집니다. 이 과정을 순서대로 설명하고, 각 단계에서 무엇을 검증하며 어떤 키가 만들어지는지 서술하세요.',
+      keywords:['핸드셰이크','인증서 검증','대칭키 교환','세션 키','암호 스위트'] },
+  ];
+
+  recList(seed){
+    const pool = [
+      { title:'TCP와 UDP의 차이를 설명하세요', level:2, category:'Network', type:'서술형', acc:'62%', reason:'취약 카테고리', reasonBg:'#FEF2E8', reasonColor:'#C2410C' },
+      { title:'해시 테이블의 충돌 해결 방식', level:2, category:'Data Structures', type:'객관식', acc:'58%', reason:'취약 카테고리', reasonBg:'#FEF2E8', reasonColor:'#C2410C' },
+      { title:'인덱스가 조회 성능을 높이는 이유', level:3, category:'Database', type:'서술형', acc:'54%', reason:'오답 재출제', reasonBg:'#F0EDFF', reasonColor:'#6D28D9' },
+      { title:'프로세스와 스레드의 차이', level:1, category:'OS', type:'객관식', acc:'74%', reason:'복습 주기', reasonBg:'#EEF0FF', reasonColor:'#4F46E5' },
+      { title:'DP로 최적 부분 구조를 판단하는 기준', level:3, category:'Algorithms', type:'서술형', acc:'47%', reason:'난이도 상향', reasonBg:'#E8F5EE', reasonColor:'#2E6B52' },
+      { title:'3-way handshake 과정을 순서대로 설명하세요', level:2, category:'Network', type:'서술형', acc:'59%', reason:'취약 카테고리', reasonBg:'#FEF2E8', reasonColor:'#C2410C' },
+      { title:'트리와 그래프의 구조적 차이', level:1, category:'Data Structures', type:'객관식', acc:'71%', reason:'복습 주기', reasonBg:'#EEF0FF', reasonColor:'#4F46E5' },
+      { title:'트랜잭션 격리 수준과 발생 문제', level:3, category:'Database', type:'서술형', acc:'44%', reason:'난이도 상향', reasonBg:'#E8F5EE', reasonColor:'#2E6B52' },
+      { title:'가상 메모리와 페이지 교체 알고리즘', level:3, category:'OS', type:'객관식', acc:'51%', reason:'오답 재출제', reasonBg:'#F0EDFF', reasonColor:'#6D28D9' },
+      { title:'Java의 GC 동작 방식', level:2, category:'Languages', type:'서술형', acc:'57%', reason:'복습 주기', reasonBg:'#EEF0FF', reasonColor:'#4F46E5' },
+    ];
+    const weak = ['Network','Data Structures'];
+    const off = (seed*5) % pool.length;
+    return Array.from({length:5}, (_,i) => {
+      const p = pool[(off+i) % pool.length];
+      return { ...p, no:'#'+(i+1), weakLabel: weak.includes(p.category) ? '취약 카테고리 · ' + p.category : '' };
+    });
+  }
+
+  diffBg(d){ return { '하':'#E8F5EE', '중':'#FEF7E8', '상':'#FEF2F2' }[d] || '#F1F1ED'; }
+
+  navIcon(id){
+    const ce = React.createElement;
+    const svg = (...ch) => ce('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'}, ch);
+    const p = (d,k) => ce('path',{d,key:k});
+    const map = {
+      home: svg(p('M3 11l9-8 9 8',1),p('M5 10v10h14V10',2)),
+      solve: svg(p('M9 11l3 3L22 4',1),p('M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11',2)),
+      wrong: svg(p('M4 4v16h16',1),p('M8 16l3-4 2 2 4-6',2)),
+      interview: svg(p('M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',1)),
+      mock: svg(p('M22 12h-4l-3 9L9 3l-3 9H2',1)),
+      records: svg(ce('rect',{x:3,y:4,width:18,height:18,rx:2,key:1}),p('M16 2v4M8 2v4M3 10h18',2)),
+      progress: svg(p('M3 3v18h18',1),p('M7 14l4-4 3 3 5-6',2)),
+      weekly: svg(p('M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z',1),p('M14 2v6h6M8 13h8M8 17h5',2)),
+      settings: svg(p('M4 6h16M4 12h16M4 18h10',1),ce('circle',{cx:17,cy:18,r:2,fill:'#F1F1ED',key:2})),
+    };
+    return map[id];
+  }
+
+  go(view){ this.setState({ view, profileOpen:false }); }
+
+  createCollection(name, vis, addCurrent){
+    const nm = (name||'').trim(); if(!nm) return;
+    const items = addCurrent ? [this.state.curPb] : [];
+    this.setState(st => ({ collections:[{ id:Date.now(), name:nm, vis, items, updated:'2026.06.25' }, ...st.collections] }));
+  }
+  toggleInCollection(id){
+    const pb = this.state.curPb;
+    this.setState(st => ({ collections: st.collections.map(c => c.id!==id ? c : ({...c, items: c.items.includes(pb) ? c.items.filter(i=>i!==pb) : [...c.items, pb]})) }));
+  }
+  removeFromCollection(id, pb){
+    this.setState(st => ({ collections: st.collections.map(c => c.id!==id ? c : ({...c, items: c.items.filter(i=>i!==pb)})) }));
+  }
+  deleteCollection(id){ this.setState(st => ({ collections: st.collections.filter(c=>c.id!==id), view:'collections', colDetailId:null })); }
+  openCollection(id){ this.setState({ view:'colDetail', colDetailId:id, profileOpen:false }); }
+
+  chip(label, active, onClick){
+    return { label, onClick, style:`font-family:inherit;cursor:pointer;border-radius:9px;padding:8px 15px;font-size:13.5px;font-weight:${active?600:500};border:1px solid ${active?'#1C1C1A':'#E0E0DA'};background:${active?'#1C1C1A':'#fff'};color:${active?'#fff':'#5A5A52'};transition:all .12s;` };
+  }
+
+  mcqSeq(){ const q = this.questions[this.state.qIdx % this.questions.length]; return [q, ...(q.followups||[])]; }
+  freshMcqState(){ return this.mcqSeq().map(() => ({selected:null, checked:false})); }
+
+  startProblem(p){ this.setState({ view:'solve', curPb: this.problemBank.indexOf(p), cmOpen:false, solveType:p.type, qIdx:p.qi, qStep:0, cfgCount:1, quizStage:'quiz', selected:null, checked:false, correctCount:0, descThread:[], descDraft:'', descOpen:[], descSavedWrong:false, mcqState:this.buildMcq(p.qi), mcqRevealed:1, mcqTab:0 }); }
+  buildMcq(qi){ const q = this.questions[qi % this.questions.length]; return [q, ...(q.followups||[])].map(()=>({selected:null,checked:false})); }
+
+  startQuiz(){ this.setState({ quizStage:'quiz', qIdx:0, qStep:0, selected:null, checked:false, correctCount:0, descThread:[], descDraft:'', descOpen:[], descSavedWrong:false, mcqState:this.buildMcq(0), mcqRevealed:1, mcqTab:0 }); }
+
+  mcqSelect(i){
+    const s = this.state; const t = s.mcqTab;
+    if(s.mcqState[t].checked) return;
+    const ns = s.mcqState.map((x,idx)=> idx===t ? {...x, selected:i} : x);
+    this.setState({ mcqState:ns });
+  }
+  mcqCheck(){
+    const s = this.state; const t = s.mcqTab;
+    if(s.mcqState[t].selected===null || s.mcqState[t].checked) return;
+    const seq = this.mcqSeq();
+    const ok = s.mcqState[t].selected === seq[t].answer;
+    const ns = s.mcqState.map((x,idx)=> idx===t ? {...x, checked:true} : x);
+    let revealed = s.mcqRevealed, tab = t;
+    if(t === s.mcqRevealed-1 && s.mcqRevealed < seq.length){ revealed = s.mcqRevealed+1; }
+    this.setState(st => ({ mcqState:ns, mcqRevealed:revealed, mcqTab:t, correctCount: st.correctCount + (ok?1:0) }));
+  }
+  mcqGoTab(i){ if(i < this.state.mcqRevealed) this.setState({ mcqTab:i }); }
+  mcqNextUnanswered(){
+    const s = this.state;
+    const next = s.mcqState.findIndex((x,idx)=> idx < s.mcqRevealed && !x.checked);
+    if(next>=0) this.setState({ mcqTab:next });
+  }
+  checkAnswer(){ this.mcqCheck(); }
+  submitDescAnswer(){
+    const s = this.state;
+    if(!s.descDraft.trim()) return;
+    const dq = this.descQuestions[s.qIdx % this.descQuestions.length];
+    const seq = [dq.text, ...(dq.followups||[])];
+    const idx = s.descThread.length;
+    const isFollow = idx > 0;
+    const models = [dq.model, ...(dq.followupModels||[])];
+    const feedbacks = dq.feedbacks || [];
+    const entry = { label: isFollow ? ('꼬리질문 ' + idx) : '본 질문', question: seq[idx], answer: s.descDraft.trim(), isFollow,
+      feedback: feedbacks[idx] || '', model: models[idx] || '' };
+    this.setState({ descThread:[...s.descThread, entry], descDraft:'' });
+  }
+  nextQuestion(){    const s = this.state;
+    const last = s.qStep + 1 >= s.cfgCount;
+    const inc = (s.solveType==='서술형') ? 1 : 0;
+    if (last) this.setState(st => ({ quizStage:'setup', correctCount: st.correctCount+inc }));
+    else this.setState(st => ({ qIdx:st.qIdx+1, qStep:st.qStep+1, selected:null, checked:false, descThread:[], descDraft:'', descOpen:[], mcqState:this.buildMcq(st.qIdx+1), mcqRevealed:1, mcqTab:0, correctCount: st.correctCount+inc }));
+  }
+
+  renderVals(){
+    const s = this.state;
+    const v = s.view;
+    const titles = {
+      home:['오늘의 학습','매일의 학습을 한 화면에서 시작하세요'],
+      solve:['문제 풀이','문제은행에서 풀고 싶은 문제를 골라 바로 도전하세요'],
+      collections:['나의 문제집','풀고 싶은 문제를 모아 나만의 목록으로 관리하세요'],
+      colDetail:['문제집','담아둔 문제를 순서대로 풀어보세요'],
+      wrong:['오답노트','틀린 문제를 자동 저장하고 반복 복습하세요'],
+      wrongDetail:['오답 상세','내가 푼 문제와 선택한 답을 다시 확인하세요'],
+      interview:['1일 1면접','AI와 함께하는 하루 한 번의 모의 면접'],
+      mock:['모의 진단','정답률과 난이도 기반으로 실력 등급을 확인합니다'],
+      records:['학습 기록','매일의 학습을 잔디로 시각화합니다'],
+      progress:['진척도','누적 학습 상태와 카테고리별 성장을 봅니다'],
+      weekly:['주간 리포트','이번 주 학습 결과 요약'],
+      settings:['알림 설정','학습 지속을 돕는 이메일 알림을 설정합니다'],
+      mypage:['마이페이지','프로필 정보를 확인하고 수정할 수 있습니다'],
+      recommend:['맞춤 문제 추천','취약한 영역에서 한 문제를 무작위로 생성해 드립니다'],
+    };
+    const navItemStyle = (id) => { const a = v===id; return `display:flex;align-items:center;gap:8px;width:auto;white-space:nowrap;padding:8px 13px;border:none;border-radius:9px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:${a?600:500};text-align:left;color:${a?'#1C1C1A':'#6B6B62'};background:${a?'#FFFFFF':'transparent'};box-shadow:${a?'0 1px 2px rgba(0,0,0,.06)':'none'};transition:all .12s;`; };
+    const icons = {
+      home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+      solve:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+      wrong:'<path d="M4 4v16h16"/><path d="M8 16l3-4 2 2 4-6"/>',
+      interview:'<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>',
+      mock:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+      collections:'<path d="M3 6h11M3 12h11M3 18h7"/><path d="M17 11l5 3-5 3z"/>',
+      records:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+      progress:'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>',
+      weekly:'<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+      settings:'<path d="M4 6h16M4 12h16M4 18h10"/><circle cx="17" cy="18" r="2"/>',
+    };
+    const svgUri = (id,color) => "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+icons[id]+'</svg>');
+    // ---- profile dropdown ----
+    const pIcons = {
+      user:'<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      records:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+      progress:'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>',
+      weekly:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+      settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+      logout:'<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
+    };
+    const pUri = (id,color) => "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+pIcons[id]+'</svg>');
+    const pItemStyle = (danger) => `display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9px 12px;border:none;${danger?'border-top:1px solid #F2F2EE;margin-top:4px;padding-top:12px;':''}border-radius:9px;background:transparent;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:500;color:${danger?'#DC2626':'#3A3A34'};`;
+    const pIcoStyle = (id,danger) => `display:inline-block;width:17px;height:17px;flex-shrink:0;background-image:url('${pUri(id, danger?'#DC2626':'#6B6B62')}');background-size:contain;background-repeat:no-repeat;`;
+    const nav = {};
+    ['home','solve','wrong','interview','mock','records','progress','weekly','settings','mypage','recommend'].forEach(id => nav[id] = () => this.go(id));
+    const mk = (id,label,badgeText,badgeStyle) => {
+      const a = v===id;
+      return {
+        label, hasBadge: !!badgeText, badgeText: badgeText||'', badgeStyle: badgeStyle||'',
+        iconStyle: `display:inline-block;width:18px;height:18px;flex-shrink:0;background-image:url('${svgUri(id, a?'#1C1C1A':'#6B6B62')}');background-size:contain;background-repeat:no-repeat;`,
+        style: navItemStyle(id), onClick: () => this.go(id),
+      };
+    };
+    const wrongCount = String(this.wrongData.filter(w=>w.status!=='해결 완료').length);
+    const wrongBadgeStyle = 'margin-left:auto;font-size:11px;font-weight:700;color:#C2410C;background:#FEF2E8;padding:1px 7px;border-radius:20px;';
+    const aiBadgeStyle = 'margin-left:auto;font-size:10px;font-weight:700;color:#6D28D9;background:#F0EDFF;padding:2px 6px;border-radius:5px;letter-spacing:.03em;';
+
+    const out = {
+      nav,
+      navLearn: [ mk('home','오늘의 학습'), mk('solve','문제 풀이'), mk('collections','문제집'), mk('wrong','오답노트'), mk('interview','1일 1면접', 'AI', aiBadgeStyle), mk('mock','모의 진단') ],
+      navRecord: [ mk('records','학습 기록'), mk('progress','진척도'), mk('weekly','주간 리포트') ],
+      navSetting: [ mk('settings','알림 설정') ],
+      viewTitle: titles[v][0], viewSub: titles[v][1],
+      todayDate: '2026년 6월 25일 (목)',
+      streakDays: 7, cumulativeDays: 42,
+      profileOpen: s.profileOpen,
+      toggleProfile: () => this.setState({ profileOpen: !s.profileOpen }),
+      profileChevronStyle: `transition:transform .18s;transform:rotate(${s.profileOpen?180:0}deg);flex-shrink:0;`,
+      profileMenu: [
+        { label:'학습 기록', style:pItemStyle(false), iconStyle:pIcoStyle('records',false), onClick:()=>this.go('records') },
+        { label:'진척도', style:pItemStyle(false), iconStyle:pIcoStyle('progress',false), onClick:()=>this.go('progress') },
+        { label:'마이페이지', style:pItemStyle(false), iconStyle:pIcoStyle('user',false), onClick:()=>this.go('mypage') },
+        { label:'알림 설정', style:pItemStyle(false), iconStyle:pIcoStyle('settings',false), onClick:()=>this.go('settings') },
+        { label:'로그아웃', style:pItemStyle(true), iconStyle:pIcoStyle('logout',true), onClick:()=>this.setState({profileOpen:false, loggedOut:true, view:'home'}) },
+      ],
+      loggedOut: s.loggedOut,
+      loggedIn: !s.loggedOut,
+      isLogin: s.authMode==='login',
+      isSignup: s.authMode==='signup',
+      authSubtitle: s.authMode==='signup' ? '몇 가지만 입력하면 시작할 수 있어요' : '데브루틴에서 성장해보세요!',
+      goSignup: () => this.setState({ authMode:'signup' }),
+      goLoginMode: () => this.setState({ authMode:'login' }),
+      doLogin: () => this.setState({ loggedOut:false, authMode:'login' }),
+      wrongUnresolved: this.wrongData.filter(w => w.status==='미복습').length,
+      wrongBadgeStyle: 'margin-left:auto;font-size:11px;font-weight:700;color:#C2410C;background:#FEF2E8;padding:1px 7px;border-radius:20px;',
+      aiTagStyle: 'margin-left:auto;font-size:10px;font-weight:700;color:#6D28D9;background:#F0EDFF;padding:2px 6px;border-radius:5px;letter-spacing:.03em;',
+      isHome:v==='home', isSolve:v==='solve', isWrong:v==='wrong', isInterview:v==='interview',
+      isCollections:v==='collections', isColDetail:v==='colDetail',
+      isRecommend:v==='recommend', recCount: 5,
+      weakStats: this.weakData,
+      weakTop: this.weakData[0].category,
+      recGenerating: s.recPhase==='loading',
+      recIdle: !s.recPhase || s.recPhase==='idle',
+      recDone: s.recPhase==='done',
+      recLoadStep: s.recLoadStep || '취약 카테고리 분석 중',
+      recNotDone: s.recPhase !== 'done',
+      recProblem: (() => {
+        const p = this.genPool[(s.recIdx||0) % this.genPool.length];
+        return { ...p, diff: p.level >= 3 ? '상' : p.level === 2 ? '중' : '하' };
+      })(),
+      recGenLabel: '취약점 기반 문제 생성',
+      recGenerate: () => {
+        if (this.state.recPhase==='loading') return;
+        this.setState({ recPhase:'loading', recLoadStep:'취약 카테고리 분석 중' });
+        this._recT = [
+          setTimeout(() => this.setState({ recLoadStep:'오답 이력에서 개념 추출 중' }), 900),
+          setTimeout(() => this.setState({ recLoadStep:'문제 문장을 작성하는 중' }), 1800),
+          setTimeout(() => this.setState(st => ({ recPhase:'done', recIdx: st.recSeed||0, recSeed:(st.recSeed||0)+1 })), 2700),
+        ];
+      },
+      isMock:v==='mock', isRecords:v==='records', isProgress:v==='progress', isWeekly:v==='weekly', isSettings:v==='settings', isMypage:v==='mypage',
+      goalTarget: 10, goalCurrent: 12,
+    };
+    // ---- catStats (shared) ----
+    out.catStats = this.catStatsData.map(c => ({
+      ...c, gradeColor: this.gradeColor(c.grade), accPct: c.acc + '%',
+    }));
+
+    // ---- SOLVE ----
+    const mcq = s.solveType==='객관식';
+    out.solveType = s.solveType; out.isMCQ = mcq; out.isDesc = !mcq;
+    out.typeChips = [
+      { label:'객관식', desc:'4지선다로 빠르게 개념 점검', key:'객관식' },
+      { label:'서술형', desc:'개념을 글로 직접 설명', key:'서술형' },
+    ].map(t => {
+      const a = s.solveType===t.key;
+      return { label:t.label, desc:t.desc,
+        cardStyle:`flex:1;text-align:left;cursor:pointer;font-family:inherit;border-radius:13px;padding:16px 18px;display:flex;flex-direction:column;gap:4px;border:1.5px solid ${a?'#1C1C1A':'#E6E6E0'};background:${a?'#1C1C1A':'#fff'};transition:all .12s;`,
+        labelStyle:`font-size:15px;font-weight:700;color:${a?'#fff':'#1C1C1A'};`,
+        descStyle:`font-size:12.5px;color:${a?'rgba(255,255,255,.72)':'#9A9A90'};`,
+        onClick: () => this.setState({ solveType:t.key, quizStage:'setup', qIdx:0, selected:null, checked:false, correctCount:0, descThread:[], descDraft:'' }),
+      };
+    });
+    out.solveSetup = s.quizStage==='setup';
+    out.solveQuiz = s.quizStage==='quiz';
+    out.solveResult = s.quizStage==='result';
+    out.catChips = this.categories.map(c => this.chip(c, s.cfgCat===c, () => this.setState({cfgCat:c})));
+    out.diffChips = ['하','중','상','전체'].map(d => this.chip(d, s.cfgDiff===d, () => this.setState({cfgDiff:d})));
+    out.countChips = [5,10,20].map(n => this.chip(String(n), s.cfgCount===n, () => this.setState({cfgCount:n})));
+    out.modeChips = ['랜덤','최근 틀린 문제 제외','풀지 않은 문제 우선'].map(m => this.chip(m, s.cfgMode===m, () => this.setState({cfgMode:m})));
+    out.startLabel = s.cfgCount + '문제 시작';
+    out.startQuiz = () => this.startQuiz();
+
+    // ---- problem bank ----
+    const pbStatusMeta = {
+      '완료':{c:'#16A34A',bg:'#F2FBF5'},
+      '오답':{c:'#DC2626',bg:'#FEF2F2'},
+      '안 푼 문제':{c:'#9A9A90',bg:'#F1F1ED'},
+    };
+    const pbTypeMeta = { '객관식':{c:'#4F46E5',bg:'#EEF0FF'}, '서술형':{c:'#6D28D9',bg:'#F0EDFF'} };
+    out.pbTypeChips = ['전체','객관식','서술형'].map(t => this.chip(t, s.pbType===t, () => this.setState({pbType:t})));
+    out.pbDiffChips = ['전체','하','중','상'].map(d => this.chip(d, s.pbDiff===d, () => this.setState({pbDiff:d})));
+    out.pbCatChips = this.categories.map(c => this.chip(c, s.pbCat===c, () => this.setState({pbCat:c})));
+    out.pbSearch = s.pbSearch;
+    out.setPbSearch = (e) => this.setState({pbSearch:e.target.value});
+    const pbq = (s.pbSearch||'').trim().toLowerCase();
+    const pbFiltered = this.problemBank.filter(p =>
+      (s.pbType==='전체' || p.type===s.pbType) &&
+      (s.pbDiff==='전체' || p.diff===s.pbDiff) &&
+      (s.pbCat==='전체' || p.cat===s.pbCat) &&
+      (!pbq || p.title.toLowerCase().includes(pbq) || p.cat.toLowerCase().includes(pbq))
+    );
+    out.pbCount = pbFiltered.length;
+    out.problemList = pbFiltered.map(p => {
+      const sm = pbStatusMeta[p.status], tm = pbTypeMeta[p.type];
+      return {
+        title:p.title, cat:p.cat, type:p.type, status:p.status,
+        keywords: p.keywords || [p.cat],
+        lv:this.lvBadge(p.diff), diffColor:this.diffColor(p.diff),
+        solved: p.solved.toLocaleString(), rate: p.rate + '%',
+        statusStyle:`display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;color:${sm.c};background:${sm.bg};padding:4px 10px;border-radius:6px;white-space:nowrap;`,
+        typeStyle:`font-size:11.5px;font-weight:600;color:${tm.c};background:${tm.bg};padding:3px 9px;border-radius:6px;white-space:nowrap;`,
+        onClick: () => this.startProblem(p),
+      };
+    });
+    // ---- 문제집 ----
+    const curPb = Math.min(s.curPb||0, this.problemBank.length-1);
+    const curProblem = this.problemBank[curPb];
+    const savedIn = s.collections.filter(c => c.items.includes(curPb)).length;
+    out.cmOpen = s.cmOpen;
+    out.cmProblemTitle = curProblem ? curProblem.title : '';
+    out.cmSaveLabel = savedIn ? '문제집에 저장됨' : '문제집에 저장';
+    out.cmSaveStyle = `font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:7px;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;transition:all .12s;border:1px solid ${savedIn?'#1C1C1A':'#DCDCD4'};background:${savedIn?'#1C1C1A':'#fff'};color:${savedIn?'#fff':'#3A3A34'};`;
+    out.openCm = () => this.setState({ cmOpen:true, cmNewOpen:false, cmNewName:'' });
+    out.closeCm = () => this.setState({ cmOpen:false, cmNewOpen:false, cmNewName:'' });
+    out.cmList = s.collections.map(c => {
+      const on = c.items.includes(curPb);
+      return { name:c.name, vis:c.vis, mark: on ? '✓' : '', countText: c.items.length + '문제',
+        rowStyle:'display:flex;align-items:center;gap:12px;width:100%;font-family:inherit;cursor:pointer;background:transparent;border:none;border-radius:10px;padding:10px 12px;transition:background .12s;',
+        boxStyle:`width:20px;height:20px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;border:1.5px solid ${on?'#1C1C1A':'#D4D4CC'};background:${on?'#1C1C1A':'#fff'};`,
+        onToggle: () => this.toggleInCollection(c.id) };
+    });
+    out.cmNewOpen = s.cmNewOpen; out.cmNewClosed = !s.cmNewOpen;
+    out.cmOpenNew = () => this.setState({ cmNewOpen:true });
+    out.cmCancelNew = () => this.setState({ cmNewOpen:false, cmNewName:'' });
+    out.cmNewName = s.cmNewName;
+    out.setCmName = (e) => this.setState({ cmNewName:e.target.value });
+    out.cmVisChips = ['비공개','공개'].map(x => this.chip(x, s.cmNewVis===x, () => this.setState({cmNewVis:x})));
+    out.cmCreate = () => { this.createCollection(s.cmNewName, s.cmNewVis, true); this.setState({ cmNewOpen:false, cmNewName:'' }); };
+    const cmOk = !!s.cmNewName.trim();
+    out.cmCreateStyle = `font-family:inherit;cursor:${cmOk?'pointer':'not-allowed'};background:${cmOk?'#1C1C1A':'#C8C8C0'};color:#fff;border:none;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;`;
+
+    out.collectionCount = s.collections.length;
+    out.collectionCards = s.collections.map(c => ({
+      name:c.name, vis:c.vis, countText: c.items.length + '문제', updated:'수정 ' + c.updated,
+      preview: c.items.slice(0,3).map(i => (this.problemBank[i]||{}).title).filter(Boolean),
+      emptyPreview: c.items.length===0,
+      onOpen: () => this.openCollection(c.id),
+    }));
+    out.clNewOpen = s.clNewOpen; out.clNewClosed = !s.clNewOpen;
+    out.clOpenNew = () => this.setState({ clNewOpen:true });
+    out.clCancelNew = () => this.setState({ clNewOpen:false, clNewName:'' });
+    out.clNewName = s.clNewName;
+    out.setClName = (e) => this.setState({ clNewName:e.target.value });
+    out.clVisChips = ['비공개','공개'].map(x => this.chip(x, s.clNewVis===x, () => this.setState({clNewVis:x})));
+    out.clCreate = () => { this.createCollection(s.clNewName, s.clNewVis, false); this.setState({ clNewOpen:false, clNewName:'' }); };
+    const clOk = !!s.clNewName.trim();
+    out.clCreateStyle = `font-family:inherit;cursor:${clOk?'pointer':'not-allowed'};background:${clOk?'#1C1C1A':'#C8C8C0'};color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13.5px;font-weight:600;`;
+
+    const col = s.collections.find(c => c.id===s.colDetailId);
+    out.colName = col ? col.name : '';
+    out.colVis = col ? col.vis : '';
+    out.colCountText = col ? (col.items.length + '문제') : '';
+    out.colHasItems = !!col && col.items.length>0;
+    out.colEmpty = !!col && col.items.length===0;
+    out.backToCollections = () => this.setState({ view:'collections' });
+    out.deleteCol = () => { if(col) this.deleteCollection(col.id); };
+    out.startCol = () => { if(col && col.items.length) this.startProblem(this.problemBank[col.items[0]]); };
+    out.colItems = (col ? col.items : []).map((i, n) => {
+      const p = this.problemBank[i];
+      if(!p) return null;
+      const sm = pbStatusMeta[p.status], tm = pbTypeMeta[p.type];
+      return { no:n+1, title:p.title, cat:p.cat, type:p.type, status:p.status,
+        lv:this.lvBadge(p.diff), diffColor:this.diffColor(p.diff),
+        statusStyle:`display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;color:${sm.c};background:${sm.bg};padding:4px 10px;border-radius:6px;white-space:nowrap;`,
+        typeStyle:`font-size:11.5px;font-weight:600;color:${tm.c};background:${tm.bg};padding:3px 9px;border-radius:6px;white-space:nowrap;`,
+        onOpen: () => this.startProblem(p),
+        onRemove: () => this.removeFromCollection(col.id, i) };
+    }).filter(Boolean);
+
+    out.openSelfDiag = () => this.startQuiz();
+    out.endQuiz = () => this.setState({quizStage:'result'});
+    out.quitQuiz = () => this.setState({quizStage:'setup'});
+    out.restartQuiz = () => this.setState({quizStage:'setup'});
+    out.qProgressText = (s.qStep+1) + ' / ' + s.cfgCount;
+    out.qProgressPct = ((s.qStep+1)/s.cfgCount*100) + '%';
+
+    // 객관식
+    const q = this.questions[s.qIdx % this.questions.length];
+    out.currentQ = { text:q.text, cat:q.cat, diff:q.diff, explanation:q.explanation, tags:q.tags,
+      diffColor:this.diffColor(q.diff), diffBg:this.diffBg(q.diff), lv:this.lvBadge(q.diff) };
+    const seqM = [q, ...(q.followups||[])];
+    const mtab = Math.min(s.mcqTab, seqM.length-1);
+    const mst = s.mcqState[mtab] || {selected:null, checked:false};
+    const aq = seqM[mtab];
+    // 왼쪽 : 지금까지 공개된 질문 목록 (탭과 연동)
+    out.mcqQList = seqM.slice(0, s.mcqRevealed).map((qq, i) => {
+      const active = i === mtab;
+      const done = s.mcqState[i] && s.mcqState[i].checked;
+      return { label: i===0 ? '본 질문' : ('꼬리질문 ' + i), text: qq.text, onClick: () => this.mcqGoTab(i),
+        wrapStyle: `cursor:pointer;border:1px solid ${active?'#C7CCFF':'#ECECE8'};background:${active?'#F5F6FF':'#fff'};border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;`,
+        labelStyle: `display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${done?'#16A34A':'#4F46E5'};background:${done?'#EAF7EF':'#EEF0FF'};padding:2px 9px;border-radius:5px;width:fit-content;` };
+    });
+    // 오른쪽 상단 : 탭
+    out.mcqTabs = seqM.slice(0, s.mcqRevealed).map((qq, i) => {
+      const active = i === mtab;
+      const done = s.mcqState[i] && s.mcqState[i].checked;
+      const ok = done && s.mcqState[i].selected === qq.answer;
+      return { label: i===0 ? '본 질문' : ('꼬리 ' + i), mark: done ? (ok ? '✓' : '✕') : '', markColor: ok ? '#16A34A' : '#DC2626', onClick: () => this.mcqGoTab(i),
+        style: `font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;border:none;background:transparent;padding:12px 16px;font-size:13px;font-weight:${active?700:600};color:${active?'#1C1C1A':'#9A9A90'};border-bottom:2px solid ${active?'#1C1C1A':'transparent'};transition:all .12s;` };
+    });
+    out.wrongPicked = mst.checked && mst.selected!==null && mst.selected!==aq.answer;
+    out.wrongExplain = (out.wrongPicked && aq.optExp && aq.optExp[mst.selected]) ? aq.optExp[mst.selected] : '';
+    out.wrongPickedLabel = out.wrongPicked ? ('내가 고른 답 — ' + (mst.selected+1) + '번') : '';
+    out.currentOptions = aq.options.map((opt,i) => {
+      const sel = mst.selected===i;
+      const isAns = i===aq.answer;
+      let border='#E6E6E0', bg='#fff', numBg='#F1F1ED', numColor='#8A8A80', mark='', markColor='transparent';
+      if (mst.checked){
+        if (isAns){ border='#16A34A'; bg='#F2FBF5'; numBg='#16A34A'; numColor='#fff'; mark='정답'; markColor='#16A34A'; }
+        else if (sel){ border='#DC2626'; bg='#FEF2F2'; numBg='#DC2626'; numColor='#fff'; mark='오답'; markColor='#DC2626'; }
+      } else if (sel){ border='#4F46E5'; bg='#F5F5FF'; numBg='#4F46E5'; numColor='#fff'; }
+      return {
+        text:opt, num:i+1, mark, markColor,
+        style:`display:flex;align-items:center;gap:13px;width:100%;text-align:left;font-family:inherit;cursor:${mst.checked?'default':'pointer'};border:1.5px solid ${border};background:${bg};border-radius:12px;padding:15px 17px;transition:all .12s;`,
+        numStyle:`width:24px;height:24px;border-radius:50%;background:${numBg};color:${numColor};display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex-shrink:0;`,
+        onClick: () => this.mcqSelect(i),
+      };
+    });
+    out.mcqActiveLabel = mtab===0 ? '본 질문' : ('꼬리질문 ' + mtab);
+    out.mcqActiveNote = mtab===0 ? '개념을 묻는 본 질문입니다' : '앞선 답변에서 파생된 꼬리질문 ' + mtab + '/' + (seqM.length-1);
+    out.checked = mst.checked;
+    out.explanationText = aq.explanation;
+    const ansOk = mst.selected===aq.answer;
+    out.resultIndColor = ansOk ? '#16A34A' : '#DC2626';
+    out.resultIndText = ansOk ? '✓ 정답입니다' : '✕ 오답입니다 · 오답노트에 자동 저장됨';
+    const allAns = s.mcqRevealed >= seqM.length && s.mcqState.every(x=>x.checked);
+    out.mcqAllAnswered = allAns;
+    out.showEndQuiz = !(allAns && s.qStep+1>=s.cfgCount);
+    if (!mst.checked){
+      out.primaryBtnLabel = '정답 확인';
+      out.primaryBtnStyle = `font-family:inherit;cursor:${mst.selected===null?'not-allowed':'pointer'};background:${mst.selected===null?'#C8C8C0':'#1C1C1A'};color:#fff;border:none;border-radius:10px;padding:11px 26px;font-size:14px;font-weight:600;`;
+      out.primaryQuizAction = () => { if(mst.selected!==null) this.mcqCheck(); };
+    } else if (!allAns){
+      out.primaryBtnLabel = '다음 질문';
+      out.primaryBtnStyle = `font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:11px 26px;font-size:14px;font-weight:600;`;
+      out.primaryQuizAction = () => this.mcqNextUnanswered();
+    } else {
+      out.primaryBtnLabel = (s.qStep+1>=s.cfgCount ? '저장하기' : '다음 문제');
+      out.primaryBtnStyle = `font-family:inherit;cursor:pointer;background:#1C1C1A;color:#fff;border:none;border-radius:10px;padding:11px 26px;font-size:14px;font-weight:600;`;
+      out.primaryQuizAction = () => this.nextQuestion();
+    }
+
+    // 서술형 (AI 면접식 꼬리질문)
+    const dq = this.descQuestions[s.qIdx % this.descQuestions.length];
+    const seq = [dq.text, ...(dq.followups||[])];
+    out.currentDQ = { text:dq.text, cat:dq.cat, diff:dq.diff, lv:this.lvBadge(dq.diff),
+      diffColor:this.diffColor(dq.diff), diffBg:this.diffBg(dq.diff), model:dq.model, tags:dq.keywords };
+    out.descModel = dq.model;
+    // 이미 답한 문답 스레드
+    out.descThread = s.descThread.map((e, i) => ({ label:e.label, question:e.question, answer:e.answer, isFollow:e.isFollow,
+      feedback:e.feedback, model:e.model,
+      open: s.descOpen.includes(i),
+      toggleLabel: s.descOpen.includes(i) ? '해설·피드백 숨기기' : '해설·피드백 보기',
+      toggleIcon: s.descOpen.includes(i) ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6',
+      onToggle: () => this.setState(st => ({ descOpen: st.descOpen.includes(i) ? st.descOpen.filter(x=>x!==i) : [...st.descOpen, i] })),
+    }));
+    const idx = s.descThread.length;
+    out.descActive = idx < seq.length;
+    out.descDone = idx >= seq.length;
+    out.descActiveLabel = idx === 0 ? '본 질문' : ('꼬리질문 ' + idx);
+    out.descActiveIsFollow = idx > 0;
+    out.descActiveQuestion = out.descActive ? seq[idx] : '';
+    out.descFollowNote = idx > 0 ? ('AI 면접관 · 답변을 바탕으로 한 꼬리질문 ' + idx + '/2') : 'AI 면접관 · 본 질문에 답변해 보세요';
+    // 왼쪽 : 지금까지 나온 질문 목록 (본 질문 + 꼬리질문)
+    const askedUpto = out.descDone ? seq.length : idx + 1;
+    out.descQList = seq.slice(0, askedUpto).map((text, i) => {
+      const active = !out.descDone && i === idx;
+      return { label: i===0 ? '본 질문' : ('꼬리질문 ' + i), text,
+        wrapStyle: `border:1px solid ${active?'#C7CCFF':'#ECECE8'};background:${active?'#F5F6FF':'#fff'};border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;`,
+        labelStyle: `display:inline-flex;align-items:center;font-size:11px;font-weight:700;color:#4F46E5;background:#EEF0FF;padding:2px 9px;border-radius:5px;width:fit-content;` };
+    });
+    out.descDraft = s.descDraft;
+    out.descCharCount = (s.descDraft||'').length + '자';
+    out.setDescDraft = (e) => this.setState({descDraft:e.target.value});
+    out.descSubmitDisabled = !s.descDraft.trim();
+    out.descSubmitStyle = `font-family:inherit;cursor:${out.descSubmitDisabled?'not-allowed':'pointer'};background:${out.descSubmitDisabled?'#C8C8C0':'#1C1C1A'};color:#fff;border:none;border-radius:10px;padding:11px 24px;font-size:14px;font-weight:600;`;
+    out.descSubmitLabel = idx === 0 ? '답변 제출' : (idx < seq.length-1 ? '답변 제출' : '마지막 답변 제출');
+    out.submitDescAnswer = () => this.submitDescAnswer();
+    out.descFinishLabel = '저장하기';
+    out.descFinish = () => this.setState({ quizStage:'setup' });
+    const dSaved = s.descSavedWrong;
+    out.descWrongLabel = dSaved ? '오답노트에 추가됨' : '오답노트 추가';
+    out.descWrongIcon = dSaved ? 'M20 6L9 17l-5-5' : 'M12 5v14M5 12h14';
+    out.descWrongBtnStyle = `font-family:inherit;cursor:${dSaved?'default':'pointer'};display:flex;align-items:center;gap:6px;background:${dSaved?'#F2FBF5':'#fff'};color:${dSaved?'#16A34A':'#4F46E5'};border:1px solid ${dSaved?'#B7E4C7':'#C7CCFF'};border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;`;
+    out.saveDescToWrong = () => { if(!this.state.descSavedWrong) this.setState({ descSavedWrong:true }); };
+    out.descVerdictText = dSaved ? '틀렸습니다. 오답 노트에 문제가 추가되었습니다.' : '정답입니다';
+    out.descVerdictColor = dSaved ? '#DC2626' : '#16A34A';
+    // 공통 문제 패널
+    const activeQ = mcq ? out.currentQ : out.currentDQ;
+    out.qNumber = s.qIdx+1;
+    out.problemText = activeQ.text;
+    out.problemTags = activeQ.tags;
+    out.metaCat = activeQ.cat; out.metaDiff = activeQ.diff; out.metaLv = activeQ.lv;
+    out.metaDiffColor = activeQ.diffColor; out.metaDiffBg = activeQ.diffBg;
+    out.explanationText = out.currentQ.explanation;
+
+    // 결과
+    const correct = s.correctCount, total = mcq ? (s.mcqState.length || s.cfgCount) : s.cfgCount;
+    out.resultCorrect = correct; out.resultWrong = Math.max(0,total-correct); out.resultTotal = total;
+    out.resultRate = Math.round(correct/total*100);
+    out.resultRateLabel = mcq ? '정답률' : '이해율';
+    out.resultCorrectLabel = mcq ? '정답' : '이해 완료';
+    out.resultWrongLabel = mcq ? '오답' : '복습 필요';
+
+    // ---- WRONG ----
+    const statusColor = { '미복습':'#DC2626','복습 중':'#D97706','반복 오답':'#7C3AED','해결 완료':'#16A34A' };
+    const statusBg = { '미복습':'#FEF2F2','복습 중':'#FEF7E8','반복 오답':'#F4EEFF','해결 완료':'#F2FBF5' };
+    out.wrongStats = [
+      { label:'미복습', color:statusColor['미복습'], value:this.wrongData.filter((w,i)=>w.status==='미복습' && !s.wrongDeleted.includes(i)).length },
+      { label:'북마크', color:'#4F46E5', value:s.wrongBookmarked.filter(i=>!s.wrongDeleted.includes(i)).length },
+    ];
+    const filters = ['전체','미복습','북마크'];
+    out.wrongFilterChips = filters.map(f => this.chip(f, s.wrongFilter===f, () => this.setState({wrongFilter:f})));
+    const fl = s.wrongFilter;
+    out.wrongList = this.wrongData.map((w,i)=>({w,i})).filter(({w,i}) => !s.wrongDeleted.includes(i) && (fl==='전체' || (fl==='북마크' ? s.wrongBookmarked.includes(i) : w.status===fl))).map(({w,i}) => ({
+      ...w, statusColor:statusColor[w.status], statusBg:statusBg[w.status], diffColor:this.diffColor(w.diff),
+      bookmarked: s.wrongBookmarked.includes(i),
+      bmStyle: `font-family:inherit;cursor:pointer;background:transparent;border:none;padding:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${s.wrongBookmarked.includes(i)?'#4F46E5':'#C4C4BC'};`,
+      bmFill: s.wrongBookmarked.includes(i) ? 'currentColor' : 'none',
+      onBookmark: (e) => { if(e) e.stopPropagation(); this.setState(st => ({ wrongBookmarked: st.wrongBookmarked.includes(i) ? st.wrongBookmarked.filter(x=>x!==i) : [...st.wrongBookmarked, i] })); },
+      onDelete: (e) => { if(e) e.stopPropagation(); this.setState(st => ({ wrongDeleted:[...st.wrongDeleted, i] })); },
+      onRetry: (e) => { if(e) e.stopPropagation(); this.setState({view:'solve', quizStage:'quiz', qIdx:0, qStep:0, selected:null, checked:false, correctCount:0, cfgCount:1}); },
+      onOpen: () => this.setState({ view:'wrongDetail', wrongDetailIdx:i, wdTab:0 }),
+    }));
+
+    // ---- WRONG DETAIL (문제 풀이 꼬리질문 완료 화면과 동일 형태) ----
+    out.isWrongDetail = v==='wrongDetail';
+    if (v==='wrongDetail' && s.wrongDetailIdx!=null) {
+      const wd = this.wrongData[s.wrongDetailIdx];
+      const di = s.wrongDetailIdx;
+      // 본 질문 + 꼬리질문을 하나의 시퀀스로 (모두 이미 푼 상태)
+      const seq = [
+        { text: wd.q, options: wd.options, answer: wd.correctAnswer, myAnswer: wd.myAnswer, explanation: wd.explanation, wrongExp: wd.wrongExp },
+        ...(wd.followups || []),
+      ];
+      const wtab = Math.min(s.wdTab, seq.length-1);
+      const aq = seq[wtab];
+      const aqWrong = aq.myAnswer !== aq.answer;
+      out.wrongDetail = {
+        cat: wd.cat, diff: wd.diff, diffColor: this.diffColor(wd.diff), diffBg: this.diffBg(wd.diff),
+        source: wd.source, solvedAt: wd.solvedAt,
+        bmFill: s.wrongBookmarked.includes(di) ? 'currentColor' : 'none',
+        bmColor: s.wrongBookmarked.includes(di) ? '#4F46E5' : '#C4C4BC',
+        activeLabel: wtab===0 ? '본 질문' : ('꼬리질문 ' + wtab),
+        activeNote: wtab===0 ? '개념을 묻는 본 질문입니다' : '앞선 답변에서 파생된 꼬리질문 ' + wtab + '/' + (seq.length-1),
+        explanation: aq.explanation,
+        resultIndColor: aqWrong ? '#DC2626' : '#16A34A',
+        resultIndText: aqWrong ? '✕ 오답입니다 · 오답노트에 자동 저장됨' : '✓ 정답입니다',
+        wrongPicked: aqWrong,
+        wrongPickedLabel: '내가 고른 답 — ' + (aq.myAnswer+1) + '번',
+        wrongExplain: aq.wrongExp || '',
+        qList: seq.map((qq, i) => {
+          const active = i === wtab;
+          const done = qq.myAnswer === qq.answer;
+          return {
+            label: i===0 ? '본 질문' : ('꼬리질문 ' + i), text: qq.text, onClick: () => this.setState({ wdTab:i }),
+            wrapStyle: `cursor:pointer;border:1px solid ${active?'#C7CCFF':'#ECECE8'};background:${active?'#F5F6FF':'#fff'};border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;`,
+            labelStyle: `display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${done?'#16A34A':'#DC2626'};background:${done?'#EAF7EF':'#FEECEC'};padding:2px 9px;border-radius:5px;width:fit-content;`,
+          };
+        }),
+        tabs: seq.map((qq, i) => {
+          const active = i === wtab;
+          const done = qq.myAnswer === qq.answer;
+          return {
+            label: i===0 ? '본 질문' : ('꼬리 ' + i), mark: done ? '✓' : '✕', markColor: done ? '#16A34A' : '#DC2626', onClick: () => this.setState({ wdTab:i }),
+            style: `font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px;border:none;background:transparent;padding:12px 16px;font-size:13px;font-weight:${active?700:600};color:${active?'#1C1C1A':'#9A9A90'};border-bottom:2px solid ${active?'#1C1C1A':'transparent'};transition:all .12s;`,
+          };
+        }),
+        options: (aq.options||[]).map((opt, oi) => {
+          const sel = oi===aq.myAnswer, isAns = oi===aq.answer;
+          let border='#E6E6E0', bg='#fff', numBg='#F1F1ED', numColor='#8A8A80', mark='', markColor='transparent';
+          if (isAns){ border='#16A34A'; bg='#F2FBF5'; numBg='#16A34A'; numColor='#fff'; mark='정답'; markColor='#16A34A'; }
+          else if (sel){ border='#DC2626'; bg='#FEF2F2'; numBg='#DC2626'; numColor='#fff'; mark='오답'; markColor='#DC2626'; }
+          return {
+            text: opt, num: oi+1, mark, markColor,
+            style: `display:flex;align-items:center;gap:13px;width:100%;text-align:left;border:1.5px solid ${border};background:${bg};border-radius:12px;padding:15px 17px;`,
+            numStyle: `width:24px;height:24px;border-radius:50%;background:${numBg};color:${numColor};display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex-shrink:0;`,
+          };
+        }),
+        onBack: () => this.setState({ view:'wrong' }),
+        onBookmark: () => this.setState(st => ({ wrongBookmarked: st.wrongBookmarked.includes(di) ? st.wrongBookmarked.filter(x=>x!==di) : [...st.wrongBookmarked, di] })),
+        onRetry: () => this.setState({view:'solve', quizStage:'quiz', qIdx:0, qStep:0, selected:null, checked:false, correctCount:0, cfgCount:1}),
+      };
+    }
+
+    // ---- INTERVIEW ----
+    out.ivIntro = s.ivStage==='intro';
+    out.ivAnswering = s.ivStage==='answering';
+    out.ivFeedback = s.ivStage==='feedback';
+    out.ivCatChips = this.categories.map(c => this.chip(c, s.ivCat===c, () => this.setState({ivCat:c})));
+    out.ivCat = s.ivCat;
+    const iv = this.ivBank[s.ivCat] || this.ivBank['전체'];
+    out.ivQuestion = iv.q; out.ivFeedbackText = iv.feedback; out.ivFollowup = iv.followup;
+    out.ivImproved = iv.improved; out.ivKeywords = iv.keywords;
+    out.ivAnswer = s.ivAnswer;
+    out.ivAnswerDisplay = s.ivAnswer.trim() ? s.ivAnswer : '(답변 미입력)';
+    out.startInterview = () => this.setState({ivStage:'answering', ivAnswer:''});
+    out.setIvAnswer = (e) => this.setState({ivAnswer:e.target.value});
+    out.submitIv = () => this.setState({ivStage:'feedback'});
+    out.resetInterview = () => this.setState({ivStage:'intro', ivAnswer:''});
+    out.saveInterview = () => this.setState({ivStage:'intro', ivAnswer:''});
+
+    // ---- MOCK ----
+    out.mockSetup = !this._mockDone;
+    out.mockResult = !!this._mockDone;
+    out.mockTypeChips = this.categories.map(c => this.chip(c, (s.cfgCat||'전체')===c, () => this.setState({cfgCat:c})));
+    out.startMock = () => { this._mockDone = true; this.forceUpdate(); };
+    out.resetMock = () => { this._mockDone = false; this.forceUpdate(); };
+
+    // ---- RECORDS ----
+    out.grassWeeks = this.grassWeeksData.map(week => ({
+      days: week.days.map(d => ({
+        color:d.color, title: d.count>0 ? (d.count+'문제 풀이') : '학습 없음',
+        onClick: () => this.setState({grassSel:{level:d.level, count:d.count, color:d.color}}),
+      })),
+    }));
+    out.grassLegend = this.grassColors;
+    out.totalLearnDays = this.grassWeeksData.reduce((a,w)=>a+w.days.filter(d=>d.level>0).length,0);
+    out.levelGuide = [
+      { color:this.grassColors[0], label:'학습 없음' },
+      { color:this.grassColors[1], label:'학습 1개 완료' },
+      { color:this.grassColors[2], label:'문제 5개 이상' },
+      { color:this.grassColors[3], label:'문제 10개 이상 · 오답 복습' },
+      { color:this.grassColors[4], label:'문제 20개 이상 · 면접 완료' },
+    ];
+    out.hasGrassSel = !!s.grassSel;
+    if (s.grassSel){
+      out.grassSelColor = s.grassSel.color;
+      out.grassSelText = s.grassSel.count>0 ? ('학습량 ' + s.grassSel.level + '단계') : '학습 기록 없음';
+      out.grassSelDetail = s.grassSel.count>0 ? (s.grassSel.count + '문제 풀이 · 학습량 점수 +' + (s.grassSel.count+8)) : '이 날은 학습 기록이 없습니다';
+    } else { out.grassSelColor=''; out.grassSelText=''; out.grassSelDetail=''; }
+    out.records = this.recordsData;
+
+    // ---- PROGRESS ----
+    out.metrics = [
+      { label:'누적 학습일', value:'42', unit:'일', color:'#1C1C1A' },
+      { label:'연속 학습일', value:'7', unit:'일', color:'#EA580C' },
+      { label:'총 풀이 문제', value:'487', unit:'문제', color:'#1C1C1A' },
+      { label:'총 정답', value:'342', unit:'개', color:'#16A34A' },
+      { label:'총 오답', value:'145', unit:'개', color:'#DC2626' },
+      { label:'1일 1면접', value:'16', unit:'회', color:'#6D28D9' },
+    ];
+    out.gradeCards = [
+      { name:'Database', grade:'C+', acc:42, note:'트랜잭션 이해도 보완 필요', color:'#A23B34', track:'#F3DEDB' },
+      { name:'Network', grade:'A', acc:78, note:'HTTP/HTTPS 구조 완벽 이해', color:'#23306B', track:'#DCE0F0' },
+      { name:'OS', grade:'B+', acc:80, note:'프로세스 스케줄링 우수', color:'#2E6B52', track:'#D8E8E0' },
+      { name:'Algorithms', grade:'A-', acc:88, note:'DP 문제 해결 능력 탁월', color:'#23306B', track:'#DCE0F0' },
+      { name:'Data Structures', grade:'B', acc:66, note:'비선형 구조 복습 추천', color:'#2E6B52', track:'#D8E8E0' },
+      { name:'Languages', grade:'B+', acc:80, note:'Java 메모리 모델 숙련', color:'#2E6B52', track:'#D8E8E0' },
+    ].map(c => ({ ...c, barWidth: c.acc + '%' }));
+
+    const val = { A:4, B:3, C:2, D:1 };
+    const gLeft=54, gRight=656, gTop=28, gBottom=188;
+    const gsel = this.growthData.find(g => g.cat===s.growthCat) || this.growthData[0];
+    out.growthCatChips = this.growthData.map(g => {
+      const active = g.cat===s.growthCat;
+      return { label:g.cat, onClick:()=>this.setState({growthCat:g.cat}),
+        style:`font-family:inherit;cursor:pointer;border:1px solid ${active?'#1C1C1A':'#E0E0DA'};background:${active?'#1C1C1A':'#fff'};color:${active?'#fff':'#6B6B62'};border-radius:9px;padding:8px 16px;font-size:13px;font-weight:600;transition:all .12s;` };
+    });
+    {
+      const g = gsel; const n = g.grades.length;
+      const color = this.gradeColor(g.grades[n-1]);
+      const pts = g.grades.map((gr,i) => ({
+        x: gLeft + (i/(n-1))*(gRight-gLeft),
+        y: gBottom - ((val[gr]-1)/3)*(gBottom-gTop),
+        grade: gr,
+      }));
+      const xLabels = ['1주','2주','3주','4주','5주','6주','7주','8주'];
+      out.growthChart = {
+        cat: g.cat, color,
+        path: g.grades[0]+' → '+g.grades[n-1],
+        points: pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '),
+        area: `${gLeft},${gBottom} ` + pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ') + ` ${gRight},${gBottom}`,
+        dots: pts.map((p,i)=>({ cx:p.x.toFixed(1), cy:p.y.toFixed(1), grade:p.grade, labelX:p.x.toFixed(1), labelY:(p.y-12).toFixed(1) })),
+        gridlines: ['A','B','C','D'].map(gr => ({ y:(gBottom - ((val[gr]-1)/3)*(gBottom-gTop)).toFixed(1), label:gr })),
+        xlabels: pts.map((p,i)=>({ x:p.x.toFixed(1), label:xLabels[i]||('') })),
+      };
+    }
+
+    // ---- WEEKLY ----
+    out.weekRange = '2026.06.16 — 06.22';
+    out.weeklyDays = 6; out.weeklyRate = 72;
+    out.weeklyCards = [
+      { label:'총 풀이 문제', value:'58문제', delta:'+12', deltaColor:'#16A34A' },
+      { label:'연속 학습', value:'유지 중', delta:'7일', deltaColor:'#EA580C' },
+      { label:'가장 많이 학습', value:'알고리즘', delta:'24문제', deltaColor:'#9A9A90' },
+      { label:'가장 많이 틀림', value:'운영체제', delta:'9오답', deltaColor:'#DC2626' },
+      { label:'오답 복습 완료', value:'14개', delta:'+5', deltaColor:'#16A34A' },
+      { label:'1일 1면접', value:'4회', delta:'+1', deltaColor:'#16A34A' },
+    ];
+
+    // ---- SETTINGS ----
+    const ndefs = [
+      { key:'daily', label:'매일 학습 리마인드', desc:'설정한 시간에 오늘의 학습을 알려드려요' },
+      { key:'streak', label:'연속 학습 중단 방지', desc:'연속 학습 중인데 당일 기록이 없으면 저녁에 알림' },
+      { key:'wrong', label:'오답 복습 알림', desc:'미복습 오답이 일정 개수 이상이면 알림' },
+      { key:'interview', label:'1일 1면접 알림', desc:'오늘 면접을 아직 진행하지 않았을 때 알림' },
+      { key:'weekly', label:'주간 리포트 수신', desc:'매주 월요일 학습 요약 이메일을 받아요' },
+    ];
+    out.notifList = ndefs.map((n,i) => {
+      const on = s.notif[n.key];
+      return {
+        label:n.label, desc:n.desc,
+        border: i===ndefs.length-1 ? 'transparent' : '#F0F0EC',
+        trackStyle:`position:relative;width:44px;height:25px;border-radius:20px;border:none;cursor:pointer;background:${on?'#16A34A':'#D8D8D0'};transition:background .18s;flex-shrink:0;padding:0;`,
+        knobStyle:`position:absolute;top:3px;left:${on?'22px':'3px'};width:19px;height:19px;border-radius:50%;background:#fff;transition:left .18s;box-shadow:0 1px 2px rgba(0,0,0,.2);`,
+        onToggle: () => this.setState(st => ({ notif:{...st.notif, [n.key]:!st.notif[n.key]} })),
+      };
+    });
+    out.timeChips = ['오전 8시','오후 1시','오후 9시','오후 11시'].map(t => this.chip(t, s.notifTime===t, () => this.setState({notifTime:t})));
+
+    // ---- mypage ----
+    const pf = s.profile;
+    const dr = s.profileDraft || pf;
+    out.mp = { nickname:pf.nickname, email:pf.email, job:pf.job, goal:pf.goal, goalText:('매일 최소 ' + (pf.goal||'0') + '개'), bio:pf.bio, initial:pf.nickname.slice(0,1) };
+    out.mpEditing = s.profileEdit;
+    out.mpEditView = !s.profileEdit;
+    out.mpViewMode = !s.profileEdit;
+    out.mpDraft = { nickname:dr.nickname, email:dr.email, job:dr.job, goal:dr.goal, bio:dr.bio };
+    out.mpStartEdit = () => this.setState({ profileEdit:true, profileDraft:{...pf} });
+    out.mpCancel = () => this.setState({ profileEdit:false, profileDraft:null });
+    out.mpSave = () => this.setState({ profile:{...s.profileDraft}, profileEdit:false, profileDraft:null });
+    const mpSet = (k) => (e) => this.setState({ profileDraft:{ ...(this.state.profileDraft||pf), [k]:e.target.value } });
+    out.mpSetNickname = mpSet('nickname');
+    out.mpSetEmail = mpSet('email');
+    out.mpSetJob = mpSet('job');
+    out.mpSetGoal = mpSet('goal');
+    out.mpSetBio = mpSet('bio');
+    out.mpStats = [
+      { label:'푼 문제', value:'128', unit:'개' },
+      { label:'연속 학습', value:'12', unit:'일' },
+      { label:'오답 복습률', value:'86', unit:'%' },
+      { label:'평균 등급', value:'B+', unit:'' },
+    ];
+
+    return out;
+  }
+}
+</script>
+</body>
+</html>
