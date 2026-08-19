@@ -1,19 +1,20 @@
 import type {
   AdminMemberAnomaly,
   AdminMemberStatus,
-  AdminQuestionStatus,
   ProgressTier,
   QuestionCategory,
   QuestionDifficulty,
+  QuestionReviewStatus,
 } from "@/types";
 import { diffTone } from "@/lib/badges";
 import { DIFFICULTY_LABELS } from "@/lib/questions";
 import Badge from "@/components/ui/Badge";
 
-const STATUS_TONE: Record<AdminQuestionStatus, "success" | "warning" | "neutral"> = {
-  PUBLISHED: "success",
-  DRAFT: "warning",
-  ARCHIVED: "neutral",
+// 검수 대기는 "할 일"이라 주의를 끌어야 하고, 거절은 되돌릴 수 없는 판정이라 위험색을 쓴다.
+const REVIEW_STATUS_TONE: Record<QuestionReviewStatus, "success" | "warning" | "danger"> = {
+  APPROVED: "success",
+  PENDING: "warning",
+  REJECTED: "danger",
 };
 
 const MEMBER_STATUS_TONE: Record<AdminMemberStatus, "success" | "danger" | "neutral"> = {
@@ -54,8 +55,9 @@ export function DifficultyBadge({ difficulty }: { difficulty: QuestionDifficulty
   return <Badge tone={diffTone(label)}>{label}</Badge>;
 }
 
-export function StatusBadge({ status }: { status: AdminQuestionStatus }) {
-  return <Badge tone={STATUS_TONE[status]}>{status}</Badge>;
+/** 문항 검수 상태 — 관리자 목록에만 나온다 (공개 목록은 APPROVED만 보이므로 배지가 필요 없다) */
+export function ReviewStatusBadge({ status }: { status: QuestionReviewStatus }) {
+  return <Badge tone={REVIEW_STATUS_TONE[status]}>{status}</Badge>;
 }
 
 export function MemberStatusBadge({ status }: { status: AdminMemberStatus }) {

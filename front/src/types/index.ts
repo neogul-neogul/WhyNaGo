@@ -818,9 +818,6 @@ export interface AdminMemberAnomaly {
 /** 회원 상태 */
 export type AdminMemberStatus = "활성" | "정지" | "탈퇴";
 
-/** 문제 공개 상태 — Question에 컬럼이 없어 화면에서 목업으로 채운다 */
-export type AdminQuestionStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
-
 /** 문제 수정 폼 상태 (객관식은 explanation·answerIndex·options, 서술형은 modelAnswer를 쓴다) */
 export interface AdminQuestionForm {
   category: QuestionCategory;
