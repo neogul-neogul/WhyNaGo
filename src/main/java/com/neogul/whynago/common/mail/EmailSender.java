@@ -37,7 +37,7 @@ public class EmailSender {
             javaMailSender.send(message);
         } catch (MailException e) {
             log.error("이메일 발송 실패 - to={}", to, e);
-            throw new BusinessException(MailErrorCode.MAIL_SEND_FAILED);
+            throw new BusinessException(MailErrorCode.MAIL_SEND_FAILED, e);
         }
     }
 
@@ -52,7 +52,8 @@ public class EmailSender {
             javaMailSender.send(mimeMessage);
         } catch (MessagingException | MailException e) {
             log.error("이메일 발송 실패 - to={}", to, e);
-            throw new BusinessException(MailErrorCode.MAIL_SEND_FAILED);
+            // 발송 이력의 실패 사유로 실제 원인(SMTP 응답 등)을 남길 수 있게 원인을 보존한다.
+            throw new BusinessException(MailErrorCode.MAIL_SEND_FAILED, e);
         }
     }
 }
