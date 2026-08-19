@@ -22,6 +22,7 @@ export const ADMIN_CATEGORIES: QuestionCategory[] = [
   "DATA_STRUCTURE",
   "LANGUAGE",
   "DESIGN_PATTERN",
+  "GENERAL_CS",
 ];
 
 export const ADMIN_DIFFICULTIES: QuestionDifficulty[] = ["HIGH", "MEDIUM", "LOW"];

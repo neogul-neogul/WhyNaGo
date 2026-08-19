@@ -266,7 +266,7 @@ AI 출력은 신뢰하지 않는다. `GeneratedEssayValidator`(domain)가 다음
 - **`REJECTED`는 삭제가 아니다.** 이미 쌓인 `essay_solved.question_id`가 FK를 잡고 있으므로 행을 지울 수 없다. 상태 전이로만 처리하고, 추천 재조회에서도 제외한다 — 캐시 키가 `userId + 프로필 해시`라서 프로필이 바뀌지 않으면 거절된 문항이 다시 나갈 수 있다.
 - **승인 후에도 `source = GENERATED`는 남는다.** 리스크 4(자기 참조)·6(통계 오염) 완화는 승인 여부와 무관하게 "AI가 만든 문항인가"를 물어야 하기 때문이다.
 - **승인 시 진척도 분모가 늘어난다.** 시드와 동등하게 취급한다는 결정의 대가이며 수용한다.
-- **선행 조건** — 현재 인증 계층은 `userId`만 해석한다(`docs/API.md`). 관리자 승인 API·페이지는 역할 체계가 먼저 있어야 하며, 추천 파이프라인과 독립적인 작업이다.
+- **선행 조건이던 역할 체계는 갖춰졌다.** 인증 계층이 `role`을 해석하고(`AuthContext.isAdmin()`), `/api/admin/**`은 `AdminInterceptor`가 막는다. 승인 API는 그 아래에 두면 되며, 추천 파이프라인과는 독립적인 작업이다.
 
 ## **쿼터·캐시 정책**
 
@@ -314,7 +314,7 @@ AI 출력은 신뢰하지 않는다. `GeneratedEssayValidator`(domain)가 다음
 
 ## **남은 작업**
 
-1. 관리자 승인 API·페이지 — `PENDING` 목록 조회와 `Question.approve()`/`reject()`를 호출하는 service·엔드포인트. 도메인 전이는 이미 있으므로 남은 것은 조회·엔드포인트·권한이다. **역할 체계 선행 필요**(현재 인증 계층은 `userId`만 해석).
+1. 관리자 승인 API·페이지 — `Question.approve()`/`reject()`를 호출하는 service·엔드포인트. **선행 조건이던 역할 체계는 해소됐다** — `user.domain.Role`(`USER`·`ADMIN`), `AuthContext.isAdmin()`, `/api/admin/**`에 걸리는 `AdminInterceptor`가 들어와 있으므로 그 아래 엔드포인트를 만들면 403 게이트가 자동으로 붙는다. 관리자 목록(`GET /api/admin/questions`)도 `PENDING`을 함께 보여준다(`findQuestionsForAdmin`). 남은 것은 승인·거절 엔드포인트와, 관리자가 검수 대기 문항을 구분할 수 있도록 `AdminQuestionResult`에 `reviewStatus`·`source`를 노출하는 일이다.
 2. 운영 배포 시 기존 행 백필 — 두 가지가 필요하다.
    - `question.source`·`question.review_status`: `UPDATE question SET source = 'SEEDED', review_status = 'APPROVED' WHERE source IS NULL OR review_status IS NULL`
    - `question_tag.tag_id`: 사전을 적재하고 이름으로 매칭해 채운 뒤 `name` 컬럼을 제거한다.
