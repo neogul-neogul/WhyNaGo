@@ -19,6 +19,8 @@ import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.implement.ConversationIdGenerator;
 import com.neogul.whynago.question.implement.EssayAnswerEvaluator;
+import com.neogul.whynago.question.implement.EssayMasteryRecorder;
+import com.neogul.whynago.question.implement.QuestionReader;
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,6 +46,8 @@ public class InterviewService {
     private final InterviewResultAssembler interviewResultAssembler;
     private final ConversationIdGenerator conversationIdGenerator;
     private final EssayAnswerEvaluator essayAnswerEvaluator;
+    private final EssayMasteryRecorder essayMasteryRecorder;
+    private final QuestionReader questionReader;
 
     @Transactional(readOnly = true)
     public TodayInterviewResult getTodayStatus(Long userId) {
@@ -65,7 +69,8 @@ public class InterviewService {
         return StartInterviewResult.of(interview, question, TOTAL_QUESTION_COUNT, TIME_LIMIT_SECONDS);
     }
 
-    @Transactional(readOnly = true)
+    // 트랜잭션을 걸지 않는다. AI 채점이 수 초 걸리는 동안 커넥션을 붙잡지 않기 위해서다.
+    // 읽기 전용 트랜잭션으로 두면 안쪽 숙련도 기록이 그 트랜잭션에 합류해 쓰기가 flush되지 않는다.
     public AnswerInterviewResult answer(Long userId, Long interviewId, AnswerInterviewCommand command) {
         DailyInterview interview = dailyInterviewReader.readInProgress(interviewId, userId);
         EssayEvaluation evaluation = essayAnswerEvaluator.evaluate(
@@ -74,6 +79,7 @@ public class InterviewService {
                 command.answer(),
                 EssayGradingMode.INTERVIEW
         );
+        essayMasteryRecorder.record(userId, questionReader.read(interview.getQuestionId()), evaluation);
 
         return AnswerInterviewResult.from(evaluation);
     }

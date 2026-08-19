@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
+import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.QuestionFixture;
 import com.neogul.whynago.interview.domain.DailyInterview;
@@ -25,7 +26,6 @@ import com.neogul.whynago.interview.service.dto.TodayInterviewResult;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.infra.QuestionRepository;
 import com.neogul.whynago.question.infra.ai.EssayAiClient;
-import com.neogul.whynago.question.infra.ai.GradeAndFollowupResult;
 import com.neogul.whynago.solvedsession.domain.EssaySolved;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SessionStatus;
@@ -157,7 +157,7 @@ class InterviewServiceTest extends IntegrationTestSupport {
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
                 anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 8, "꼬리질문1"));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "꼬리질문1"));
 
         AnswerInterviewResult result = interviewService.answer(
                 USER_ID, interviewId, new AnswerInterviewCommand("본질문", "답변"));
@@ -174,7 +174,7 @@ class InterviewServiceTest extends IntegrationTestSupport {
         given(essayAiClient.completedTurns(anyString())).willReturn(2);
         given(essayAiClient.gradeAndGenerateFollowup(
                 anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
-                .willReturn(new GradeAndFollowupResult("피드백", "모범답안", 5, null));
+                .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 5, null));
 
         AnswerInterviewResult result = interviewService.answer(
                 USER_ID, interviewId, new AnswerInterviewCommand("꼬리질문2", "답변3"));
