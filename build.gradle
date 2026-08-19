@@ -28,8 +28,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus'
 
-    // Spring AI — Gemini(OpenAI 호환 엔드포인트)를 OpenAI 커넥터로 호출
+    // Spring AI — 운영은 Gemini(OpenAI 호환), 로컬은 Ollama를 사용한다.
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
 
     // 구글 소셜 로그인 — id_token의 서명·aud·iss·exp 검증
     implementation 'com.google.api-client:google-api-client:2.7.0'

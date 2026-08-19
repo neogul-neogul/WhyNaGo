@@ -1,4 +1,9 @@
 spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
   datasource:
     url: jdbc:h2:mem:whynago;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
@@ -14,4 +19,5 @@ spring:
   sql:
     init:
       mode: always
-      data-locations: classpath:data.sql,classpath:data2.sql
+      # tag 사전이 먼저 들어가야 data3.sql의 question_tag가 tag_id를 해석할 수 있다.
+      data-locations: classpath:data-tag.sql,classpath:data.sql,classpath:data3.sql
