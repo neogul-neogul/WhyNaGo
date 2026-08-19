@@ -1,18 +1,46 @@
 "use client";
 
-import type { AdminMember } from "@/types";
+import { useEffect, useState } from "react";
+import type { AdminMemberDetailResponse, AdminMemberResponse } from "@/types";
+import { ApiError } from "@/lib/api";
+import { fetchAdminMemberDetail, formatJoinedDate } from "@/lib/admin";
+import { mockMemberMeta } from "@/mocks/admin";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { TierBadge } from "@/components/admin/AdminBadges";
 
-// 회원 목록 위에 뜨는 회원 상세 모달
+// 회원 목록 위에 뜨는 회원 상세 모달.
+// 닉네임·이메일은 목록 행 값을 그대로 쓰고, 학습 지표는 열릴 때 상세 API로 조회한다.
 export default function MemberDetailModal({
   member,
   onClose,
 }: {
-  member: AdminMember;
+  member: AdminMemberResponse;
   onClose: () => void;
 }) {
+  const [detail, setDetail] = useState<AdminMemberDetailResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAdminMemberDetail(member.id)
+      .then((response) => {
+        if (!cancelled) setDetail(response);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e instanceof ApiError ? e.message : "회원 정보를 불러오지 못했습니다.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [member.id]);
+
+  const meta = mockMemberMeta(member.id);
+  // 조회 전에는 항목 자리를 유지한 채 값만 비워 둔다
+  const metric = (value: number | undefined) => (value === undefined ? "—" : value.toLocaleString());
+
   return (
     <Modal
       onClose={onClose}
@@ -28,7 +56,8 @@ export default function MemberDetailModal({
             >
               {member.nickname}
             </span>
-            <TierBadge tier={member.tier} />
+            {/* 티어·점수는 API가 내려주지 않는 목업 값이다 */}
+            <TierBadge tier={meta.tier} />
           </div>
           <span className="font-mono text-[13px] font-medium text-secondary">{member.email}</span>
         </div>
@@ -42,14 +71,22 @@ export default function MemberDetailModal({
         </button>
       </div>
 
+      {error && (
+        <div className="border-b border-line-soft px-[26px] py-3 text-[12.5px] font-medium text-danger">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-x-[22px] gap-y-4 px-[26px] py-[22px]">
-        <Metric label="점수" value={member.score.toLocaleString()} />
-        <Metric label="스트릭" value={String(member.streakDays)} unit="일" />
-        <Metric label="풀이 횟수" value={member.solvedCount.toLocaleString()} unit="회" />
-        <Metric label="면접 횟수" value={member.interviewCount.toLocaleString()} unit="회" />
+        <Metric label="점수" value={meta.score.toLocaleString()} />
+        <Metric label="스트릭" value={metric(detail?.streakDays)} unit="일" />
+        <Metric label="풀이 횟수" value={metric(detail?.solvedQuestionCount)} unit="문항" />
+        <Metric label="면접 횟수" value={metric(detail?.completedInterviewCount)} unit="회" />
         <div className="col-span-2 flex flex-col gap-[5px] border-t border-dashed border-line pt-4">
           <span className="text-xs font-semibold text-soft">가입일</span>
-          <span className="font-mono text-sm font-semibold text-ink">{member.joinedAt}</span>
+          <span className="font-mono text-sm font-semibold text-ink">
+            {formatJoinedDate(member.createdAt)}
+          </span>
         </div>
       </div>
 

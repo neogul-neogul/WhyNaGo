@@ -3,6 +3,9 @@ import { DIFFICULTY_LABELS, type QuestionFilters, type QuestionPaging } from "@/
 import type {
   AdminDashboardAlert,
   AdminKpi,
+  AdminMemberDetailResponse,
+  AdminMemberResponse,
+  AdminMemberSummaryResponse,
   AdminQuestionDetailResponse,
   AdminQuestionResponse,
   DashboardAlertCode,
@@ -197,4 +200,37 @@ export function toDashboardAlerts(alerts: DashboardAlertResponse[]): AdminDashbo
     const preset = DASHBOARD_ALERT_PRESETS[alert.type];
     return preset ? [preset] : [];
   });
+}
+
+// ===== 회원 관리 =====
+
+/** 관리자 회원 목록 한 페이지의 행 수 */
+export const ADMIN_MEMBER_PAGE_SIZE = 8;
+
+/** 관리자 회원 목록 조회 — 정렬은 가입 역순 고정이고 티어 정렬·필터는 서버가 지원하지 않는다 */
+export function fetchAdminMembers(
+  keyword?: string,
+  paging: QuestionPaging = {},
+): Promise<PageResponse<AdminMemberResponse>> {
+  const params = new URLSearchParams();
+  if (keyword) params.set("q", keyword);
+  params.set("page", String(paging.page ?? 0));
+  params.set("size", String(paging.size ?? ADMIN_MEMBER_PAGE_SIZE));
+  return apiFetch<PageResponse<AdminMemberResponse>>(`/api/admin/members?${params.toString()}`);
+}
+
+/** 목록 상단 요약 — PageResponse에 끼울 수 없어 서버도 엔드포인트를 나눠 뒀다 */
+export function fetchAdminMemberSummary(): Promise<AdminMemberSummaryResponse> {
+  return apiFetch<AdminMemberSummaryResponse>("/api/admin/members/summary");
+}
+
+/** 회원 상세 — 스트릭·풀이 문항 수·완료 면접 수는 모달을 열 때만 조회한다 */
+export function fetchAdminMemberDetail(userId: number): Promise<AdminMemberDetailResponse> {
+  return apiFetch<AdminMemberDetailResponse>(`/api/admin/members/${userId}`);
+}
+
+/** 가입 시각("2025-11-02T09:12:00") → 날짜만("2025-11-02"). 추적 이전 가입 회원은 "-" */
+export function formatJoinedDate(createdAt: string | null): string {
+  if (!createdAt) return "-";
+  return createdAt.slice(0, 10);
 }

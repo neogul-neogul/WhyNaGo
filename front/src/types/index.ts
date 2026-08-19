@@ -762,6 +762,34 @@ export interface DashboardResponse {
   alerts: DashboardAlertResponse[];
 }
 
+/** 회원 가입 경로 (백엔드 AuthProvider enum과 대응) */
+export type AuthProviderCode = "LOCAL" | "GOOGLE";
+
+/** GET /api/admin/members 의 한 행 */
+export interface AdminMemberResponse {
+  id: number;
+  nickname: string;
+  /** 마스킹하지 않은 원본. 표시용 마스킹은 화면이 한다 */
+  email: string;
+  position: Position;
+  provider: AuthProviderCode;
+  /** 가입 시각 추적 이전에 가입한 회원은 null */
+  createdAt: string | null;
+}
+
+/** GET /api/admin/members/summary */
+export interface AdminMemberSummaryResponse {
+  totalCount: number;
+  activeWeekCount: number;
+}
+
+/** GET /api/admin/members/{userId} — 목록 필드 + 학습 지표 */
+export interface AdminMemberDetailResponse extends AdminMemberResponse {
+  streakDays: number;
+  solvedQuestionCount: number;
+  completedInterviewCount: number;
+}
+
 // ===== 대시보드 화면 조립용 =====
 // 서버 응답이 아니라 화면이 그릴 형태다. 응답의 숫자를 표시 문자열로 바꾼 결과가 담긴다.
 
@@ -789,26 +817,18 @@ export interface AdminDashboardAlert {
 // 문제 목록·상세를 뺀 나머지 어드민 화면은 백엔드 API가 아직 없어 화면만 유지한다.
 // 아래 타입은 전부 src/mocks/admin.ts의 더미용이며, 백엔드 스펙이 나오면 위 API 응답 타입들처럼 서버 스펙 그대로 다시 정의한다.
 
-/** 어드민 회원 목록/상세 행 */
-export interface AdminMember {
-  id: string;
-  nickname: string;
-  email: string;
-  position: string;
+/**
+ * 회원 목록·상세에서 API가 내려주지 않는 값.
+ * 점수·티어는 조회 시점 파생값이라 컬럼이 없고, 최근활동일·이상징후·상태는 판정할 데이터가 없다.
+ * 회원 ID로 고정 배정해 목록과 모달이 같은 값을 본다 (→ mocks/admin.ts의 mockMemberMeta).
+ */
+export interface AdminMemberMeta {
   tier: ProgressTier;
-  joinedAt: string;
-  lastVisitedAt: string;
   score: number;
-  streakDays: number;
-  solvedCount: number;
-  interviewCount: number;
-  signupMethod: AdminMemberSignupMethod;
+  lastVisitedAt: string;
   anomaly?: AdminMemberAnomaly;
   status: AdminMemberStatus;
 }
-
-/** 회원 가입 경로 */
-export type AdminMemberSignupMethod = "Google" | "일반";
 
 /** 회원 이상징후 태그 */
 export interface AdminMemberAnomaly {
