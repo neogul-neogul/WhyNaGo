@@ -71,4 +71,8 @@ public class Question {
     public boolean isEssay() {
         return type == QuestionType.ESSAY;
     }
+
+    public boolean isMultipleChoice() {
+        return type == QuestionType.MULTIPLE_CHOICE;
+    }
 }

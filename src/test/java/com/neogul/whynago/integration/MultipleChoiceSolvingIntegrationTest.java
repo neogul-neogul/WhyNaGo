@@ -63,10 +63,10 @@ class MultipleChoiceSolvingIntegrationTest extends IntegrationTestSupport {
         AnswerChoice followup2Wrong = answerChoiceRepository.save(AnswerChoiceFixture.wrong(followup2.getId(), 2));
 
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId()),
+                new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), null),
                 List.of(
-                        new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId()),
-                        new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null)
+                        new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
+                        new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );
@@ -110,10 +110,10 @@ class MultipleChoiceSolvingIntegrationTest extends IntegrationTestSupport {
         assertThat(lastGrading.nextQuestion()).isNull();
 
         CreateSolvedSessionCommand command = new CreateSolvedSessionCommand(
-                new SolvedQuestionCommand(root.getId(), rootWrong.getId(), wrongBranch.getId()),
+                new SolvedQuestionCommand(root.getId(), rootWrong.getId(), wrongBranch.getId(), null),
                 List.of(
-                        new SolvedQuestionCommand(wrongBranch.getId(), wrongBranchCorrect.getId(), last.getId()),
-                        new SolvedQuestionCommand(last.getId(), lastCorrect.getId(), null)
+                        new SolvedQuestionCommand(wrongBranch.getId(), wrongBranchCorrect.getId(), last.getId(), null),
+                        new SolvedQuestionCommand(last.getId(), lastCorrect.getId(), null, null)
                 ),
                 LocalDateTime.now().minusMinutes(5)
         );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
 import { ApiError } from "@/lib/api";
 import { RoleMismatchError, logout, requestLogin, useCurrentUser } from "@/lib/auth";
 import Badge from "@/components/ui/Badge";
@@ -110,13 +109,6 @@ export default function AdminLogin() {
           </svg>
           관리자 권한이 없는 계정은 접근할 수 없습니다.
         </p>
-
-        <Link
-          href="/login"
-          className="mt-3 text-xs font-medium text-secondary underline underline-offset-2 transition-colors hover:text-ink"
-        >
-          일반 사용자 로그인
-        </Link>
       </form>
     </div>
   );

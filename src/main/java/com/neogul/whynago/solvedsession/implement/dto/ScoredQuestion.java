@@ -4,6 +4,7 @@ public record ScoredQuestion(
         Long questionId,
         Long userChoiceId,
         Long answerChoiceId,
-        boolean correct
+        boolean correct,
+        Integer elapsedSeconds
 ) {
 }

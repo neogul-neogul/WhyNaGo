@@ -260,6 +260,8 @@ export interface SolvedQuestionRequest {
   choiceId: number;
   /** 고른 보기의 relatedQuestionId (마지막 문항은 null) */
   relationQuestionId: number | null;
+  /** 문항이 표시된 시점부터 "정답 확인"을 누른 시점까지의 초. 해설을 읽은 시간은 포함하지 않는다 */
+  elapsedSeconds?: number;
 }
 
 /** 풀이 세션 저장 요청 — POST /api/solved-sessions */
@@ -645,9 +647,82 @@ export interface NotificationSettingResponse {
 /** 알림 설정 수정 요청 — PATCH /api/notification-settings/me (부분 수정이 아니라 전체 필드를 보낸다) */
 export type UpdateNotificationSettingRequest = NotificationSettingResponse;
 
+// ===== 관리자 API (백엔드 admin 도메인) =====
+// 관리자 전용 경로(/api/admin)라 role=ADMIN이 아니면 403이다.
+// 사용자용 문제 응답과 달리 선택지의 정답 여부(correct)를 그대로 내려준다.
+
+/** 관리자 문제 목록 행 — GET /api/admin/questions */
+export interface AdminQuestionResponse {
+  id: number;
+  title: string;
+  category: QuestionCategory;
+  difficulty: QuestionDifficulty;
+  type: QuestionTypeCode;
+  /** 전체 풀이 응답 수 (본질문·꼬리질문 구분 없이 합산) */
+  solveCount: number;
+  /** 정답률(%). 아직 아무도 풀지 않았으면 0이 아니라 null */
+  correctRate: number | null;
+}
+
+/** 관리자 문제 상세의 선택지 — 사용자용 ChoiceResponse와 달리 정답 여부를 노출한다 */
+export interface AdminChoiceResponse {
+  id: number;
+  sequence: number;
+  content: string;
+  correct: boolean;
+  /** 이 보기를 골랐을 때의 오답 해설 (정답 보기는 빈 값) */
+  explanation: string | null;
+  /** 이 보기 선택 시 이어질 꼬리질문 ID (없으면 세션 종료 지점) */
+  relatedQuestionId: number | null;
+}
+
+/** 관리자 문제 상세 — GET /api/admin/questions/{questionId} */
+export interface AdminQuestionDetailResponse {
+  id: number;
+  title: string;
+  content: string;
+  type: QuestionTypeCode;
+  difficulty: QuestionDifficulty;
+  category: QuestionCategory;
+  explanation: string | null;
+  /** 서술형은 항상 빈 배열 */
+  choices: AdminChoiceResponse[];
+  tags: string[];
+  /** 서술형만 값이 있다. 객관식은 지표가 더 많은 통계 API를 쓰므로 항상 null */
+  solveCount: number | null;
+  correctRate: number | null;
+}
+
+/** 문제 통계 · 보기별 선택 분포 */
+export interface ChoiceDistributionResponse {
+  choiceId: number;
+  sequence: number;
+  content: string;
+  correct: boolean;
+  selectedCount: number;
+  /** 전체 응답 대비 비율(%) */
+  selectedRate: number;
+}
+
+/** 객관식 문제 통계 — GET /api/admin/questions/{questionId}/statistics (서술형에는 쓸 수 없다) */
+export interface MultipleChoiceStatisticsResponse {
+  questionId: number;
+  totalSolveCount: number;
+  correctCount: number;
+  correctRate: number;
+  /** 평균 소요 시간(초). 수집된 응답이 없으면 0이 아니라 null */
+  averageElapsedSeconds: number | null;
+  /** 위 평균이 몇 건으로 계산됐는지. totalSolveCount보다 작을 수 있다 */
+  elapsedSampleCount: number;
+  /** 응답이 한 건도 없으면 null */
+  mostChosenChoice: ChoiceDistributionResponse | null;
+  /** 현재 보기 전체가 sequence 오름차순. 아무도 고르지 않은 보기도 0건으로 포함된다 */
+  choiceDistribution: ChoiceDistributionResponse[];
+}
+
 // ===== 관리자 화면 (더미 전용) =====
-// 어드민 백엔드 API가 아직 없어 화면만 유지한다. 아래 타입은 전부 src/mocks/admin.ts의 더미용이며,
-// 백엔드 스펙이 나오면 위 API 응답 타입들처럼 서버 스펙 그대로 다시 정의한다.
+// 문제 목록·상세를 뺀 나머지 어드민 화면은 백엔드 API가 아직 없어 화면만 유지한다.
+// 아래 타입은 전부 src/mocks/admin.ts의 더미용이며, 백엔드 스펙이 나오면 위 API 응답 타입들처럼 서버 스펙 그대로 다시 정의한다.
 
 /** 어드민 회원 목록/상세 행 */
 export interface AdminMember {
@@ -660,93 +735,40 @@ export interface AdminMember {
   lastVisitedAt: string;
   score: number;
   streakDays: number;
-  cumulativeDays: number;
   solvedCount: number;
+  interviewCount: number;
+  signupMethod: AdminMemberSignupMethod;
+  anomaly?: AdminMemberAnomaly;
+  status: AdminMemberStatus;
 }
 
-/** 어드민 문제 목록 행 */
-export interface AdminQuestion {
-  id: string;
-  category: QuestionCategory;
-  difficulty: QuestionDifficulty;
-  type: AdminQuestionTypeLabel;
-  title: string;
-  solveCount: number;
-  correctRate: string;
-  updatedAt: string;
-}
+/** 회원 가입 경로 */
+export type AdminMemberSignupMethod = "Google" | "일반";
 
-/** 어드민 화면에서 쓰는 문제 유형 표기 */
-export type AdminQuestionTypeLabel = "객관식" | "서술형";
-
-/** 어드민 회원 상세 · 풀이 이력 행 */
-export interface AdminSolveRecord {
-  at: string;
-  questionId: string;
-  category: QuestionCategory;
-  difficulty: QuestionDifficulty;
-  title: string;
-  type: AdminQuestionTypeLabel;
-  score: number;
-  spent: string;
-  result: AdminSolveResult;
-}
-
-/** 풀이 이력 결과 표기 */
-export type AdminSolveResult = "완료" | "오답" | "복습";
-
-/** 어드민 문제 상세 (기본 정보 + 통계) */
-export interface AdminQuestionDetail {
-  title: string;
-  body: string;
-  options?: AdminQuestionOption[];
-  answerExplanation?: string;
-  wrongExplanations?: { number: number; text: string }[];
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  responseCount?: number;
-  correctRate?: string;
-  avgSpent?: string;
-  topPick?: string;
-  topPickRate?: string;
-  distribution?: AdminChoiceDistribution[];
-  sessions?: AdminQuestionSession[];
-}
-
-export interface AdminQuestionOption {
-  text: string;
-  correct: boolean;
-}
-
-/** 문제 통계 · 보기별 선택 분포 */
-export interface AdminChoiceDistribution {
+/** 회원 이상징후 태그 */
+export interface AdminMemberAnomaly {
   label: string;
-  text: string;
-  count: number;
-  rate: string;
-  correct: boolean;
+  tone: "danger" | "warning";
 }
 
-/** 문제 통계 · 최근 풀이 세션 */
-export interface AdminQuestionSession {
-  user: string;
-  pick: string;
-  correct: boolean;
-  spent: string;
-  at: string;
-}
+/** 회원 상태 */
+export type AdminMemberStatus = "활성" | "정지" | "탈퇴";
 
-/** 문제 등록/수정 폼 상태 */
+/** 문제 공개 상태 — Question에 컬럼이 없어 화면에서 목업으로 채운다 */
+export type AdminQuestionStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
+
+/** 문제 수정 폼 상태 (객관식은 explanation·answerIndex·options, 서술형은 modelAnswer를 쓴다) */
 export interface AdminQuestionForm {
   category: QuestionCategory;
   difficulty: QuestionDifficulty;
   tags: string[];
   title: string;
   body: string;
-  explanation: string;
-  answerIndex: number;
-  options: AdminQuestionFormOption[];
+  explanation?: string;
+  answerIndex?: number;
+  options?: AdminQuestionFormOption[];
+  /** 서술형 문제의 모범답안 */
+  modelAnswer?: string;
 }
 
 export interface AdminQuestionFormOption {
@@ -767,11 +789,27 @@ export interface AdminInterviewRecord {
   questionId: string;
 }
 
-/** 이메일 발송 이력 행 */
-export interface AdminEmailLog {
-  key: string;
+/** 이메일 발송 배치 실행 이력 행 */
+export interface AdminEmailBatch {
+  /** 발송일 (YYYY-MM-DD) — 배치 상세 경로에 쓰인다 */
+  date: string;
+  /** 실행 시각 (HH:mm) */
   at: string;
-  to: string;
+  status: AdminEmailBatchStatus;
+  targetCount: number;
+  successCount: number;
+  failCount: number;
+  /** 실패 사유별 건수 요약 (실패가 있는 배치만) */
+  failureSummary?: string;
+}
+
+export type AdminEmailBatchStatus = "정상" | "일부 실패";
+
+/** 배치 상세 · 개별 발송 행 */
+export interface AdminEmailRecipient {
+  key: string;
+  email: string;
+  sentAt: string;
   succeeded: boolean;
   reason: string;
 }
@@ -780,7 +818,18 @@ export interface AdminEmailLog {
 export interface AdminKpi {
   label: string;
   value: string;
-  unit: string;
-  delta: string;
-  increased: boolean;
+  unit?: string;
+  /** 전일/전주 대비 증감 (없으면 표시하지 않음) */
+  delta?: string;
+  increased?: boolean;
+  /** 값 아래 보조 내역 (예: "객관식 34,180 · 서술형 14,740") */
+  breakdown?: string;
+}
+
+/** 대시보드 알림 카드 */
+export interface AdminDashboardAlert {
+  title: string;
+  detail: string;
+  ctaLabel: string;
+  ctaHref: string;
 }

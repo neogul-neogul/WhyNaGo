@@ -760,18 +760,21 @@ POST /api/solved-sessions
   "rootQuestion": {
     "questionId": 1,
     "choiceId": 3,
-    "relationQuestionId": 5
+    "relationQuestionId": 5,
+    "elapsedSeconds": 78
   },
   "followupQuestions": [
     {
       "questionId": 5,
       "choiceId": 12,
-      "relationQuestionId": 8
+      "relationQuestionId": 8,
+      "elapsedSeconds": 45
     },
     {
       "questionId": 8,
       "choiceId": 20,
-      "relationQuestionId": null
+      "relationQuestionId": null,
+      "elapsedSeconds": 63
     }
   ],
   "startedAt": "2026-06-25T09:58:00"
@@ -785,7 +788,13 @@ POST /api/solved-sessions
 | `*.questionId` | Long | O | 푼 문제 ID. |
 | `*.choiceId` | Long | O | 사용자가 고른 선택지 ID. 해당 문제에 속한 선택지여야 한다. 정답 여부는 서버가 판정한다. |
 | `*.relationQuestionId` | Long | X | 고른 선택지가 이어지는 다음 문제 ID. 마지막 항목은 `null`(체인 종료). |
+| `*.elapsedSeconds` | int | X | 그 문항을 푸는 데 걸린 시간(초). **문항이 화면에 표시된 시점부터 "정답 확인"을 누른 시점까지**이며, 채점 후 해설을 읽은 시간은 포함하지 않는다. 관리자 문제 통계의 평균 소요 시간 집계에 쓴다(→ `docs/DOMAIN.md` 문제 통계 집계 정책). |
 | `startedAt` | LocalDateTime | O | 본질문을 처음 받은 시각(클라이언트 기준 세션 시작 시각). 학습 기록의 소요시간(`solvedAt - startedAt`) 계산에 사용한다(→ `docs/DOMAIN.md` 학습 기록 집계 정책). |
+
+`elapsedSeconds`는 선택 필드다. 보내지 않으면 소요 시간 없이 저장되고 통계 집계에서 빠질 뿐, 세션 저장은 정상 처리된다.
+
+- **음수면 `400 INVALID_INPUT`이다.** 측정 로직의 버그이지 사용자 입력이 아니므로 거절한다.
+- **3600초(1시간)를 넘으면 세션은 저장되지만 그 문항의 소요 시간은 버려진다(`null`).** 문제를 띄워둔 채 자리를 비운 시간을 "푸는 데 걸린 시간"으로 볼 수 없기 때문이며, 이것 때문에 실제로 푼 기록까지 잃게 하지는 않는다.
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 
@@ -2141,3 +2150,286 @@ DELETE /api/problem-sets/{problemSetId}
 | **HTTP** | **code** | **발생 조건** |
 | --- | --- | --- |
 | 404 | `PROBLEM_SET_NOT_FOUND` | `problemSetId`가 존재하지 않거나, 요청한 사용자 소유가 아님. |
+
+---
+
+# **Admin API**
+
+관리자 백오피스 전용 API. 관련 도메인은 `admin`이다.
+
+모든 엔드포인트는 `/api/admin` 접두사를 쓰며, 인증을 통과했더라도 `role`이 `ADMIN`이 아니면 `403 AUTH_FORBIDDEN`을 반환한다(→ 권한, `docs/DOMAIN.md` 관리자 권한 정책). 통계 값은 별도 집계 테이블 없이 **조회 시점에 계산**한다 — 오답노트·학습 기록이 상태를 컬럼으로 저장하지 않는 원칙과 같다.
+
+---
+
+## **문제 목록 조회**
+
+관리자 백오피스의 문제 관리 목록을 조회한다. 공개 문제은행 목록(`GET /api/questions`)과 동일한 조회 조건·페이징 규칙을 쓰되, `solved` 대신 문제별 **풀이수·정답률**을 함께 내려준다.
+
+풀이수·정답률은 문제 유형에 따라 다른 테이블을 집계한다 — 객관식은 `SolvedMultipleChoice`, 서술형은 `EssaySolved`(본질문 풀이만, `questionId`가 있는 행) 기준이다. 단건 조회(객관식 문제 통계 조회)와 달리 페이지에 담긴 여러 문제를 한 번에 묶어 집계한다.
+
+### **Endpoint**
+
+```
+GET /api/admin/questions
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+- 정렬은 문제 ID 내림차순(최신순) 고정이다.
+
+### **Query Parameters**
+
+문제 목록 조회(`GET /api/questions`)와 동일하다. 모두 선택이며, 생략하면 해당 조건을 적용하지 않는다.
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `type` | String | 문제 유형. `MULTIPLE_CHOICE` \| `ESSAY` |
+| `difficulty` | String | 난이도. `LOW` \| `MEDIUM` \| `HIGH` |
+| `category` | String | 카테고리. `DB` \| `NETWORK` \| `ALGORITHM` \| `DATA_STRUCTURE` \| `OS` \| `DESIGN_PATTERN` \| `LANGUAGE` |
+| `q` | String | 제목·지문 키워드. 부분 일치이며 대소문자를 구분하지 않는다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 문항 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 12,
+      "title": "REPEATABLE READ의 이상 현상",
+      "category": "DB",
+      "difficulty": "MEDIUM",
+      "type": "MULTIPLE_CHOICE",
+      "solveCount": 1842,
+      "correctRate": 63.8
+    },
+    {
+      "id": 7,
+      "title": "SYN flooding이 성립하는 원인",
+      "category": "NETWORK",
+      "difficulty": "HIGH",
+      "type": "ESSAY",
+      "solveCount": 0,
+      "correctRate": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 137,
+  "totalPages": 7,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `content[].id` | Long | 문제 ID. |
+| `content[].title` | String | 문제 제목. |
+| `content[].category` | String | 카테고리. |
+| `content[].difficulty` | String | 난이도. |
+| `content[].type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `content[].solveCount` | long | 이 문제의 전체 풀이 응답 수. 본질문·꼬리질문 구분 없이 더한다. |
+| `content[].correctRate` | double \| null | 정답률(%), 소수점 첫째 자리로 반올림. **`solveCount`가 0이면 `0.0`이 아니라 `null`이다** — "아직 안 풀림"과 "0% 정답"은 다르다. |
+
+### **에러**
+
+없음. 조건에 맞는 문제가 없으면 빈 `content`와 `200 OK`를 반환한다.
+
+---
+
+## **문제 상세 조회**
+
+관리자 백오피스의 문제 상세 화면에서 쓴다. 공개 문제 단건 조회(`GET /api/questions/{questionId}`)와 달리 **선택지에 정답 여부(`correct`)를 그대로 노출**한다 — 관리자는 정답을 볼 수 있어야 하므로 사용자용 응답과 DTO를 분리했다.
+
+서술형 문제는 `choices`가 빈 배열이며, 대신 `solveCount`·`correctRate`로 풀이수·정답률을 함께 내려준다. **객관식 문제는 이 두 필드가 항상 `null`이다** — 객관식은 지표 집합이 더 큰 별도 통계 조회 API(`GET /api/admin/questions/{questionId}/statistics`)를 쓴다.
+
+### **Endpoint**
+
+```
+GET /api/admin/questions/{questionId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body — 객관식**
+
+```json
+{
+  "id": 12,
+  "title": "REPEATABLE READ의 이상 현상",
+  "content": "트랜잭션 격리 수준을 REPEATABLE READ로 설정했을 때...",
+  "type": "MULTIPLE_CHOICE",
+  "difficulty": "MEDIUM",
+  "category": "DB",
+  "explanation": "REPEATABLE READ는 동일 트랜잭션 내...",
+  "choices": [
+    {
+      "id": 33,
+      "sequence": 1,
+      "content": "Dirty Read — 커밋되지 않은 데이터를 읽는 현상",
+      "correct": false,
+      "explanation": "Dirty Read는 READ UNCOMMITTED에서만 발생하며...",
+      "relatedQuestionId": null
+    },
+    {
+      "id": 34,
+      "sequence": 2,
+      "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+      "correct": true,
+      "explanation": "",
+      "relatedQuestionId": null
+    }
+  ],
+  "tags": ["트랜잭션", "격리수준"],
+  "solveCount": null,
+  "correctRate": null
+}
+```
+
+### **Response Body — 서술형**
+
+```json
+{
+  "id": 7,
+  "title": "SYN flooding이 성립하는 원인",
+  "content": "TCP 3-way handshake 과정에서 SYN flooding 공격이 성립하는 원인을 서술하세요.",
+  "type": "ESSAY",
+  "difficulty": "HIGH",
+  "category": "NETWORK",
+  "explanation": "서버가 SYN을 받은 뒤 SYN+ACK를 보내고...",
+  "choices": [],
+  "tags": ["TCP", "핸드셰이크", "보안"],
+  "solveCount": 312,
+  "correctRate": 41.2
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` | Long | 문제 ID. |
+| `title` | String | 문제 제목. |
+| `content` | String | 문제 발문. |
+| `type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `difficulty` | String | 난이도. |
+| `category` | String | 카테고리. |
+| `explanation` | String | 정답(전체) 해설. |
+| `choices` | Array | 선택지 목록. 서술형은 항상 빈 배열. |
+| `choices[].id` | Long | 선택지 ID. |
+| `choices[].sequence` | int | 보기 표시 순서. |
+| `choices[].content` | String | 선택지 내용. |
+| `choices[].correct` | boolean | 정답 선택지 여부. 단일 정답이므로 `true`는 정확히 1개다. |
+| `choices[].explanation` | String | 이 선택지를 골랐을 때의 오답 해설. 정답 선택지는 빈 값. |
+| `choices[].relatedQuestionId` | Long \| null | 이 선택지를 골랐을 때 이어지는 꼬리질문 ID. 없으면 `null`. |
+| `tags` | Array | 문제 태그 이름 목록. 없으면 빈 배열. |
+| `solveCount` | long \| null | 서술형 문제의 전체 풀이 응답 수(본질문 풀이만, `EssaySolved.questionId`가 있는 행 기준). **객관식은 항상 `null`.** |
+| `correctRate` | double \| null | 서술형 문제의 정답률(%), 소수점 첫째 자리로 반올림. 풀이가 없으면 `null`. **객관식은 항상 `null`.** |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |
+
+---
+
+## **객관식 문제 통계 조회**
+
+객관식 문제 한 건의 전체 풀이 횟수·정답률·평균 소요 시간·가장 많이 고른 선택지·보기별 선택 분포를 조회한다. 관리자 문제 상세 화면의 "통계" 탭에서 사용한다.
+
+집계 대상은 `SolvedMultipleChoice`에 남은 해당 문제의 모든 응답이다. **어떤 세션에서 본질문으로 풀렸는지 꼬리질문으로 풀렸는지 구분하지 않는다** — 모든 `Question`이 동등한 독립 문항이고 등장 위치는 세션마다 달라지기 때문이다(→ `docs/DOMAIN.md` 결정 사항: 본질문·꼬리질문 구분 없음).
+
+**서술형 문제에는 사용할 수 없다.** 선택지가 없어 분포·최다 선택지가 성립하지 않으므로 `400 QUESTION_NOT_MULTIPLE_CHOICE`를 반환한다. 서술형 통계는 지표 집합이 달라 별도 엔드포인트로 설계한다(미구현).
+
+### **Endpoint**
+
+```
+GET /api/admin/questions/{questionId}/statistics
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 아직 아무도 풀지 않은 문제도 에러가 아니다. 모든 지표가 `0`이고 `mostChosenChoice`·`averageElapsedSeconds`가 `null`이며, 보기 분포는 전부 `selectedCount: 0`으로 채워진다.
+
+### **Response Body**
+
+```json
+{
+  "questionId": 12,
+  "totalSolveCount": 1842,
+  "correctCount": 1175,
+  "correctRate": 63.8,
+  "averageElapsedSeconds": 78,
+  "elapsedSampleCount": 412,
+  "mostChosenChoice": {
+    "choiceId": 34,
+    "sequence": 2,
+    "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+    "correct": true,
+    "selectedCount": 1175,
+    "selectedRate": 63.8
+  },
+  "choiceDistribution": [
+    {
+      "choiceId": 33,
+      "sequence": 1,
+      "content": "Dirty Read — 커밋되지 않은 데이터를 읽는 현상",
+      "correct": false,
+      "selectedCount": 318,
+      "selectedRate": 17.3
+    },
+    {
+      "choiceId": 34,
+      "sequence": 2,
+      "content": "Phantom Read — 범위 조회 시 없던 행이 나타나는 현상",
+      "correct": true,
+      "selectedCount": 1175,
+      "selectedRate": 63.8
+    },
+    {
+      "choiceId": 35,
+      "sequence": 3,
+      "content": "Lost Update — 동시 갱신으로 한쪽 변경이 사라지는 현상",
+      "correct": false,
+      "selectedCount": 214,
+      "selectedRate": 11.6
+    },
+    {
+      "choiceId": 36,
+      "sequence": 4,
+      "content": "Non-Repeatable Read — 재조회 시 값이 달라지는 현상",
+      "correct": false,
+      "selectedCount": 135,
+      "selectedRate": 7.3
+    }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `questionId` | Long | 조회한 문제 ID. |
+| `totalSolveCount` | long | 이 문제에 대한 전체 응답 수. 같은 사용자가 여러 번 풀면 각각 더해지고, 꼬리질문으로 푼 응답도 포함한다. |
+| `correctCount` | long | 맞힌 응답 수. 응답 시점에 저장된 `SolvedMultipleChoice.isCorrect` 기준이다. |
+| `correctRate` | double | 정답률(%). `correctCount / totalSolveCount`를 소수점 첫째 자리로 반올림한 값. 응답이 없으면 `0.0`. |
+| `averageElapsedSeconds` | int \| null | 평균 소요 시간(초, 반올림). **소요 시간이 수집된 응답이 하나도 없으면 `0`이 아니라 `null`이다** — "아직 데이터 없음"과 "0초에 풀었다"는 다르다. |
+| `elapsedSampleCount` | long | 위 평균이 몇 건의 응답으로 계산됐는지. `totalSolveCount`보다 작을 수 있다 — 소요 시간 수집 이전에 쌓인 응답과 이상치는 집계에서 빠지기 때문이다. 평균을 신뢰할지 판단하는 근거로 함께 본다. |
+| `mostChosenChoice` | Object \| null | 가장 많이 선택된 보기. 원소 형식은 `choiceDistribution`과 같다. 동점이면 `sequence`가 빠른 보기다. **응답이 한 건도 없으면 `null`.** |
+| `choiceDistribution` | Object[] | 보기별 선택 분포. **현재 보기 전체**가 `sequence` 오름차순으로 담기며, 아무도 고르지 않은 보기도 `selectedCount: 0`으로 포함된다. |
+| `choiceDistribution[].choiceId` | Long | 보기 ID. |
+| `choiceDistribution[].sequence` | int | 화면의 보기 번호(1부터). |
+| `choiceDistribution[].content` | String | 보기 텍스트. |
+| `choiceDistribution[].correct` | boolean | 정답 보기 여부. 단일 정답이므로 `true`는 정확히 1개다. |
+| `choiceDistribution[].selectedCount` | long | 이 보기를 고른 응답 수. |
+| `choiceDistribution[].selectedRate` | double | 전체 응답 대비 비율(%). 분모는 `totalSolveCount`이며 소수점 첫째 자리로 반올림한다. |
+
+비율은 숫자로 내려간다. `%` 기호를 붙이는 등의 표시 형식은 클라이언트가 정한다.
+
+> **분포 비율의 합이 100%가 아닐 수 있다.** 문제 수정으로 보기가 교체·삭제되면 과거 응답이 가리키는 보기가 현재 목록에 없다. 이런 응답은 `totalSolveCount`에는 남지만 어느 보기 행에도 속하지 않으므로 분포에서 빠진다. 과거 풀이 횟수를 조용히 줄이지 않기 위한 선택이다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 400 | `QUESTION_NOT_MULTIPLE_CHOICE` | `questionId`가 서술형(`ESSAY`) 문제임. |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |

@@ -41,6 +41,49 @@ class SolvedSessionControllerTest extends ControllerTestSupport {
     }
 
     @Test
+    @DisplayName("문항별 소요 시간을 함께 제출한다.")
+    void createWithElapsedSeconds() {
+        given(solvedSessionService.create(eq(10L), any())).willReturn(new CreateSolvedSessionResult(1L));
+
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "rootQuestion": {"questionId": 1, "choiceId": 3, "relationQuestionId": 5, "elapsedSeconds": 42},
+                          "followupQuestions": [
+                            {"questionId": 5, "choiceId": 11, "relationQuestionId": null, "elapsedSeconds": 17}
+                          ],
+                          "startedAt": "2026-06-25T09:58:00"
+                        }
+                        """)
+                .when()
+                .post("/api/solved-sessions")
+                .then()
+                .statusCode(201);
+    }
+
+    @Test
+    @DisplayName("소요 시간이 음수면 400을 반환한다.")
+    void createWithNegativeElapsedSeconds() {
+        RestAssuredMockMvc.given()
+                .header(HttpHeaders.AUTHORIZATION, bearerToken(10L))
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "rootQuestion": {"questionId": 1, "choiceId": 3, "relationQuestionId": null, "elapsedSeconds": -1},
+                          "followupQuestions": [],
+                          "startedAt": "2026-06-25T09:58:00"
+                        }
+                        """)
+                .when()
+                .post("/api/solved-sessions")
+                .then()
+                .statusCode(400)
+                .body("code", Matchers.equalTo("INVALID_INPUT"));
+    }
+
+    @Test
     @DisplayName("rootQuestion이 없으면 400을 반환한다.")
     void createWithoutRootQuestion() {
         RestAssuredMockMvc.given()

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ChoiceGradingResponse, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -24,6 +24,8 @@ interface SolvedItem {
   question: QuestionResponse;
   selectedChoiceId: number;
   grading: ChoiceGradingResponse;
+  /** 문항이 노출된 시점부터 "정답 확인"을 누른 시점까지의 초 */
+  elapsedSeconds: number;
 }
 
 /** 세션 내 최대 문항 수 (본질문 + 꼬리질문 2개). 이 개수에 도달하면 relatedQuestionId가
@@ -50,6 +52,9 @@ export default function MultipleChoiceQuiz({
   const [solvedItems, setSolvedItems] = useState<SolvedItem[]>([]);
   // 본질문을 처음 받은 시각(세션 시작 시각). 부모가 문항마다 key로 컴포넌트를 새로 마운트하므로 1회만 계산된다
   const [startedAt] = useState(() => nowAsLocalDateTime());
+  // 지금 풀고 있는 문항이 화면에 노출된 시각. 채점 시 소요 시간을 계산하고 다음 문항으로 넘어갈 때 갱신한다
+  const [firstShownAt] = useState(() => Date.now());
+  const shownAtRef = useRef(firstShownAt);
   // 풀이 중인 문항. null이면 체인 종료(모두 채점됨)
   const [current, setCurrent] = useState<QuestionResponse | null>(question);
   const [selectedChoiceId, setSelectedChoiceId] = useState<number | null>(null);
@@ -84,9 +89,14 @@ export default function MultipleChoiceQuiz({
     if (!current || selectedChoiceId === null || grading) return;
     setGrading(true);
     setError(null);
+    // 채점 요청 왕복 시간은 사용자가 문제를 푼 시간이 아니므로 await 전에 끊는다
+    const elapsedSeconds = Math.round((Date.now() - shownAtRef.current) / 1000);
     try {
       const result = await gradeQuestion(current.id, selectedChoiceId);
-      const nextItems = [...solvedItems, { question: current, selectedChoiceId, grading: result }];
+      const nextItems = [
+        ...solvedItems,
+        { question: current, selectedChoiceId, grading: result, elapsedSeconds },
+      ];
       setSolvedItems(nextItems);
       setCurrent(nextItems.length >= MAX_QUESTIONS ? null : result.nextQuestion);
       setSelectedChoiceId(null);
@@ -105,6 +115,7 @@ export default function MultipleChoiceQuiz({
       questionId: item.question.id,
       choiceId: item.selectedChoiceId,
       relationQuestionId: item.grading.nextQuestion?.id ?? null,
+      elapsedSeconds: item.elapsedSeconds,
     });
     try {
       await saveSolvedSession({
@@ -124,6 +135,8 @@ export default function MultipleChoiceQuiz({
     if (i < seq.length) setTab(i);
   };
   const goNext = () => {
+    // 채점 직후에는 해설 탭에 머무르므로, 다음 문항이 실제로 노출되는 이 시점이 소요 시간의 시작이다
+    shownAtRef.current = Date.now();
     setTab(solvedItems.length);
   };
 
