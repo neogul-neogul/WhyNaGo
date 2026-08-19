@@ -23,6 +23,7 @@ import com.neogul.whynago.question.infra.TagRepository;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
+import com.neogul.whynago.solvedsession.domain.ElapsedSecondsPolicy;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SessionStatus;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;
@@ -107,6 +108,19 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
         SolvedSession savedSession = solvedSessionRepository.findById(result.sessionId()).orElseThrow();
         assertThat(savedSession.getCorrectCount()).isEqualTo(3);
         assertThat(wrongNoteRepository.existsByUserIdAndSolvedSessionId(10L, result.sessionId())).isFalse();
+    }
+
+    @Test
+    @DisplayName("문항별 소요 시간을 각 풀이 문항에 저장하고, 상한을 넘으면 잘라 저장한다.")
+    void create_elapsedSeconds() {
+        QuizData quiz = saveQuizData();
+
+        CreateSolvedSessionResult result = solvedSessionService.create(10L, quiz.toTimedCommand());
+
+        List<SolvedMultipleChoice> items = solvedMultipleChoiceRepository.findBySolvedSessionIdOrderBySequence(result.sessionId());
+        assertThat(items)
+                .extracting(SolvedMultipleChoice::getElapsedSeconds)
+                .containsExactly(42, 17, ElapsedSecondsPolicy.MAX_SECONDS);
     }
 
     @Disabled("https://github.com/neogul-neogul/WhyNaGo/issues/33 - SolvedSessionValidator가 체인 마지막 문항의 relationQuestionId 검증을 건너뛰는 버그로 실패 중")
@@ -254,6 +268,17 @@ class SolvedSessionServiceTest extends IntegrationTestSupport {
                     List.of(
                             new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), null),
                             new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, null)
+                    ),
+                    LocalDateTime.now().minusMinutes(5)
+            );
+        }
+
+        CreateSolvedSessionCommand toTimedCommand() {
+            return new CreateSolvedSessionCommand(
+                    new SolvedQuestionCommand(root.getId(), rootCorrect.getId(), followup1.getId(), 42),
+                    List.of(
+                            new SolvedQuestionCommand(followup1.getId(), followup1Correct.getId(), followup2.getId(), 17),
+                            new SolvedQuestionCommand(followup2.getId(), followup2Wrong.getId(), null, 9999)
                     ),
                     LocalDateTime.now().minusMinutes(5)
             );

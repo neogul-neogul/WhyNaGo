@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { subscribeSessionExpired } from "@/lib/api";
 import { useAuth, useHydrated } from "@/lib/auth";
-import { isGuestOnlyRoute, isPublicRoute } from "@/lib/routes";
+import { isAdminRoute, isGuestOnlyRoute, isPublicRoute } from "@/lib/routes";
 import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
 
 /**
@@ -23,6 +23,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(
     () =>
       subscribeSessionExpired(() => {
+        // 관리자 화면에서 만료되면 그 자리에 관리자 로그인 화면이 뜬다 (사용자 로그인으로 보내지 않는다)
+        if (isAdminRoute(pathname)) return;
         const redirect = encodeURIComponent(pathname);
         router.replace(`/login?redirect=${redirect}&reason=expired`);
       }),
@@ -34,6 +36,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (isGuestOnlyRoute(pathname)) router.replace("/");
   }, [hydrated, loggedIn, pathname, router]);
 
+  // 관리자 화면은 사용자 세션이 아니라 자체 관리자 게이트가 접근을 판정한다
+  if (isAdminRoute(pathname)) return <>{children}</>;
   if (isPublicRoute(pathname)) return <>{children}</>;
   if (!hydrated) return null;
   return (

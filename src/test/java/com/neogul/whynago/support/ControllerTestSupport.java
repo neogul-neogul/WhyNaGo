@@ -1,5 +1,10 @@
 package com.neogul.whynago.support;
 
+import com.neogul.whynago.admin.presentation.AdminQuestionController;
+import com.neogul.whynago.admin.presentation.AdminQuestionStatisticsController;
+import com.neogul.whynago.admin.service.AdminQuestionDetailService;
+import com.neogul.whynago.admin.service.AdminQuestionListService;
+import com.neogul.whynago.admin.service.AdminQuestionStatisticsService;
 import com.neogul.whynago.auth.domain.JwtClaim;
 import com.neogul.whynago.auth.implement.JwtProvider;
 import com.neogul.whynago.auth.presentation.AuthController;
@@ -26,6 +31,7 @@ import com.neogul.whynago.solvedsession.presentation.EssaySolvedSessionControlle
 import com.neogul.whynago.solvedsession.presentation.SolvedSessionController;
 import com.neogul.whynago.solvedsession.service.EssaySolvedSessionService;
 import com.neogul.whynago.solvedsession.service.SolvedSessionService;
+import com.neogul.whynago.user.domain.Role;
 import com.neogul.whynago.user.presentation.UserController;
 import com.neogul.whynago.user.service.UserService;
 import com.neogul.whynago.wrongnote.presentation.WrongNoteController;
@@ -51,7 +57,9 @@ import org.springframework.test.web.servlet.MockMvc;
         ProblemSetController.class,
         ProgressController.class,
         RecommendationController.class,
-        MasteryController.class
+        MasteryController.class,
+        AdminQuestionStatisticsController.class,
+        AdminQuestionController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -104,12 +112,25 @@ public abstract class ControllerTestSupport {
     @MockitoBean
     protected MasteryService masteryService;
 
+    @MockitoBean
+    protected AdminQuestionStatisticsService adminQuestionStatisticsService;
+
+    @MockitoBean
+    protected AdminQuestionListService adminQuestionListService;
+
+    @MockitoBean
+    protected AdminQuestionDetailService adminQuestionDetailService;
+
     @BeforeEach
     void setUpMockMvc() {
         RestAssuredMockMvc.mockMvc(mockMvc);
     }
 
     protected String bearerToken(Long userId) {
-        return "Bearer " + jwtProvider.createAccessToken(new JwtClaim(userId));
+        return bearerToken(userId, Role.USER);
+    }
+
+    protected String bearerToken(Long userId, Role role) {
+        return "Bearer " + jwtProvider.createAccessToken(new JwtClaim(userId, role));
     }
 }

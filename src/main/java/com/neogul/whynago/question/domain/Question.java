@@ -162,6 +162,10 @@ public class Question {
         return type == QuestionType.ESSAY;
     }
 
+    public boolean isMultipleChoice() {
+        return type == QuestionType.MULTIPLE_CHOICE;
+    }
+
     public boolean isGenerated() {
         return source == QuestionSource.GENERATED;
     }

@@ -36,7 +36,7 @@ public class OptionalAuthInterceptor implements HandlerInterceptor {
 
         // 토큰을 보냈다면 만료·위조는 그대로 401로 알린다.
         JwtClaim claim = jwtProvider.parseToken(tokenExtractor.extractToken(authorizationHeader));
-        request.setAttribute(AuthInterceptor.AUTH_CONTEXT_KEY, new AuthContext(claim.id()));
+        request.setAttribute(AuthInterceptor.AUTH_CONTEXT_KEY, AuthContext.from(claim));
         return true;
     }
 }

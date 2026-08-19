@@ -3,7 +3,7 @@ package com.neogul.whynago.solvedsession.implement;
 import com.neogul.whynago.solvedsession.implement.dto.QuestionSolveStat;
 import com.neogul.whynago.solvedsession.infra.EssaySolvedRepository;
 import com.neogul.whynago.solvedsession.infra.SolvedMultipleChoiceRepository;
-import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveCount;
+import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveAggregate;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class QuestionSolveStatReader {
                 .toList();
     }
 
-    private static QuestionSolveStat toStat(QuestionSolveCount count) {
+    private static QuestionSolveStat toStat(QuestionSolveAggregate count) {
         return new QuestionSolveStat(
                 count.getQuestionId(),
                 count.getSolvedCount(),

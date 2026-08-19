@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class UserTest {
 
-    @DisplayName("사용자를 생성하면 직무는 BACKEND로 고정된다.")
+    @DisplayName("사용자를 생성하면 직무는 BACKEND, 권한은 USER로 고정된다.")
     @Test
     void create() {
         // when
@@ -26,9 +26,11 @@ class UserTest {
         assertThat(user.getDailyGoal()).isEqualTo(10);
         assertThat(user.getProvider()).isEqualTo(AuthProvider.LOCAL);
         assertThat(user.isLocal()).isTrue();
+        assertThat(user.getRole()).isEqualTo(Role.USER);
+        assertThat(user.isAdmin()).isFalse();
     }
 
-    @DisplayName("소셜 사용자를 생성하면 비밀번호 없이 제공자 정보가 저장된다.")
+    @DisplayName("소셜 사용자를 생성하면 비밀번호 없이 제공자 정보가 저장되고 권한은 USER로 고정된다.")
     @Test
     void createSocial() {
         // when
@@ -43,6 +45,8 @@ class UserTest {
         assertThat(user.isLocal()).isFalse();
         assertThat(user.getPosition()).isEqualTo(Position.BACKEND);
         assertThat(user.getDailyGoal()).isEqualTo(10);
+        assertThat(user.getRole()).isEqualTo(Role.USER);
+        assertThat(user.isAdmin()).isFalse();
     }
 
     @DisplayName("최소 학습 목표를 변경한다.")

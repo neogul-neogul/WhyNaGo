@@ -2,6 +2,7 @@ package com.neogul.whynago.solvedsession.infra;
 
 import com.neogul.whynago.solvedsession.domain.EssaySolved;
 import com.neogul.whynago.solvedsession.domain.ItemType;
+import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveAggregate;
 import com.neogul.whynago.solvedsession.infra.dto.QuestionSolveCount;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -28,5 +29,16 @@ public interface EssaySolvedRepository extends JpaRepository<EssaySolved, Long> 
             where e.questionId is not null
             group by e.questionId
             """)
-    List<QuestionSolveCount> aggregateByQuestion();
+    List<QuestionSolveAggregate> aggregateByQuestion();
+
+    // 관리자 문제 목록의 풀이수·정답률 컬럼용 벌크 집계. 꼬리질문은 questionId가 null이라 in절에 걸리지 않아 자동 제외된다.
+    @Query("""
+            select e.questionId as questionId,
+                   count(e) as totalCount,
+                   sum(case when e.isCorrect = true then 1 else 0 end) as correctCount
+            from EssaySolved e
+            where e.questionId in :questionIds
+            group by e.questionId
+            """)
+    List<QuestionSolveCount> countGroupByQuestion(@Param("questionIds") List<Long> questionIds);
 }

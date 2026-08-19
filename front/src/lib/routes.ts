@@ -24,3 +24,12 @@ export function isPublicRoute(pathname: string): boolean {
 export function isGuestOnlyRoute(pathname: string): boolean {
   return GUEST_ONLY_ROUTES.some((route) => route === pathname);
 }
+
+/**
+ * 관리자 화면 경로인지.
+ * 어드민은 공통 헤더 대신 자체 사이드바를 쓰고 접근 판정도 자체 게이트(app/admin/layout.tsx)가 하므로,
+ * 사용자 화면용 헤더·인증 가드는 이 경로에서 비켜선다.
+ */
+export function isAdminRoute(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}

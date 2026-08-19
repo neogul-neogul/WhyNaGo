@@ -1,7 +1,9 @@
 package com.neogul.whynago.user.fixture;
 
 import com.neogul.whynago.user.domain.AuthProvider;
+import com.neogul.whynago.user.domain.Role;
 import com.neogul.whynago.user.domain.User;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class UserFixture {
 
@@ -11,6 +13,12 @@ public class UserFixture {
 
     public static SocialUserBuilder socialUser() {
         return new SocialUserBuilder();
+    }
+
+    // 프로덕션에는 승격 경로가 없으므로(운영 DB에서 직접 변경) 테스트에서만 주입한다
+    private static User withRole(User user, Role role) {
+        ReflectionTestUtils.setField(user, "role", role);
+        return user;
     }
 
     public static class SocialUserBuilder {
@@ -50,6 +58,7 @@ public class UserFixture {
         private String email = "test@example.com";
         private String password = "password123";
         private String nickname = "tester";
+        private Role role = Role.USER;
 
         public UserBuilder email(String email) {
             this.email = email;
@@ -66,8 +75,13 @@ public class UserFixture {
             return this;
         }
 
+        public UserBuilder role(Role role) {
+            this.role = role;
+            return this;
+        }
+
         public User build() {
-            return User.create(email, password, nickname);
+            return withRole(User.create(email, password, nickname), role);
         }
     }
 }

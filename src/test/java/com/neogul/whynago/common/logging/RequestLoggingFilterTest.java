@@ -8,6 +8,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.neogul.whynago.auth.presentation.AuthContext;
 import com.neogul.whynago.auth.presentation.interceptor.AuthInterceptor;
+import com.neogul.whynago.user.domain.Role;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
@@ -44,7 +45,7 @@ class RequestLoggingFilterTest {
     void doFilterInternal() throws ServletException, IOException {
         // given
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/questions");
-        request.setAttribute(AuthInterceptor.AUTH_CONTEXT_KEY, new AuthContext(1L));
+        request.setAttribute(AuthInterceptor.AUTH_CONTEXT_KEY, new AuthContext(1L, Role.USER));
         MockHttpServletResponse response = new MockHttpServletResponse();
         response.setStatus(200);
         MockFilterChain chain = new MockFilterChain();

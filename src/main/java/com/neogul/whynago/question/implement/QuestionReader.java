@@ -71,6 +71,15 @@ public class QuestionReader {
         return question;
     }
 
+    public Question readMultipleChoiceQuestion(Long questionId) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new BusinessException(QuestionErrorCode.QUESTION_NOT_FOUND));
+        if (!question.isMultipleChoice()) {
+            throw new BusinessException(QuestionErrorCode.QUESTION_NOT_MULTIPLE_CHOICE);
+        }
+        return question;
+    }
+
     public Map<Category, Integer> countByCategory() {
         return questionRepository.countGroupByCategory().stream()
                 .collect(Collectors.toMap(

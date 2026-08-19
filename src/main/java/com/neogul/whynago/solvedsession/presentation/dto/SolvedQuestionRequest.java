@@ -8,7 +8,8 @@ public record SolvedQuestionRequest(
         @NotNull Long questionId,
         @NotNull Long choiceId,
         Long relationQuestionId,
-        // 선택 항목. 상한 클램핑은 도메인이 하므로 여기서는 형식만 본다.
+        // 아직 소요 시간을 보내지 않는 클라이언트도 저장할 수 있도록 선택 필드로 둔다.
+        // 상한 클램핑은 도메인(ElapsedSecondsPolicy)이 하므로 여기서는 형식만 본다.
         @PositiveOrZero Integer elapsedSeconds
 ) {
 
