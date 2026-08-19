@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { DIFFICULTY_LABELS, type QuestionFilters, type QuestionPaging } from "@/lib/questions";
+import type { BadgeTone } from "@/components/ui/Badge";
 import type {
   AdminDashboardAlert,
   AdminKpi,
@@ -11,6 +12,12 @@ import type {
   DashboardAlertCode,
   DashboardAlertResponse,
   DashboardResponse,
+  EmailBatchExecutionDetailResponse,
+  EmailBatchExecutionResponse,
+  EmailBatchStatus,
+  EmailSendLogResponse,
+  EmailSendStatus,
+  FailureReasonResponse,
   MetricComparisonResponse,
   MultipleChoiceStatisticsResponse,
   PageResponse,
@@ -233,4 +240,73 @@ export function fetchAdminMemberDetail(userId: number): Promise<AdminMemberDetai
 export function formatJoinedDate(createdAt: string | null): string {
   if (!createdAt) return "-";
   return createdAt.slice(0, 10);
+}
+
+// ===== 메일 발송 관리 =====
+
+/** 배치 실행 이력 한 페이지의 행 수 */
+export const ADMIN_EMAIL_BATCH_PAGE_SIZE = 4;
+
+/** 발송 상세 목록 한 페이지의 행 수 */
+export const ADMIN_EMAIL_SEND_LOG_PAGE_SIZE = 8;
+
+/** 배치 실행 이력 조회 — 정렬은 실행 시각 역순 고정이고 기간·상태 필터는 서버가 지원하지 않는다 */
+export function fetchAdminEmailBatches(
+  paging: QuestionPaging = {},
+): Promise<PageResponse<EmailBatchExecutionResponse>> {
+  const params = new URLSearchParams();
+  params.set("page", String(paging.page ?? 0));
+  params.set("size", String(paging.size ?? ADMIN_EMAIL_BATCH_PAGE_SIZE));
+  return apiFetch<PageResponse<EmailBatchExecutionResponse>>(
+    `/api/admin/email-batches?${params.toString()}`,
+  );
+}
+
+/** 배치 단건 — 목록에 없는 실패 사유 요약이 함께 온다 */
+export function fetchAdminEmailBatch(
+  executionId: number,
+): Promise<EmailBatchExecutionDetailResponse> {
+  return apiFetch<EmailBatchExecutionDetailResponse>(`/api/admin/email-batches/${executionId}`);
+}
+
+/**
+ * 수신자별 발송 상세 조회.
+ * "실패만 보기"는 목록이 페이징되는 탓에 화면에서 걸러낼 수 없어 status를 서버로 넘긴다.
+ */
+export function fetchAdminEmailSendLogs(
+  executionId: number,
+  options: { status?: EmailSendStatus; page?: number; size?: number } = {},
+): Promise<PageResponse<EmailSendLogResponse>> {
+  const params = new URLSearchParams();
+  if (options.status) params.set("status", options.status);
+  params.set("page", String(options.page ?? 0));
+  params.set("size", String(options.size ?? ADMIN_EMAIL_SEND_LOG_PAGE_SIZE));
+  return apiFetch<PageResponse<EmailSendLogResponse>>(
+    `/api/admin/email-batches/${executionId}/send-logs?${params.toString()}`,
+  );
+}
+
+export const EMAIL_BATCH_STATUS_LABELS: Record<EmailBatchStatus, string> = {
+  SUCCESS: "정상",
+  PARTIAL_FAILURE: "일부 실패",
+  FAILED: "실패",
+};
+
+export const EMAIL_BATCH_STATUS_TONES: Record<EmailBatchStatus, BadgeTone> = {
+  SUCCESS: "success",
+  PARTIAL_FAILURE: "warning",
+  FAILED: "danger",
+};
+
+/** 실행 시각("2026-08-19T21:00:00") → 목록의 날짜·실행시각 두 컬럼 값 */
+export function splitExecutedAt(executedAt: string): { date: string; time: string } {
+  return { date: executedAt.slice(0, 10), time: executedAt.slice(11, 16) };
+}
+
+/** 실패 사유별 건수 → "Invalid address (4건), Mailbox full (3건)" (실패가 없으면 null) */
+export function formatFailureReasons(reasons: FailureReasonResponse[]): string | null {
+  if (reasons.length === 0) return null;
+  return reasons
+    .map(({ reason, count }) => `${reason ?? "알 수 없는 오류"} (${count.toLocaleString()}건)`)
+    .join(", ");
 }

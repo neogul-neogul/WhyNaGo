@@ -790,6 +790,44 @@ export interface AdminMemberDetailResponse extends AdminMemberResponse {
   completedInterviewCount: number;
 }
 
+/** 배치 실행 상태 — 실패 0건 SUCCESS, 성공·실패 혼재 PARTIAL_FAILURE, 성공 0건 FAILED */
+export type EmailBatchStatus = "SUCCESS" | "PARTIAL_FAILURE" | "FAILED";
+
+export type EmailSendStatus = "SUCCESS" | "FAILURE";
+
+/** GET /api/admin/email-batches — content 원소 */
+export interface EmailBatchExecutionResponse {
+  id: number;
+  /** 배치가 시작된 시각 ("2026-08-19T21:00:00") */
+  executedAt: string;
+  totalTargetCount: number;
+  successCount: number;
+  failureCount: number;
+  status: EmailBatchStatus;
+}
+
+/** 실패 사유별 건수 — 발송 상세가 페이징되므로 서버가 전체를 집계해 내려준다 */
+export interface FailureReasonResponse {
+  reason: string;
+  count: number;
+}
+
+/** GET /api/admin/email-batches/{executionId} — 목록 필드 + 실패 사유 요약 */
+export interface EmailBatchExecutionDetailResponse extends EmailBatchExecutionResponse {
+  failureReasons: FailureReasonResponse[];
+}
+
+/** GET /api/admin/email-batches/{executionId}/send-logs — content 원소 */
+export interface EmailSendLogResponse {
+  id: number;
+  userId: number;
+  /** 발송 시점 주소 스냅샷. 대상 조회 자체가 실패했다면 null이다 */
+  recipientEmail: string | null;
+  sentAt: string;
+  status: EmailSendStatus;
+  failureReason: string | null;
+}
+
 // ===== 대시보드 화면 조립용 =====
 // 서버 응답이 아니라 화면이 그릴 형태다. 응답의 숫자를 표시 문자열로 바꾼 결과가 담긴다.
 
@@ -872,30 +910,5 @@ export interface AdminInterviewRecord {
   within3MinRate: string;
   avgScore: string;
   questionId: string;
-}
-
-/** 이메일 발송 배치 실행 이력 행 */
-export interface AdminEmailBatch {
-  /** 발송일 (YYYY-MM-DD) — 배치 상세 경로에 쓰인다 */
-  date: string;
-  /** 실행 시각 (HH:mm) */
-  at: string;
-  status: AdminEmailBatchStatus;
-  targetCount: number;
-  successCount: number;
-  failCount: number;
-  /** 실패 사유별 건수 요약 (실패가 있는 배치만) */
-  failureSummary?: string;
-}
-
-export type AdminEmailBatchStatus = "정상" | "일부 실패";
-
-/** 배치 상세 · 개별 발송 행 */
-export interface AdminEmailRecipient {
-  key: string;
-  email: string;
-  sentAt: string;
-  succeeded: boolean;
-  reason: string;
 }
 
