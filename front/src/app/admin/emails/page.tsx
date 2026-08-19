@@ -67,17 +67,6 @@ export default function AdminEmailsPage() {
         </span>
       ),
     },
-    {
-      key: "action",
-      header: "액션",
-      width: 76,
-      align: "right",
-      render: (b) => (
-        <Button variant="secondary" size="sm" onClick={() => router.push(`/admin/emails/${b.date}`)}>
-          상세
-        </Button>
-      ),
-    },
   ];
 
   return (
