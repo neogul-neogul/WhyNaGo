@@ -336,6 +336,12 @@ export interface EssayAnswerRequest {
  * 숙련도 판정. 서술형은 채점 AI가 답변 내용을 근거로 판정하고,
  * 객관식은 정답 여부와 소요시간 비율로 서버가 판정한다.
  */
+/** 문항 검수 상태 — 노출 게이트 */
+export type QuestionReviewStatus = "APPROVED" | "PENDING" | "REJECTED";
+
+/** 문항 출신 — 생성 시점에 확정되는 불변값 */
+export type QuestionSource = "SEEDED" | "GENERATED";
+
 export type MasteryLevel =
   | "MASTERED"
   | "SOLID"
@@ -712,6 +718,10 @@ export interface AdminQuestionResponse {
   category: QuestionCategory;
   difficulty: QuestionDifficulty;
   type: QuestionTypeCode;
+  /** 검수 상태 — 관리자 목록에만 나온다. 공개 문제은행 목록은 APPROVED만 보여주므로 이 필드가 없다 */
+  reviewStatus: QuestionReviewStatus;
+  /** 문항 출신 — 승인된 뒤에도 AI 생성 여부는 남는다 */
+  source: QuestionSource;
   /** 전체 풀이 응답 수 (본질문·꼬리질문 구분 없이 합산) */
   solveCount: number;
   /** 정답률(%). 아직 아무도 풀지 않았으면 0이 아니라 null */

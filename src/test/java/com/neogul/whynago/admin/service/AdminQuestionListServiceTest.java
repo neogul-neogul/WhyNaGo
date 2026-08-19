@@ -10,6 +10,8 @@ import com.neogul.whynago.question.domain.AnswerChoice;
 import com.neogul.whynago.question.domain.Category;
 import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
+import com.neogul.whynago.question.domain.QuestionReviewStatus;
+import com.neogul.whynago.question.domain.QuestionSource;
 import com.neogul.whynago.question.domain.QuestionType;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
@@ -142,8 +144,13 @@ class AdminQuestionListServiceTest extends IntegrationTestSupport {
 
         // then
         assertThat(result.questions())
-                .extracting(AdminQuestionResult::id)
-                .contains(pending.getId());
+                .filteredOn(question -> question.id().equals(pending.getId()))
+                .singleElement()
+                .satisfies(question -> {
+                    // 목록에 섞여 나가므로 화면이 검수 대기임을 구분할 수 있어야 한다.
+                    assertThat(question.reviewStatus()).isEqualTo(QuestionReviewStatus.PENDING);
+                    assertThat(question.source()).isEqualTo(QuestionSource.GENERATED);
+                });
     }
 
     private QuestionSearchCommand searchCommand() {

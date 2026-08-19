@@ -2349,6 +2349,8 @@ GET /api/recommendations/weak-tags
 
 관리자 백오피스의 문제 관리 목록을 조회한다. 공개 문제은행 목록(`GET /api/questions`)과 동일한 조회 조건·페이징 규칙을 쓰되, `solved` 대신 문제별 **풀이수·정답률**을 함께 내려준다.
 
+**공개 목록과 달리 검수 전 문항(`PENDING`)과 거절된 문항(`REJECTED`)도 함께 반환한다.** 검수 대기열을 봐야 하는 유일한 화면이기 때문이며, 화면이 구분할 수 있도록 `reviewStatus`와 `source`를 함께 내려준다(→ `docs/RECOMMENDATION.md` 저장 정책).
+
 풀이수·정답률은 문제 유형에 따라 다른 테이블을 집계한다 — 객관식은 `SolvedMultipleChoice`, 서술형은 `EssaySolved`(본질문 풀이만, `questionId`가 있는 행) 기준이다. 단건 조회(객관식 문제 통계 조회)와 달리 페이지에 담긴 여러 문제를 한 번에 묶어 집계한다.
 
 ### **Endpoint**
@@ -2384,15 +2386,19 @@ GET /api/admin/questions
       "category": "DB",
       "difficulty": "MEDIUM",
       "type": "MULTIPLE_CHOICE",
+      "reviewStatus": "APPROVED",
+      "source": "SEEDED",
       "solveCount": 1842,
       "correctRate": 63.8
     },
     {
       "id": 7,
-      "title": "SYN flooding이 성립하는 원인",
-      "category": "NETWORK",
+      "title": "AI가 생성한 인덱스 문항",
+      "category": "DB",
       "difficulty": "HIGH",
       "type": "ESSAY",
+      "reviewStatus": "PENDING",
+      "source": "GENERATED",
       "solveCount": 0,
       "correctRate": null
     }
@@ -2412,6 +2418,8 @@ GET /api/admin/questions
 | `content[].category` | String | 카테고리. |
 | `content[].difficulty` | String | 난이도. |
 | `content[].type` | String | 문제 유형(`MULTIPLE_CHOICE` \| `ESSAY`). |
+| `content[].reviewStatus` | String | 검수 상태(`APPROVED` \| `PENDING` \| `REJECTED`). 관리자가 전이시키는 가변 상태다. |
+| `content[].source` | String | 문항 출신(`SEEDED` \| `GENERATED`). 생성 시점에 확정되며 승인 뒤에도 바뀌지 않는다. |
 | `content[].solveCount` | long | 이 문제의 전체 풀이 응답 수. 본질문·꼬리질문 구분 없이 더한다. |
 | `content[].correctRate` | double \| null | 정답률(%), 소수점 첫째 자리로 반올림. **`solveCount`가 0이면 `0.0`이 아니라 `null`이다** — "아직 안 풀림"과 "0% 정답"은 다르다. |
 
