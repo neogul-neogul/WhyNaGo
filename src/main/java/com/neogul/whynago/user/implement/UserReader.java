@@ -5,6 +5,7 @@ import com.neogul.whynago.user.domain.AuthProvider;
 import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.exception.UserErrorCode;
 import com.neogul.whynago.user.infra.UserRepository;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -26,5 +27,13 @@ public class UserReader {
     public User read(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+    }
+
+    public long countAll() {
+        return userRepository.count();
+    }
+
+    public long countSignedUpBetween(LocalDateTime from, LocalDateTime to) {
+        return userRepository.countByCreatedAtBetween(from, to);
     }
 }

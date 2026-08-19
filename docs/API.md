@@ -2433,3 +2433,73 @@ GET /api/admin/questions/{questionId}/statistics
 | 400 | `QUESTION_NOT_MULTIPLE_CHOICE` | `questionId`가 서술형(`ESSAY`) 문제임. |
 | 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
 | 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |
+
+---
+
+## **대시보드 조회**
+
+관리자 백오피스 대시보드(`/admin`)의 KPI 카드와 운영 알림을 한 번에 조회한다. 화면이 한 번에 그리는 블록이라 지표별로 쪼개지 않고 **엔드포인트 하나**로 합쳤다.
+
+모든 지표는 집계 테이블 없이 조회 시점에 계산하며, 날짜 경계는 **`Asia/Seoul` 기준**이다("오늘"은 KST 자정부터 하루의 끝까지).
+
+> **서버는 숫자만 내려준다.** `▲ 27.6% (전일 29)` 같은 증감 문자열·퍼센트·화살표, 알림 문구와 CTA 링크는 클라이언트가 만든다. 비교가 필요한 지표는 `{ current, previous }` 쌍으로 내려간다.
+
+### **Endpoint**
+
+```
+GET /api/admin/dashboard
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 데이터가 없어도 빈 응답이 아니라 모든 지표가 `0`인 응답을 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "totalMemberCount": 1204,
+  "activeMember7Days": { "current": 312, "previous": 294 },
+  "cumulativeSolveCount": {
+    "total": 48920,
+    "multipleChoiceCount": 34180,
+    "essayCount": 14740
+  },
+  "todaySolveCount": { "current": 1284, "previous": 1142 },
+  "todaySignUpCount": { "current": 37, "previous": 29 },
+  "todayInterview": {
+    "started": { "current": 412, "previous": 435 },
+    "completed": { "current": 323, "previous": 340 }
+  },
+  "alerts": [
+    { "type": "DAILY_INTERVIEW_NOT_PINNED", "interviewDate": "2026-08-19" }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `totalMemberCount` | long | 전체 회원 수. |
+| `activeMember7Days.current` | long | 최근 7일(오늘 포함) 동안 풀이한 회원 수. 같은 회원은 한 번만 센다. |
+| `activeMember7Days.previous` | long | 그 직전 7일의 같은 값. 두 구간은 겹치지 않는다. |
+| `cumulativeSolveCount.total` | long | 누적 풀이 문항 수. |
+| `cumulativeSolveCount.multipleChoiceCount` | long | 그중 객관식 문항 수. |
+| `cumulativeSolveCount.essayCount` | long | 그중 서술형 문항 수. |
+| `todaySolveCount.current` / `.previous` | long | 오늘 / 전일 풀이 문항 수. |
+| `todaySignUpCount.current` / `.previous` | long | 오늘 / 전일 가입자 수. |
+| `todayInterview.started.current` / `.previous` | long | 오늘 / 전일 면접 참여 수(시작된 면접 수). |
+| `todayInterview.completed.current` / `.previous` | long | 오늘 / 전일 면접 완료 수. |
+| `alerts` | Array | 운영 알림 목록. 해당 사항이 없으면 빈 배열이다. |
+| `alerts[].type` | String | 알림 종류. 현재 `DAILY_INTERVIEW_NOT_PINNED` 하나다. |
+| `alerts[].interviewDate` | String \| null | `DAILY_INTERVIEW_NOT_PINNED`의 대상 일자(`yyyy-MM-dd`). 다른 종류의 알림에서는 `null`이다. |
+
+**"풀이 수"는 세션 수가 아니라 문항 수**(`SolvedSession.totalCount` 합)다. 학습 기록의 일자별 문항 수와 같은 정의라 화면 간 숫자가 어긋나지 않는다. 면접 완료도 서술형 풀이 세션을 남기므로 면접 문항이 함께 집계된다.
+
+**가입자 수는 `createdAt`이 있는 회원만 센다.** 가입 시각 추적을 시작하기 전에 가입한 회원은 `createdAt`이 `null`이라 일자별 집계에서 제외된다.
+
+> **`DAILY_INTERVIEW_NOT_PINNED`은 경고가 아니라 사실 전달이다.** 오늘의 면접 문항은 배치가 아니라 **첫 사용자가 면접을 시작할 때 고정**되므로, 아무도 시작하지 않은 이른 시각의 미고정은 정상 상태다. 서버는 기준 시각(예: 09시)을 정해 경고로 격상하지 않고 미고정이라는 사실만 내려주며, 노출 여부와 문구는 클라이언트가 판단한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |

@@ -80,4 +80,30 @@ class DailyInterviewRepositoryTest extends RepositoryTestSupport {
         assertThat(dailyInterviewRepository
                 .findByUserIdAndStatusOrderByInterviewDateDesc(10L, InterviewStatus.COMPLETED)).isEmpty();
     }
+
+    @Test
+    @DisplayName("해당 일자에 시작된 전체 면접 수를 센다.")
+    void countByInterviewDate() {
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(11L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(12L, INTERVIEW_DATE.minusDays(1)));
+
+        assertThat(dailyInterviewRepository.countByInterviewDate(INTERVIEW_DATE)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("해당 일자에 완료된 전체 면접 수를 센다.")
+    void countByInterviewDateAndStatus() {
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(11L, INTERVIEW_DATE));
+
+        assertThat(dailyInterviewRepository.countByInterviewDateAndStatus(INTERVIEW_DATE, InterviewStatus.COMPLETED))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("면접이 없는 일자의 면접 수는 0이다.")
+    void countByInterviewDate_noInterview() {
+        assertThat(dailyInterviewRepository.countByInterviewDate(INTERVIEW_DATE)).isZero();
+    }
 }

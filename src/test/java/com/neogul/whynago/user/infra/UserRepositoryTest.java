@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.neogul.whynago.support.RepositoryTestSupport;
 import com.neogul.whynago.user.domain.User;
 import com.neogul.whynago.user.fixture.UserFixture;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -75,5 +76,53 @@ class UserRepositoryTest extends RepositoryTestSupport {
     void existsByNickname_notRegistered() {
         // when & then
         assertThat(userRepository.existsByNickname("none")).isFalse();
+    }
+
+    @DisplayName("가입 시각이 기간에 속한 회원 수만 센다.")
+    @Test
+    void countByCreatedAtBetween() {
+        // given
+        em.persist(UserFixture.user()
+                .email("today1@example.com").nickname("today1")
+                .createdAt(LocalDateTime.of(2026, 8, 19, 0, 0))
+                .build());
+        em.persist(UserFixture.user()
+                .email("today2@example.com").nickname("today2")
+                .createdAt(LocalDateTime.of(2026, 8, 19, 23, 59, 59))
+                .build());
+        em.persist(UserFixture.user()
+                .email("yesterday@example.com").nickname("yester")
+                .createdAt(LocalDateTime.of(2026, 8, 18, 23, 59, 59))
+                .build());
+        em.flush();
+
+        // when
+        long count = userRepository.countByCreatedAtBetween(
+                LocalDateTime.of(2026, 8, 19, 0, 0),
+                LocalDateTime.of(2026, 8, 19, 23, 59, 59, 999_999_999)
+        );
+
+        // then
+        assertThat(count).isEqualTo(2);
+    }
+
+    @DisplayName("가입 시각이 없는 회원은 기간 집계에서 제외된다.")
+    @Test
+    void countByCreatedAtBetween_createdAtIsNull() {
+        // given
+        em.persist(UserFixture.user()
+                .email("legacy@example.com").nickname("legacy")
+                .createdAtNotTracked()
+                .build());
+        em.flush();
+
+        // when
+        long count = userRepository.countByCreatedAtBetween(
+                LocalDateTime.of(2000, 1, 1, 0, 0),
+                LocalDateTime.of(2100, 1, 1, 0, 0)
+        );
+
+        // then
+        assertThat(count).isZero();
     }
 }
