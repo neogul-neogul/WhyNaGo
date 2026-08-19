@@ -28,6 +28,7 @@ class UserTest {
         assertThat(user.isLocal()).isTrue();
         assertThat(user.getRole()).isEqualTo(Role.USER);
         assertThat(user.isAdmin()).isFalse();
+        assertThat(user.getCreatedAt()).isNotNull();
     }
 
     @DisplayName("소셜 사용자를 생성하면 비밀번호 없이 제공자 정보가 저장되고 권한은 USER로 고정된다.")
@@ -47,6 +48,7 @@ class UserTest {
         assertThat(user.getDailyGoal()).isEqualTo(10);
         assertThat(user.getRole()).isEqualTo(Role.USER);
         assertThat(user.isAdmin()).isFalse();
+        assertThat(user.getCreatedAt()).isNotNull();
     }
 
     @DisplayName("최소 학습 목표를 변경한다.")
