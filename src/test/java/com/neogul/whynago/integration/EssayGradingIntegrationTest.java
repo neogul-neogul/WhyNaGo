@@ -33,12 +33,17 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * 서술형 채점 흐름을 ChatMemory까지 실제로 태워 검증한다.
  * LLM 전송 계층인 ChatModel만 대체하고 ChatClient·MessageChatMemoryAdvisor·ChatMemory는 실제 빈을 사용한다.
  */
+// 채점 흐름을 실제로 태우려면 Mock 클라이언트가 아니라 GeminiEssayAiClient가 떠 있어야 한다.
+// 그 빈은 whynago.ai.enabled로 열리고, 이 값을 기본 테스트 설정에 두면 다른 통합 테스트까지
+// 실제 클라이언트를 물게 되므로 이 테스트에서만 켠다.
+@TestPropertySource(properties = "whynago.ai.enabled=true")
 class EssayGradingIntegrationTest extends IntegrationTestSupport {
 
     @Autowired
