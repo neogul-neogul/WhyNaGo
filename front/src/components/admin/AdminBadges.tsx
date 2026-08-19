@@ -1,5 +1,24 @@
-import type { AdminSolveResult, ProgressTier, QuestionCategory, QuestionDifficulty } from "@/types";
+import type {
+  AdminMemberAnomaly,
+  AdminMemberStatus,
+  AdminQuestionStatus,
+  ProgressTier,
+  QuestionCategory,
+  QuestionDifficulty,
+} from "@/types";
 import Badge from "@/components/ui/Badge";
+
+const STATUS_TONE: Record<AdminQuestionStatus, "success" | "warning" | "neutral"> = {
+  PUBLISHED: "success",
+  DRAFT: "warning",
+  ARCHIVED: "neutral",
+};
+
+const MEMBER_STATUS_TONE: Record<AdminMemberStatus, "success" | "danger" | "neutral"> = {
+  활성: "success",
+  정지: "danger",
+  탈퇴: "neutral",
+};
 
 // 관리자 화면은 사용자 화면과 달리 enum 코드를 그대로 노출한다 (운영자가 DB 값과 대조해야 하므로).
 
@@ -30,16 +49,23 @@ export function DifficultyBadge({ difficulty }: { difficulty: QuestionDifficulty
   return <Badge tone={tone}>{difficulty}</Badge>;
 }
 
+export function StatusBadge({ status }: { status: AdminQuestionStatus }) {
+  return <Badge tone={STATUS_TONE[status]}>{status}</Badge>;
+}
+
+export function MemberStatusBadge({ status }: { status: AdminMemberStatus }) {
+  return <Badge tone={MEMBER_STATUS_TONE[status]}>{status}</Badge>;
+}
+
+export function AnomalyBadge({ anomaly }: { anomaly?: AdminMemberAnomaly }) {
+  if (!anomaly) return <span className="text-icon">-</span>;
+  return <Badge tone={anomaly.tone}>{anomaly.label}</Badge>;
+}
+
 export function TierBadge({ tier }: { tier: ProgressTier }) {
   return (
     <Badge tone={tier === "DIAMOND" ? "ink" : "neutral"} className="tracking-[0.3px]">
       {tier}
     </Badge>
   );
-}
-
-/** 풀이 결과(완료 · 오답 · 복습) / 정오답 표시 */
-export function ResultBadge({ result }: { result: AdminSolveResult | "정답" }) {
-  const tone = result === "오답" ? "danger" : result === "복습" ? "warning" : "success";
-  return <Badge tone={tone}>{result}</Badge>;
 }

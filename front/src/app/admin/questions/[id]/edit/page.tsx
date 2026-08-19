@@ -18,17 +18,30 @@ export default function AdminQuestionEditPage() {
   }
 
   // 시안에 편집용 보기·해설 더미가 준비된 문제가 하나뿐이라, 나머지는 목록 값으로 폼을 채운다
+  const initial =
+    question.type === "서술형"
+      ? {
+          category: question.category,
+          difficulty: question.difficulty,
+          tags: question.detail.tags,
+          title: question.detail.title,
+          body: question.detail.body,
+          modelAnswer: question.detail.answerExplanation ?? "",
+        }
+      : {
+          ...adminQuestionFormSeed,
+          category: question.category,
+          difficulty: question.difficulty,
+          tags: question.detail.tags,
+          title: question.detail.title,
+          body: question.detail.body,
+          explanation: question.detail.answerExplanation ?? "",
+        };
+
   return (
     <QuestionForm
-      initial={{
-        ...adminQuestionFormSeed,
-        category: question.category,
-        difficulty: question.difficulty,
-        tags: question.detail.tags,
-        title: question.detail.title,
-        body: question.detail.body,
-        explanation: question.detail.answerExplanation ?? "",
-      }}
+      type={question.type}
+      initial={initial}
       onCancel={() => router.push(`/admin/questions/${question.id}`)}
     />
   );

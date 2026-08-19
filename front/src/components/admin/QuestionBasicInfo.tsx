@@ -16,8 +16,8 @@ export default function QuestionBasicInfo({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      <CardHeader className="flex-wrap justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <span className="font-mono text-[13.5px] font-semibold text-secondary">{question.id}</span>
           <CategoryBadge category={question.category} />
           <DifficultyBadge difficulty={question.difficulty} />
@@ -110,7 +110,7 @@ export default function QuestionBasicInfo({
             등록일 {detail.createdAt}
           </span>
           <span className="font-mono text-[12.5px] font-medium text-placeholder">
-            최근 수정일 {detail.updatedAt}
+            최근 수정일 {detail.updatedAt} · {detail.updatedBy}
           </span>
         </div>
       </div>

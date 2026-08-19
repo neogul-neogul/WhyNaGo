@@ -14,19 +14,22 @@ const NAV_ITEMS = [
   { href: "/admin/emails", label: "이메일 발송 관리" },
 ] as const;
 
-// 상단바 제목은 경로에서 끌어낸다 (문제 상세만 문제 ID를 덧붙인다)
-function pageTitle(pathname: string): string {
+// 상단바 제목은 경로에서 끌어낸다 (문제 상세만 문제 ID를 덧붙이고, 배치 상세만 상위 경로를 얹는다)
+function pageTitle(pathname: string): { title: string; parent?: string } {
   const [, , section, id, sub] = pathname.split("/");
-  if (section === undefined) return "대시보드";
-  if (section === "members") return id ? "회원 상세" : "회원 목록";
+  if (section === undefined) return { title: "대시보드" };
+  if (section === "members") return { title: "회원 목록" };
   if (section === "questions") {
-    if (!id) return "문제 목록";
-    if (id === "new") return "문제 등록";
-    return sub === "edit" ? "문제 수정" : `문제 상세 · ${id}`;
+    if (!id) return { title: "문제 목록" };
+    return sub === "edit" ? { title: "문제 수정" } : { title: `문제 상세 · ${id}` };
   }
-  if (section === "interviews") return "일일면접 이력";
-  if (section === "emails") return "이메일 발송 관리";
-  return "대시보드";
+  if (section === "interviews") return { title: "일일면접 이력" };
+  if (section === "emails") {
+    return id
+      ? { title: `${id} 발송 상세`, parent: "이메일 발송 관리" }
+      : { title: "이메일 발송 관리" };
+  }
+  return { title: "대시보드" };
 }
 
 function isActive(pathname: string, href: string) {
@@ -37,10 +40,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const user = useCurrentUser();
+  const { title, parent } = pageTitle(pathname);
 
   return (
     <div className="flex min-h-screen w-full bg-page">
-      <aside className="sticky top-0 flex h-screen w-[300px] flex-shrink-0 flex-col gap-[26px] border-r border-line px-4 py-[22px]">
+      <aside className="sticky top-0 flex h-screen w-[220px] flex-shrink-0 flex-col gap-[26px] border-r border-line px-4 py-[22px] xl:w-[300px]">
         <div className="flex h-10 items-center gap-2.5 px-2">
           <AdminLogo />
           <span className="text-xl font-extrabold tracking-[-0.4px] text-ink">WhyNaGo</span>
@@ -66,7 +70,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-30 flex items-center justify-between gap-6 border-b border-line bg-page/90 px-8 py-[18px] backdrop-blur">
-          <h1 className="text-[22px] font-bold tracking-[-0.4px] text-ink">{pageTitle(pathname)}</h1>
+          <div className="flex min-w-0 flex-col gap-[5px]">
+            {parent && (
+              <span className="flex items-center gap-[7px] text-[12.5px] font-semibold text-soft">
+                {parent}
+                <span className="text-icon">›</span>
+              </span>
+            )}
+            <h1 className="truncate text-[22px] font-bold tracking-[-0.4px] text-ink">{title}</h1>
+          </div>
           <div className="flex flex-shrink-0 items-center gap-4">
             <span className="whitespace-nowrap text-[13.5px] font-medium text-secondary">
               {user?.nickname ?? "관리자"} · 관리자

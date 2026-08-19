@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { AdminQuestionForm, QuestionCategory, QuestionDifficulty } from "@/types";
+import type {
+  AdminQuestionForm,
+  AdminQuestionTypeLabel,
+  QuestionCategory,
+  QuestionDifficulty,
+} from "@/types";
 import { ADMIN_CATEGORIES, ADMIN_DIFFICULTIES } from "@/mocks/admin";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -14,11 +19,14 @@ const TEXTAREA_CLASS =
 /**
  * 문제 등록 · 수정 폼 (더미).
  * 저장은 서버로 나가지 않고 저장 완료 안내만 띄운다 — 어드민 문제 등록 API가 아직 없다.
+ * 객관식은 해설 + 보기 편집을, 서술형은 모범답안 편집을 보여준다.
  */
 export default function QuestionForm({
+  type,
   initial,
   onCancel,
 }: {
+  type: AdminQuestionTypeLabel;
   initial: AdminQuestionForm;
   onCancel: () => void;
 }) {
@@ -33,7 +41,7 @@ export default function QuestionForm({
 
   const updateOption = (index: number, patch: { text?: string; explanation?: string }) =>
     update({
-      options: form.options.map((o, i) => (i === index ? { ...o, ...patch } : o)),
+      options: (form.options ?? []).map((o, i) => (i === index ? { ...o, ...patch } : o)),
     });
 
   const addTag = () => {
@@ -48,7 +56,7 @@ export default function QuestionForm({
       <Card className="flex flex-col gap-4 p-6">
         <span className="text-[13px] font-semibold text-muted">기본 정보</span>
 
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
           <Field label="카테고리">
             <FilterSelect
               value={form.category}
@@ -109,79 +117,97 @@ export default function QuestionForm({
           />
         </Field>
 
-        <Field label="해설">
-          <textarea
-            value={form.explanation}
-            onChange={(e) => update({ explanation: e.target.value })}
-            className={`${TEXTAREA_CLASS} min-h-[100px]`}
-          />
-        </Field>
+        {type === "객관식" && (
+          <Field label="해설">
+            <textarea
+              value={form.explanation ?? ""}
+              onChange={(e) => update({ explanation: e.target.value })}
+              className={`${TEXTAREA_CLASS} min-h-[100px]`}
+            />
+          </Field>
+        )}
       </Card>
 
-      <Card className="flex flex-col gap-3.5 p-6">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] font-semibold text-muted">
-            보기 · {form.options.length}개
-          </span>
-          <span className="text-[12.5px] font-medium text-placeholder">
-            정답으로 지정된 보기 1개
-          </span>
-        </div>
+      {type === "객관식" ? (
+        <Card className="flex flex-col gap-3.5 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[13px] font-semibold text-muted">
+              보기 · {(form.options ?? []).length}개
+            </span>
+            <span className="text-[12.5px] font-medium text-placeholder">
+              정답으로 지정된 보기 1개
+            </span>
+          </div>
 
-        {form.options.map((option, i) => {
-          const isAnswer = form.answerIndex === i;
-          return (
-            <div
-              key={i}
-              className="flex flex-col gap-2.5 rounded-[12px] border border-line-card p-4"
-            >
-              <div className="flex items-center gap-3.5">
-                <span className="w-3 flex-shrink-0 font-mono text-[13px] font-semibold text-placeholder">
-                  {i + 1}
-                </span>
-                <Input
-                  value={option.text}
-                  onChange={(e) => updateOption(i, { text: e.target.value })}
-                  className="min-w-0 flex-1"
-                />
-                <button
-                  type="button"
-                  onClick={() => update({ answerIndex: i })}
-                  className="flex flex-shrink-0 cursor-pointer items-center gap-[7px]"
-                >
-                  <span
-                    className={`block h-4 w-4 rounded-full border-2 ${
-                      isAnswer ? "border-success" : "border-line-strong"
-                    }`}
-                  />
-                  <span
-                    className={`text-[12.5px] font-semibold ${
-                      isAnswer ? "text-success" : "text-placeholder"
-                    }`}
-                  >
-                    정답
+          {(form.options ?? []).map((option, i) => {
+            const isAnswer = form.answerIndex === i;
+            return (
+              <div
+                key={i}
+                className="flex flex-col gap-2.5 rounded-[12px] border border-line-card p-4"
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="w-3 flex-shrink-0 font-mono text-[13px] font-semibold text-placeholder">
+                    {i + 1}
                   </span>
-                </button>
-              </div>
+                  <Input
+                    value={option.text}
+                    onChange={(e) => updateOption(i, { text: e.target.value })}
+                    className="min-w-0 flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => update({ answerIndex: i })}
+                    className="flex flex-shrink-0 cursor-pointer items-center gap-[7px]"
+                  >
+                    <span
+                      className={`block h-4 w-4 rounded-full border-2 ${
+                        isAnswer ? "border-success" : "border-line-strong"
+                      }`}
+                    />
+                    <span
+                      className={`text-[12.5px] font-semibold ${
+                        isAnswer ? "text-success" : "text-placeholder"
+                      }`}
+                    >
+                      정답
+                    </span>
+                  </button>
+                </div>
 
-              <input
-                value={option.explanation}
-                onChange={(e) => updateOption(i, { explanation: e.target.value })}
-                placeholder={
-                  isAnswer
-                    ? "이 보기를 고른 경우 오답 사유 해설 (정답 보기는 미입력)"
-                    : "이 보기를 고른 경우 오답 사유 해설"
-                }
-                className={`w-full rounded-[10px] border-none px-3.5 py-2.5 text-[13.5px] outline-none ${
-                  isAnswer
-                    ? "bg-subtle text-placeholder placeholder:text-placeholder"
-                    : "bg-alert-bg text-alert-deep placeholder:text-alert-deep/70"
-                }`}
-              />
-            </div>
-          );
-        })}
-      </Card>
+                <input
+                  value={option.explanation}
+                  onChange={(e) => updateOption(i, { explanation: e.target.value })}
+                  placeholder={
+                    isAnswer
+                      ? "이 보기를 고른 경우 오답 사유 해설 (정답 보기는 미입력)"
+                      : "이 보기를 고른 경우 오답 사유 해설"
+                  }
+                  className={`w-full rounded-[10px] border-none px-3.5 py-2.5 text-[13.5px] outline-none ${
+                    isAnswer
+                      ? "bg-subtle text-placeholder placeholder:text-placeholder"
+                      : "bg-alert-bg text-alert-deep placeholder:text-alert-deep/70"
+                  }`}
+                />
+              </div>
+            );
+          })}
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-card bg-subtle px-[22px] py-[13px]">
+            <span className="text-[13px] font-semibold text-muted">모범답안</span>
+            <span className="text-xs font-semibold text-placeholder">채점 기준 안내에 함께 노출</span>
+          </div>
+          <div className="p-[22px]">
+            <textarea
+              value={form.modelAnswer ?? ""}
+              onChange={(e) => update({ modelAnswer: e.target.value })}
+              className={`${TEXTAREA_CLASS} min-h-[200px]`}
+            />
+          </div>
+        </Card>
+      )}
 
       <div className="flex items-center justify-end gap-2.5">
         <Button variant="muted" size="md" onClick={onCancel}>

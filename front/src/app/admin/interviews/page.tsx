@@ -14,13 +14,12 @@ import FilterSelect from "@/components/admin/FilterSelect";
 
 const PAGE_SIZE = 7;
 
-const PERIODS = ["최근 30일", "최근 90일", "직접 지정"] as const;
+const PERIODS = ["최근 30일", "직접 지정"] as const;
 type Period = (typeof PERIODS)[number];
 
 // 기간별로 보여줄 이력 개수와 표기할 조회 구간 (더미)
 const PERIOD_INFO: Record<Period, { count: number; range: string }> = {
   "최근 30일": { count: 28, range: "2026-07-16 ~ 2026-08-14" },
-  "최근 90일": { count: 28, range: "2026-05-17 ~ 2026-08-14" },
   "직접 지정": { count: 14, range: "2026-08-01 ~ 2026-08-14" },
 };
 
@@ -110,8 +109,8 @@ export default function AdminInterviewsPage() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {PERIODS.map((p) => (
             <Chip
               key={p}
@@ -138,7 +137,7 @@ export default function AdminInterviewsPage() {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
         {adminInterviewAlerts.map((alert) => (
           // 카드 배경/테두리가 경고 색이라 공통 Card 대신 직접 그린다
           <div
@@ -184,7 +183,7 @@ export default function AdminInterviewsPage() {
         <CategoryBarChart />
       </Card>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="font-mono text-[12.5px] font-medium text-placeholder">
           총 {filtered.length}건 ·{" "}
           {rows.length ? `${current * PAGE_SIZE + 1}-${current * PAGE_SIZE + rows.length}` : "0"} 표시

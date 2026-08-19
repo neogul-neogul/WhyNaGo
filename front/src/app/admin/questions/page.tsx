@@ -4,11 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminQuestion } from "@/types";
 import { ADMIN_CATEGORIES, ADMIN_DIFFICULTIES, adminQuestions } from "@/mocks/admin";
-import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Pagination from "@/components/ui/Pagination";
 import AdminTable, { type AdminColumn } from "@/components/admin/AdminTable";
-import { CategoryBadge, DifficultyText } from "@/components/admin/AdminBadges";
+import { CategoryBadge, DifficultyText, StatusBadge } from "@/components/admin/AdminBadges";
 import FilterSelect from "@/components/admin/FilterSelect";
 
 const PAGE_SIZE = 8;
@@ -17,12 +16,6 @@ const DIFFICULTY_OPTIONS = ["전체", ...ADMIN_DIFFICULTIES];
 const TYPE_OPTIONS = ["전체", "객관식", "서술형"];
 
 const COLUMNS: AdminColumn<AdminQuestion>[] = [
-  {
-    key: "id",
-    header: "ID",
-    width: 58,
-    render: (q) => <span className="font-mono text-[13px] font-medium text-secondary">{q.id}</span>,
-  },
   { key: "category", header: "카테고리", width: 140, render: (q) => <CategoryBadge category={q.category} /> },
   {
     key: "difficulty",
@@ -68,6 +61,13 @@ const COLUMNS: AdminColumn<AdminQuestion>[] = [
       <span className="font-mono text-[13px] font-medium text-placeholder">{q.updatedAt}</span>
     ),
   },
+  {
+    key: "status",
+    header: "상태",
+    width: 96,
+    align: "right",
+    render: (q) => <StatusBadge status={q.status} />,
+  },
 ];
 
 export default function AdminQuestionsPage() {
@@ -100,7 +100,7 @@ export default function AdminQuestionsPage() {
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="flex items-center gap-[11px]">
+      <div className="flex flex-wrap items-center gap-[11px]">
         <FilterSelect label="카테고리" value={category} options={CATEGORY_OPTIONS} onChange={reset(setCategory)} />
         <FilterSelect label="난이도" value={difficulty} options={DIFFICULTY_OPTIONS} onChange={reset(setDifficulty)} />
         <FilterSelect label="유형" value={type} options={TYPE_OPTIONS} onChange={reset(setType)} />
@@ -112,11 +112,8 @@ export default function AdminQuestionsPage() {
             setPage(0);
           }}
           placeholder="문제 제목 · 태그 검색"
+          className="min-w-[220px] flex-1"
         />
-
-        <Button size="xl" onClick={() => router.push("/admin/questions/new")}>
-          문제 등록
-        </Button>
       </div>
 
       <AdminTable

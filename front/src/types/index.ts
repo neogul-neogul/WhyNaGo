@@ -662,9 +662,24 @@ export interface AdminMember {
   lastVisitedAt: string;
   score: number;
   streakDays: number;
-  cumulativeDays: number;
   solvedCount: number;
+  interviewCount: number;
+  signupMethod: AdminMemberSignupMethod;
+  anomaly?: AdminMemberAnomaly;
+  status: AdminMemberStatus;
 }
+
+/** 회원 가입 경로 */
+export type AdminMemberSignupMethod = "Google" | "일반";
+
+/** 회원 이상징후 태그 */
+export interface AdminMemberAnomaly {
+  label: string;
+  tone: "danger" | "warning";
+}
+
+/** 회원 상태 */
+export type AdminMemberStatus = "활성" | "정지" | "탈퇴";
 
 /** 어드민 문제 목록 행 */
 export interface AdminQuestion {
@@ -676,26 +691,14 @@ export interface AdminQuestion {
   solveCount: number;
   correctRate: string;
   updatedAt: string;
+  status: AdminQuestionStatus;
 }
+
+/** 문제 공개 상태 */
+export type AdminQuestionStatus = "PUBLISHED" | "DRAFT" | "ARCHIVED";
 
 /** 어드민 화면에서 쓰는 문제 유형 표기 */
 export type AdminQuestionTypeLabel = "객관식" | "서술형";
-
-/** 어드민 회원 상세 · 풀이 이력 행 */
-export interface AdminSolveRecord {
-  at: string;
-  questionId: string;
-  category: QuestionCategory;
-  difficulty: QuestionDifficulty;
-  title: string;
-  type: AdminQuestionTypeLabel;
-  score: number;
-  spent: string;
-  result: AdminSolveResult;
-}
-
-/** 풀이 이력 결과 표기 */
-export type AdminSolveResult = "완료" | "오답" | "복습";
 
 /** 어드민 문제 상세 (기본 정보 + 통계) */
 export interface AdminQuestionDetail {
@@ -707,6 +710,8 @@ export interface AdminQuestionDetail {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  /** 최근 수정한 관리자명 */
+  updatedBy: string;
   responseCount?: number;
   correctRate?: string;
   avgSpent?: string;
@@ -739,16 +744,18 @@ export interface AdminQuestionSession {
   at: string;
 }
 
-/** 문제 등록/수정 폼 상태 */
+/** 문제 등록/수정 폼 상태 (객관식은 explanation·answerIndex·options, 서술형은 modelAnswer를 쓴다) */
 export interface AdminQuestionForm {
   category: QuestionCategory;
   difficulty: QuestionDifficulty;
   tags: string[];
   title: string;
   body: string;
-  explanation: string;
-  answerIndex: number;
-  options: AdminQuestionFormOption[];
+  explanation?: string;
+  answerIndex?: number;
+  options?: AdminQuestionFormOption[];
+  /** 서술형 문제의 모범답안 */
+  modelAnswer?: string;
 }
 
 export interface AdminQuestionFormOption {
@@ -769,11 +776,27 @@ export interface AdminInterviewRecord {
   questionId: string;
 }
 
-/** 이메일 발송 이력 행 */
-export interface AdminEmailLog {
-  key: string;
+/** 이메일 발송 배치 실행 이력 행 */
+export interface AdminEmailBatch {
+  /** 발송일 (YYYY-MM-DD) — 배치 상세 경로에 쓰인다 */
+  date: string;
+  /** 실행 시각 (HH:mm) */
   at: string;
-  to: string;
+  status: AdminEmailBatchStatus;
+  targetCount: number;
+  successCount: number;
+  failCount: number;
+  /** 실패 사유별 건수 요약 (실패가 있는 배치만) */
+  failureSummary?: string;
+}
+
+export type AdminEmailBatchStatus = "정상" | "일부 실패";
+
+/** 배치 상세 · 개별 발송 행 */
+export interface AdminEmailRecipient {
+  key: string;
+  email: string;
+  sentAt: string;
   succeeded: boolean;
   reason: string;
 }
@@ -782,7 +805,18 @@ export interface AdminEmailLog {
 export interface AdminKpi {
   label: string;
   value: string;
-  unit: string;
-  delta: string;
-  increased: boolean;
+  unit?: string;
+  /** 전일/전주 대비 증감 (없으면 표시하지 않음) */
+  delta?: string;
+  increased?: boolean;
+  /** 값 아래 보조 내역 (예: "객관식 34,180 · 서술형 14,740") */
+  breakdown?: string;
+}
+
+/** 대시보드 알림 카드 */
+export interface AdminDashboardAlert {
+  title: string;
+  detail: string;
+  ctaLabel: string;
+  ctaHref: string;
 }

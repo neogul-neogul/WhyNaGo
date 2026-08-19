@@ -1,185 +1,147 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import type { AdminEmailLog } from "@/types";
-import { adminEmailLogs } from "@/mocks/admin";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { AdminEmailBatch } from "@/types";
+import { adminEmailBatches } from "@/mocks/admin";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import Chip from "@/components/ui/Chip";
+import Card from "@/components/ui/Card";
 import Pagination from "@/components/ui/Pagination";
 import AdminTable, { type AdminColumn } from "@/components/admin/AdminTable";
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 4;
 
-const FILTERS = [
-  { key: "all", label: "전체 발송 이력" },
-  { key: "failed", label: "실패 건만" },
-] as const;
-
-type FilterKey = (typeof FILTERS)[number]["key"];
-
-export default function AdminEmailsPage() {
-  // useSearchParams는 Suspense 경계 안에서만 쓸 수 있다 (대시보드 빠른 메뉴가 ?filter=failed로 들어온다)
-  return (
-    <Suspense fallback={null}>
-      <EmailLogs />
-    </Suspense>
-  );
+function StatusBadge({ status }: { status: AdminEmailBatch["status"] }) {
+  return <Badge tone={status === "정상" ? "success" : "warning"}>{status}</Badge>;
 }
 
-function EmailLogs() {
-  const searchParams = useSearchParams();
-  const [filter, setFilter] = useState<FilterKey>(
-    searchParams.get("filter") === "failed" ? "failed" : "all",
-  );
+export default function AdminEmailsPage() {
+  const router = useRouter();
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [resent, setResent] = useState<string[]>([]);
 
-  const filtered = adminEmailLogs.filter((e) => filter === "all" || !e.succeeded);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const today = adminEmailBatches[0];
+  const totalPages = Math.max(1, Math.ceil(adminEmailBatches.length / PAGE_SIZE));
   const current = Math.min(page, totalPages - 1);
-  const rows = filtered.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
+  const rows = adminEmailBatches.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
 
-  const isResent = (log: AdminEmailLog) => resent.includes(log.key);
-  const isFailed = (log: AdminEmailLog) => !log.succeeded && !isResent(log);
-
-  const toggle = (log: AdminEmailLog) => {
-    if (!isFailed(log)) return;
-    setSelected((prev) =>
-      prev.includes(log.key) ? prev.filter((k) => k !== log.key) : [...prev, log.key],
-    );
-  };
-
-  const resend = (keys: string[]) => {
-    setResent((prev) => [...prev, ...keys]);
-    setSelected((prev) => prev.filter((k) => !keys.includes(k)));
-  };
-
-  const failedCount = adminEmailLogs.filter((e) => !e.succeeded && !resent.includes(e.key)).length;
-
-  const columns: AdminColumn<AdminEmailLog>[] = [
+  const columns: AdminColumn<AdminEmailBatch>[] = [
     {
-      key: "check",
-      header: "",
-      width: 18,
-      render: (log) => {
-        const checked = selected.includes(log.key);
-        return (
-          <button
-            type="button"
-            aria-label={`${log.to} 선택`}
-            aria-pressed={checked}
-            disabled={!isFailed(log)}
-            onClick={() => toggle(log)}
-            className={`flex h-[17px] w-[17px] items-center justify-center rounded-[5px] border-[1.5px] text-[11px] font-bold text-white disabled:cursor-not-allowed ${
-              checked
-                ? "border-ink bg-ink"
-                : isFailed(log)
-                  ? "cursor-pointer border-line-strong bg-white"
-                  : "border-line-soft bg-white"
-            }`}
-          >
-            {checked ? "✓" : ""}
-          </button>
-        );
-      },
+      key: "date",
+      header: "날짜",
+      width: 120,
+      render: (b) => <span className="font-mono text-[13px] font-semibold text-ink">{b.date}</span>,
     },
     {
       key: "at",
-      header: "발송일시",
+      header: "실행시각",
       width: 120,
-      render: (log) => (
-        <span className="font-mono text-[12.5px] font-medium text-secondary">{log.at}</span>
-      ),
-    },
-    {
-      key: "to",
-      header: "수신자",
-      width: 220,
-      render: (log) => <span className="text-[13.5px] font-medium text-ink">{log.to}</span>,
+      render: (b) => <span className="font-mono text-[13px] font-medium text-secondary">{b.at}</span>,
     },
     {
       key: "status",
       header: "상태",
-      width: 76,
-      render: (log) =>
-        isResent(log) ? (
-          <Badge tone="success">재발송 완료</Badge>
-        ) : (
-          <Badge tone={log.succeeded ? "success" : "danger"}>{log.succeeded ? "성공" : "실패"}</Badge>
-        ),
+      width: 90,
+      render: (b) => <StatusBadge status={b.status} />,
     },
     {
-      key: "reason",
-      header: "실패 사유",
-      render: (log) => (
+      key: "success",
+      header: "성공",
+      align: "right",
+      render: (b) => (
+        <span className="font-mono text-[13px] font-semibold text-success">
+          {b.successCount.toLocaleString()}건
+        </span>
+      ),
+    },
+    {
+      key: "fail",
+      header: "실패",
+      width: 90,
+      align: "right",
+      render: (b) => (
         <span
-          className={`block truncate text-[13.5px] font-medium ${
-            isResent(log) ? "text-success" : log.succeeded ? "text-placeholder" : "text-alert-deep"
-          }`}
+          className={`font-mono text-[13px] font-bold ${b.failCount > 0 ? "text-danger" : "text-placeholder"}`}
         >
-          {isResent(log) ? "재발송 처리됨" : log.reason || "—"}
+          {b.failCount.toLocaleString()}건
         </span>
       ),
     },
     {
       key: "action",
       header: "액션",
-      width: 84,
+      width: 76,
       align: "right",
-      render: (log) =>
-        isFailed(log) ? (
-          <Button variant="secondary" size="sm" onClick={() => resend([log.key])}>
-            재발송
-          </Button>
-        ) : isResent(log) ? (
-          <Badge tone="success">재발송</Badge>
-        ) : null,
+      render: (b) => (
+        <Button variant="secondary" size="sm" onClick={() => router.push(`/admin/emails/${b.date}`)}>
+          상세
+        </Button>
+      ),
     },
   ];
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          {FILTERS.map((f) => (
-            <Chip
-              key={f.key}
-              label={f.label}
-              active={filter === f.key}
-              onClick={() => {
-                setFilter(f.key);
-                setPage(0);
-              }}
-            />
-          ))}
+    <div className="flex w-full flex-col gap-[18px]">
+      <Card className="flex flex-col gap-3 p-[22px]">
+        <span className="text-[13px] font-semibold text-muted">오늘의 배치 요약</span>
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryTile label="발송 상태">
+            <StatusBadge status={today.status} />
+          </SummaryTile>
+          <SummaryTile label="실행 시각">
+            <span className="font-mono text-[13px] font-bold text-ink">
+              {today.date} {today.at}
+            </span>
+          </SummaryTile>
+          <SummaryTile label="대상자 수">
+            <span className="font-mono text-[13px] font-bold text-ink">
+              {today.targetCount.toLocaleString()}건
+            </span>
+          </SummaryTile>
+          <SummaryTile label="성공/실패">
+            <span className="font-mono text-[13px] font-bold">
+              <span className="text-success">{today.successCount.toLocaleString()}</span>
+              <span className="text-placeholder"> / </span>
+              <span className="text-danger">{today.failCount.toLocaleString()}</span>
+            </span>
+          </SummaryTile>
         </div>
-        <div className="flex flex-shrink-0 items-center gap-3">
-          <span className="whitespace-nowrap text-[12.5px] font-medium text-placeholder">
-            선택 <span className="font-mono font-semibold text-secondary">{selected.length}</span>건
-          </span>
-          <Button size="md" disabled={selected.length === 0} onClick={() => resend(selected)}>
-            선택 일괄 재발송
-          </Button>
-        </div>
-      </div>
+
+        {today.failureSummary && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-[240px] flex-1 rounded-[10px] border border-alert-line bg-danger-bg px-3.5 py-2.5 text-[12.5px] text-danger">
+              <strong className="font-bold">실패 사유 요약:</strong> {today.failureSummary}
+            </div>
+            <Button size="sm" onClick={() => router.push(`/admin/emails/${today.date}?failed=1`)}>
+              실패자만 재시도
+            </Button>
+          </div>
+        )}
+      </Card>
 
       <AdminTable
         columns={columns}
         rows={rows}
-        rowKey={(log) => log.key}
-        rowClassName={(log) => (isFailed(log) ? "bg-danger-bg/30" : "bg-white")}
-        emptyText="해당 조건의 발송 이력이 없습니다."
+        rowKey={(b) => b.date}
+        onRowClick={(b) => router.push(`/admin/emails/${b.date}`)}
+        emptyText="배치 실행 이력이 없습니다."
+        caption={{ left: "배치 실행 이력" }}
+        footer={
+          <div className="flex justify-center border-t border-line-card px-[22px] py-4">
+            <Pagination page={current} totalPages={totalPages} onChange={setPage} />
+          </div>
+        }
       />
+    </div>
+  );
+}
 
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-mono text-[12.5px] font-medium text-placeholder">
-          총 {filtered.length}건 · 실패 {failedCount}건
-        </span>
-        <Pagination page={current} totalPages={totalPages} onChange={setPage} />
-      </div>
+function SummaryTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border border-line-card bg-subtle px-3.5 py-3">
+      <span className="text-[11.5px] font-semibold text-soft">{label}</span>
+      {children}
     </div>
   );
 }
