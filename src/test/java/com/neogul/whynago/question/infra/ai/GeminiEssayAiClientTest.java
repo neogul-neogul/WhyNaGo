@@ -20,7 +20,9 @@ import ch.qos.logback.core.read.ListAppender;
 import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.exception.ErrorCode;
+import com.neogul.whynago.fixture.EssayGradingTargetFixture;
 import com.neogul.whynago.question.domain.EssayGradingMode;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.ai.prompt.EssayPrompt;
 import java.util.List;
@@ -47,6 +49,7 @@ import org.springframework.ai.retry.NonTransientAiException;
 class GeminiEssayAiClientTest {
 
     private static final String CONVERSATION_ID = "conv-1";
+    private static final EssayGradingTarget TARGET = EssayGradingTargetFixture.plain();
     private static final String PROMPT_VERSION = "v-test";
     private static final String SYSTEM_PROMPT = "시스템 프롬프트";
     private static final String USER_PROMPT = "사용자 프롬프트";
@@ -69,7 +72,7 @@ class GeminiEssayAiClientTest {
         essayPrompt = mock(EssayPrompt.class);
         given(essayPrompt.version()).willReturn(PROMPT_VERSION);
         given(essayPrompt.systemPrompt(any(EssayGradingMode.class))).willReturn(SYSTEM_PROMPT);
-        given(essayPrompt.userPrompt(any(EssayGradingMode.class), anyString(), anyString(), anyBoolean()))
+        given(essayPrompt.userPrompt(any(EssayGradingMode.class), any(EssayGradingTarget.class), anyBoolean()))
                 .willReturn(USER_PROMPT);
         client = new GeminiEssayAiClient(builder, chatMemory, essayPrompt);
 
@@ -98,7 +101,7 @@ class GeminiEssayAiClientTest {
         givenAiCallReturns(expected, chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
-        GradeAndFollowupResult result = client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE);
+        GradeAndFollowupResult result = client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE);
 
         // then
         assertThat(result).isEqualTo(expected);
@@ -113,7 +116,7 @@ class GeminiEssayAiClientTest {
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
-        client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", false, EssayGradingMode.PRACTICE);
+        client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, false, EssayGradingMode.PRACTICE);
 
         // then
         assertThat(logAppender.list)
@@ -136,11 +139,11 @@ class GeminiEssayAiClientTest {
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
-        client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.INTERVIEW);
+        client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.INTERVIEW);
 
         // then
         verify(essayPrompt).systemPrompt(EssayGradingMode.INTERVIEW);
-        verify(essayPrompt).userPrompt(EssayGradingMode.INTERVIEW, "질문", "답변", true);
+        verify(essayPrompt).userPrompt(EssayGradingMode.INTERVIEW, TARGET, true);
         assertThat(capturedSystemPrompt()).isEqualTo(SYSTEM_PROMPT);
         assertThat(capturedUserText()).isEqualTo(USER_PROMPT);
     }
@@ -154,10 +157,10 @@ class GeminiEssayAiClientTest {
                 chatResponseWith("gemini-3.5-flash-lite", new DefaultUsage(120, 45, 165)));
 
         // when
-        client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", false, EssayGradingMode.PRACTICE);
+        client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, false, EssayGradingMode.PRACTICE);
 
         // then
-        verify(essayPrompt).userPrompt(EssayGradingMode.PRACTICE, "질문", "답변", false);
+        verify(essayPrompt).userPrompt(EssayGradingMode.PRACTICE, TARGET, false);
     }
 
     @Test
@@ -166,7 +169,7 @@ class GeminiEssayAiClientTest {
         RuntimeException llmFailure = new RuntimeException("LLM down");
         givenAiCallFailsWith(llmFailure);
 
-        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE))
                 .isInstanceOf(BusinessException.class)
                 .hasCause(llmFailure)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
@@ -180,7 +183,7 @@ class GeminiEssayAiClientTest {
                 "HTTP 429 - {\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\","
                         + "\"message\":\"Quota exceeded for quota metric 'Generate requests per minute'\"}}"));
 
-        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_QUOTA_EXCEEDED));
@@ -193,7 +196,7 @@ class GeminiEssayAiClientTest {
                 "HTTP 429 - {\"error\":{\"code\":429,\"status\":\"RESOURCE_EXHAUSTED\",\"details\":"
                         + "[{\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\"}]}}"));
 
-        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_DAILY_QUOTA_EXCEEDED));
@@ -205,7 +208,7 @@ class GeminiEssayAiClientTest {
         givenAiCallFailsWith(new NonTransientAiException(
                 "HTTP 401 - {\"error\":{\"code\":401,\"status\":\"UNAUTHENTICATED\"}}"));
 
-        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(errorCodeOf(exception))
                         .isEqualTo(QuestionErrorCode.ESSAY_AI_UNAVAILABLE));
@@ -218,7 +221,7 @@ class GeminiEssayAiClientTest {
         given(chatMemory.get(CONVERSATION_ID)).willReturn(beforeCall);
         givenAiCallFailsWith(new RuntimeException("LLM down"));
 
-        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, "질문", "답변", true, EssayGradingMode.PRACTICE))
+        assertThatThrownBy(() -> client.gradeAndGenerateFollowup(CONVERSATION_ID, TARGET, true, EssayGradingMode.PRACTICE))
                 .isInstanceOf(BusinessException.class);
 
         verify(chatMemory).clear(CONVERSATION_ID);

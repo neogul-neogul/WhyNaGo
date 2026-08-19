@@ -1,5 +1,6 @@
 package com.neogul.whynago.question.service;
 
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,10 +82,10 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 9, "꼬리질문1"));
         EvaluateEssayAnswerCommand command =
-                new EvaluateEssayAnswerCommand("conv-1", essay.getContent(), "제 답변입니다.");
+                new EvaluateEssayAnswerCommand("conv-1", essay.getContent(), "제 답변입니다.", null);
 
         EssayAnswerResult result = essayAnswerService.evaluate(10L, essay.getId(), command);
 
@@ -100,24 +101,24 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
         given(essayAiClient.completedTurns(anyString())).willReturn(2);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 5, null));
         EvaluateEssayAnswerCommand command =
-                new EvaluateEssayAnswerCommand("conv-1", "꼬리질문2", "답변3");
+                new EvaluateEssayAnswerCommand("conv-1", "꼬리질문2", "답변3", null);
 
         EssayAnswerResult result = essayAnswerService.evaluate(10L, essay.getId(), command);
 
         assertThat(result.nextFollowup()).isNull();
         assertThat(result.grading().isCorrect()).isFalse();
         verify(essayAiClient).gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), eq(false), eq(EssayGradingMode.PRACTICE));
+                anyString(), any(EssayGradingTarget.class), eq(false), eq(EssayGradingMode.PRACTICE));
     }
 
     @Test
     @DisplayName("서술형이 아닌 문제면 예외가 발생한다.")
     void evaluate_notEssay() {
         Question multipleChoice = questionRepository.save(QuestionFixture.rootMultipleChoice());
-        EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand("conv-1", "질문", "답변");
+        EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand("conv-1", "질문", "답변", null);
 
         assertThatThrownBy(() -> essayAnswerService.evaluate(10L, multipleChoice.getId(), command))
                 .isInstanceOf(BusinessException.class)
@@ -128,7 +129,7 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     @Test
     @DisplayName("존재하지 않는 문제면 예외가 발생한다.")
     void evaluate_questionNotFound() {
-        EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand("conv-1", "질문", "답변");
+        EvaluateEssayAnswerCommand command = new EvaluateEssayAnswerCommand("conv-1", "질문", "답변", null);
 
         assertThatThrownBy(() -> essayAnswerService.evaluate(10L, 999L, command))
                 .isInstanceOf(BusinessException.class)
@@ -145,7 +146,7 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
         questionTagRepository.save(QuestionTag.create(essay.getId(), tag.getId()));
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.withMastery(
                         "피드백", "모범답안", 4, "꼬리질문1", MasteryLevel.UNSTABLE));
 
@@ -169,7 +170,7 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
         Question essay = questionRepository.save(QuestionFixture.essayRoot());
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.withoutMastery("피드백", "모범답안", 7, "꼬리질문1"));
 
         // when
@@ -182,6 +183,6 @@ class EssayAnswerServiceTest extends IntegrationTestSupport {
     }
 
     private EvaluateEssayAnswerCommand command(String conversationId, String question, String answer) {
-        return new EvaluateEssayAnswerCommand(conversationId, question, answer);
+        return new EvaluateEssayAnswerCommand(conversationId, question, answer, null);
     }
 }

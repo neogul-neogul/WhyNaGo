@@ -1,5 +1,6 @@
 package com.neogul.whynago.solvedsession.domain;
 
+import com.neogul.whynago.common.domain.ElapsedSecondsPolicy;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

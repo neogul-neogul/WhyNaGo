@@ -5,6 +5,7 @@ import com.neogul.whynago.question.domain.Difficulty;
 import com.neogul.whynago.question.domain.Question;
 import com.neogul.whynago.question.domain.QuestionType;
 import java.util.List;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public final class QuestionFixture {
 
@@ -102,6 +103,13 @@ public final class QuestionFixture {
         public Question build() {
             return Question.create(title, content, type, difficulty, category, explanation);
         }
+    }
+
+    // 루브릭은 파이프라인이 UPDATE로 채우는 값이라 팩토리에 없다. 테스트는 필드에 직접 넣는다.
+    public static Question essayRootWithRubric() {
+        Question essay = essayRoot();
+        ReflectionTestUtils.setField(essay, "rubric", RubricFixture.threeCriteria());
+        return essay;
     }
 
     public static Question essayRoot() {

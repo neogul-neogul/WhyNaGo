@@ -2,6 +2,7 @@ package com.neogul.whynago.question.infra.ai.prompt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.neogul.whynago.fixture.EssayGradingTargetFixture;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import java.util.Arrays;
 import java.util.List;
@@ -18,7 +19,9 @@ class EssayPromptContractTest {
     private static final List<EssayPrompt> PROMPTS = List.of(
             new EssayPromptV1(),
             new EssayPromptV2(),
-            new EssayPromptV3());
+            new EssayPromptV3(),
+            new EssayPromptV5(),
+            new EssayPromptV6());
 
     private static final String QUESTION = "고유질문-a1b2c3";
     private static final String ANSWER = "고유답변-x9y8z7";
@@ -67,10 +70,10 @@ class EssayPromptContractTest {
     @MethodSource("promptsAndModes")
     @DisplayName("사용자 프롬프트는 채점 대상 질문과 답변을 그대로 담는다.")
     void userPrompt_missingGradingTarget(EssayPrompt prompt, EssayGradingMode mode) {
-        assertThat(prompt.userPrompt(mode, QUESTION, ANSWER, true))
+        assertThat(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), true))
                 .contains(QUESTION)
                 .contains(ANSWER);
-        assertThat(prompt.userPrompt(mode, QUESTION, ANSWER, false))
+        assertThat(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), false))
                 .contains(QUESTION)
                 .contains(ANSWER);
     }
@@ -79,15 +82,15 @@ class EssayPromptContractTest {
     @MethodSource("promptsAndModes")
     @DisplayName("사용자 프롬프트에 채우지 못한 서식 문자를 남기지 않는다.")
     void userPrompt_unfilledPlaceholder(EssayPrompt prompt, EssayGradingMode mode) {
-        assertThat(prompt.userPrompt(mode, QUESTION, ANSWER, true)).doesNotContain("%s");
-        assertThat(prompt.userPrompt(mode, QUESTION, ANSWER, false)).doesNotContain("%s");
+        assertThat(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), true)).doesNotContain("%s");
+        assertThat(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), false)).doesNotContain("%s");
     }
 
     @ParameterizedTest(name = "{0} - {1}")
     @MethodSource("promptsAndModes")
     @DisplayName("꼬리질문을 만드는 턴과 만들지 않는 턴의 지시가 서로 다르다.")
     void userPrompt_sameForFollowupTurnAndNot(EssayPrompt prompt, EssayGradingMode mode) {
-        assertThat(prompt.userPrompt(mode, QUESTION, ANSWER, true))
-                .isNotEqualTo(prompt.userPrompt(mode, QUESTION, ANSWER, false));
+        assertThat(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), true))
+                .isNotEqualTo(prompt.userPrompt(mode, EssayGradingTargetFixture.of(QUESTION, ANSWER), false));
     }
 }

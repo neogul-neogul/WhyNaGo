@@ -1,5 +1,6 @@
 package com.neogul.whynago.solvedsession.service;
 
+import com.neogul.whynago.common.domain.ElapsedSecondsPolicy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -23,7 +24,6 @@ import com.neogul.whynago.question.infra.TagRepository;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.AnswerChoiceRepository;
 import com.neogul.whynago.question.infra.QuestionRepository;
-import com.neogul.whynago.solvedsession.domain.ElapsedSecondsPolicy;
 import com.neogul.whynago.solvedsession.domain.ItemType;
 import com.neogul.whynago.solvedsession.domain.SessionStatus;
 import com.neogul.whynago.solvedsession.domain.SolvedMultipleChoice;

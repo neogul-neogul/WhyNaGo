@@ -1,5 +1,6 @@
 package com.neogul.whynago.interview.service;
 
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -156,11 +157,11 @@ class InterviewServiceTest extends IntegrationTestSupport {
         Long interviewId = interviewService.start(USER_ID).interviewId();
         given(essayAiClient.completedTurns(anyString())).willReturn(0);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "꼬리질문1"));
 
         AnswerInterviewResult result = interviewService.answer(
-                USER_ID, interviewId, new AnswerInterviewCommand("본질문", "답변"));
+                USER_ID, interviewId, new AnswerInterviewCommand("본질문", "답변", null));
 
         assertThat(result.grading().feedback()).isEqualTo("피드백");
         assertThat(result.grading().isCorrect()).isTrue();
@@ -173,11 +174,11 @@ class InterviewServiceTest extends IntegrationTestSupport {
         Long interviewId = interviewService.start(USER_ID).interviewId();
         given(essayAiClient.completedTurns(anyString())).willReturn(2);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(GradeAndFollowupResultFixture.of("피드백", "모범답안", 5, null));
 
         AnswerInterviewResult result = interviewService.answer(
-                USER_ID, interviewId, new AnswerInterviewCommand("꼬리질문2", "답변3"));
+                USER_ID, interviewId, new AnswerInterviewCommand("꼬리질문2", "답변3", null));
 
         assertThat(result.nextFollowup()).isNull();
         assertThat(result.grading().isCorrect()).isFalse();
@@ -189,7 +190,7 @@ class InterviewServiceTest extends IntegrationTestSupport {
         Long interviewId = interviewService.start(USER_ID).interviewId();
 
         assertThatThrownBy(() -> interviewService.answer(
-                11L, interviewId, new AnswerInterviewCommand("본질문", "답변")))
+                11L, interviewId, new AnswerInterviewCommand("본질문", "답변", null)))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(InterviewErrorCode.INTERVIEW_NOT_FOUND));
@@ -199,7 +200,7 @@ class InterviewServiceTest extends IntegrationTestSupport {
     @DisplayName("없는 면접에 답변하면 예외가 발생한다.")
     void answerMissingInterview() {
         assertThatThrownBy(() -> interviewService.answer(
-                USER_ID, 999L, new AnswerInterviewCommand("본질문", "답변")))
+                USER_ID, 999L, new AnswerInterviewCommand("본질문", "답변", null)))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(InterviewErrorCode.INTERVIEW_NOT_FOUND));
@@ -212,7 +213,7 @@ class InterviewServiceTest extends IntegrationTestSupport {
         interviewService.complete(USER_ID, interviewId, completeCommand(true, true, true));
 
         assertThatThrownBy(() -> interviewService.answer(
-                USER_ID, interviewId, new AnswerInterviewCommand("본질문", "답변")))
+                USER_ID, interviewId, new AnswerInterviewCommand("본질문", "답변", null)))
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> assertThat(((BusinessException) exception).errorCode())
                         .isEqualTo(InterviewErrorCode.INTERVIEW_NOT_IN_PROGRESS));

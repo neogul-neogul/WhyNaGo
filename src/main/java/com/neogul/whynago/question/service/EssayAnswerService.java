@@ -1,11 +1,13 @@
 package com.neogul.whynago.question.service;
 
 import com.neogul.whynago.question.domain.EssayGradingMode;
-import com.neogul.whynago.question.implement.ConversationIdGenerator;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import com.neogul.whynago.question.domain.Question;
+import com.neogul.whynago.question.implement.ConversationIdGenerator;
 import com.neogul.whynago.question.implement.EssayAnswerEvaluator;
 import com.neogul.whynago.question.implement.EssayMasteryRecorder;
 import com.neogul.whynago.question.implement.QuestionReader;
+import com.neogul.whynago.question.implement.SolvingTimeReader;
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import com.neogul.whynago.question.service.dto.EssayAnswerResult;
 import com.neogul.whynago.question.service.dto.EssaySessionResult;
@@ -19,6 +21,7 @@ public class EssayAnswerService {
 
     private final QuestionReader questionReader;
     private final ConversationIdGenerator conversationIdGenerator;
+    private final SolvingTimeReader solvingTimeReader;
     private final EssayAnswerEvaluator essayAnswerEvaluator;
     private final EssayMasteryRecorder essayMasteryRecorder;
 
@@ -34,12 +37,14 @@ public class EssayAnswerService {
     // 붙잡게 된다. 기록은 MasteryService가 자기 트랜잭션에서 처리한다.
     public EssayAnswerResult evaluate(Long userId, Long questionId, EvaluateEssayAnswerCommand command) {
         Question question = questionReader.readEssayQuestion(questionId);
-        EssayEvaluation evaluation = essayAnswerEvaluator.evaluate(
-                command.conversationId(),
+        EssayGradingTarget target = new EssayGradingTarget(
                 command.question(),
                 command.answer(),
-                EssayGradingMode.PRACTICE
+                question.getRubric(),
+                solvingTimeReader.read(questionId, command.elapsedSeconds())
         );
+        EssayEvaluation evaluation =
+                essayAnswerEvaluator.evaluate(command.conversationId(), target, EssayGradingMode.PRACTICE);
         essayMasteryRecorder.record(userId, question, evaluation);
 
         return EssayAnswerResult.from(evaluation);

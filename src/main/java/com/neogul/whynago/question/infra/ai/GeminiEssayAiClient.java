@@ -4,6 +4,7 @@ import com.neogul.whynago.common.ai.AiFailureClassifier;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.common.exception.ErrorCode;
 import com.neogul.whynago.question.domain.EssayGradingMode;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.infra.ai.prompt.EssayPrompt;
 import java.time.Duration;
@@ -37,12 +38,11 @@ public class GeminiEssayAiClient implements EssayAiClient {
     @Override
     public GradeAndFollowupResult gradeAndGenerateFollowup(
             String conversationId,
-            String question,
-            String answer,
+            EssayGradingTarget target,
             boolean generateFollowup,
             EssayGradingMode mode
     ) {
-        String userText = essayPrompt.userPrompt(mode, question, answer, generateFollowup);
+        String userText = essayPrompt.userPrompt(mode, target, generateFollowup);
 
         return call(generateFollowup, conversationId, () -> chatClient.prompt()
                 .system(essayPrompt.systemPrompt(mode))

@@ -2,9 +2,13 @@ package com.neogul.whynago.question.infra.ai;
 
 import com.neogul.whynago.common.domain.MasteryLevel;
 import com.neogul.whynago.question.domain.EssayGradingMode;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
+import com.neogul.whynago.question.domain.Rubric;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 public class MockEssayAiClient implements EssayAiClient {
 
@@ -12,6 +16,8 @@ public class MockEssayAiClient implements EssayAiClient {
     private static final String MODEL_ANSWER = "[MOCK] 로컬 임시 모범답안입니다.";
     private static final String FOLLOWUP_QUESTION = "[MOCK] 로컬 임시 꼬리질문입니다.";
     private static final String MASTERY_REASON = "[MOCK] 로컬 임시 숙련도 근거입니다.";
+    private static final String CRITERION_MET_REASON = "[MOCK] 이 항목을 담았다고 본 근거입니다.";
+    private static final String CRITERION_UNMET_REASON = "[MOCK] 이 항목이 빠졌다고 본 근거입니다.";
     private static final int PASS_SCORE = 8;
     private static final int FAIL_SCORE = 3;
     private static final String FAIL_KEYWORD = "모르겠";
@@ -21,8 +27,7 @@ public class MockEssayAiClient implements EssayAiClient {
     @Override
     public GradeAndFollowupResult gradeAndGenerateFollowup(
             String conversationId,
-            String question,
-            String answer,
+            EssayGradingTarget target,
             boolean generateFollowup,
             EssayGradingMode mode
     ) {
@@ -30,6 +35,7 @@ public class MockEssayAiClient implements EssayAiClient {
                 .computeIfAbsent(conversationId, id -> new AtomicInteger())
                 .incrementAndGet();
 
+        String answer = target.answer();
         boolean failed = answer != null && answer.contains(FAIL_KEYWORD);
         return new GradeAndFollowupResult(
                 FEEDBACK,
@@ -37,8 +43,22 @@ public class MockEssayAiClient implements EssayAiClient {
                 failed ? FAIL_SCORE : PASS_SCORE,
                 generateFollowup ? FOLLOWUP_QUESTION : null,
                 failed ? MasteryLevel.NOT_LEARNED : MasteryLevel.SOLID,
-                MASTERY_REASON
+                MASTERY_REASON,
+                criteriaResults(target.rubric(), failed)
         );
+    }
+
+    // 루브릭이 내려오면 항목 수만큼 판정을 채운다. AI 없이도 루브릭 채점 경로를 밟아 볼 수 있어야 한다.
+    private List<CriterionGrading> criteriaResults(Rubric rubric, boolean failed) {
+        if (rubric == null || rubric.isEmpty()) {
+            return List.of();
+        }
+        return IntStream.rangeClosed(1, rubric.size())
+                .mapToObj(index -> new CriterionGrading(
+                        index,
+                        !failed,
+                        failed ? CRITERION_UNMET_REASON : CRITERION_MET_REASON))
+                .toList();
     }
 
     @Override

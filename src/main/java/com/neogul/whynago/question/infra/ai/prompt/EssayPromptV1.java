@@ -1,6 +1,7 @@
 package com.neogul.whynago.question.infra.ai.prompt;
 
 import com.neogul.whynago.question.domain.EssayGradingMode;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 
 public class EssayPromptV1 implements EssayPrompt {
 
@@ -63,7 +64,9 @@ public class EssayPromptV1 implements EssayPrompt {
     }
 
     @Override
-    public String userPrompt(EssayGradingMode mode, String question, String answer, boolean generateFollowup) {
+    public String userPrompt(EssayGradingMode mode, EssayGradingTarget target, boolean generateFollowup) {
+        String question = target.question();
+        String answer = target.answer();
         String followupInstruction = generateFollowup ? followupInstructionOf(mode) : NO_FOLLOWUP_INSTRUCTION;
         return USER_PROMPT_TEMPLATE.formatted(question, answer, followupInstruction);
     }

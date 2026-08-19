@@ -694,10 +694,12 @@ POST /api/questions/{questionId}/essay/answers
 | `conversationId` | String | O | 세션 시작 API로 발급받은 대화 식별자. |
 | `question` | String | O | 이번에 채점할 문항 발문. 본 질문은 조회 API로 받은 텍스트, 꼬리질문은 직전 응답의 `nextFollowup.question` 텍스트를 담는다. |
 | `answer` | String | O | 이번 문항에 사용자가 작성한 답변. |
+| `elapsedSeconds` | int | X | 이번 문항을 푸는 데 걸린 시간(초). 채점에 반영된다(→ `docs/DOMAIN.md` 서술형 소요시간 반영 정책). 측정하지 못했으면 보내지 않아도 되고, 그때는 시간을 채점에 쓰지 않는다. |
 
 **제약**:
 
 - `conversationId`·`question`·`answer`는 공백일 수 없다. 위반 시 `INVALID_INPUT`이다.
+- `elapsedSeconds`는 음수일 수 없다. 클라이언트가 보고하는 값이라 서버가 상한 600초로 자르고, 0 이하는 미측정으로 다룬다.
 - 꼬리질문 생성 여부와 진행 단계는 서버가 대화 이력의 턴 수로 판단한다(1·2턴째는 꼬리질문 생성, 3턴째는 생성하지 않고 대화 정리).
 
 ### **Response Body**
@@ -707,9 +709,30 @@ POST /api/questions/{questionId}/essay/answers
   "grading": {
     "feedback": "흐름 제어와 혼잡 제어의 목적 차이(수신자 보호 vs 네트워크 보호)를 명확히 구분하면 더 좋습니다.",
     "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 하여 수신 버퍼가 넘치지 않게 조절합니다.",
-    "isCorrect": true,
+    "score": 6,
+    "isCorrect": false,
     "mastery": "UNSTABLE",
-    "masteryReason": "윈도우 크기로 송신량을 조절한다는 결론은 맞지만, 그것이 수신자 보호를 위한 것이라는 근거를 제시하지 못했습니다."
+    "masteryReason": "윈도우 크기로 송신량을 조절한다는 결론은 맞지만, 그것이 수신자 보호를 위한 것이라는 근거를 제시하지 못했습니다.",
+    "rubricCriteria": [
+      {
+        "point": "흐름 제어는 수신자가 광고한 윈도우 크기만큼만 보내도록 송신량을 조절한다.",
+        "weight": 6,
+        "met": true,
+        "reason": "윈도우 크기만큼만 보낸다고 정확히 서술했습니다."
+      },
+      {
+        "point": "그 목적은 수신 버퍼가 넘치지 않게 수신자를 보호하는 것이다.",
+        "weight": 4,
+        "met": false,
+        "reason": "조절한다는 사실만 말하고 수신자 보호라는 목적을 짚지 않았습니다."
+      }
+    ],
+    "solvingTime": {
+      "elapsedSeconds": 300,
+      "averageSeconds": 150,
+      "pace": "SLOW",
+      "scoreAdjustment": 0
+    }
   },
   "nextFollowup": {
     "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
@@ -722,9 +745,20 @@ POST /api/questions/{questionId}/essay/answers
 | `grading` | Object | 이번 문항 답변에 대한 채점 결과. |
 | `grading.feedback` | String | AI 피드백. |
 | `grading.modelAnswer` | String | 해당 문항의 모범답안·해설. |
-| `grading.isCorrect` | boolean | 통과 여부. LLM이 매긴 0~10 점수를 서버가 임계값(7 이상 통과)으로 환산한 값(→ `docs/DOMAIN.md` 서술형 정답 판정 기준). |
+| `grading.score` | int | 0~10 점수. 문항에 루브릭이 있으면 **충족한 루브릭 항목의 배점 합**이고, 없으면 LLM이 매긴 점수다. 거기에 **소요시간 가감**(`grading.solvingTime.scoreAdjustment`)을 얹은 최종값이며 0~10으로 잘린다(→ `docs/DOMAIN.md` 서술형 정답 판정 정책). |
+| `grading.isCorrect` | boolean | 통과 여부. `grading.score`를 서버가 임계값(7 이상 통과)으로 환산한 값(→ `docs/DOMAIN.md` 서술형 정답 판정 정책). |
 | `grading.mastery` | String \| null | 이 답변이 드러낸 이해 수준. `MASTERED` \| `SOLID` \| `UNSTABLE` \| `GUESSED` \| `WEAK` \| `NOT_LEARNED`. AI가 판정하지 못하면 `null`이며, 이때 숙련도는 기록되지 않는다. |
 | `grading.masteryReason` | String \| null | 그 판정의 근거. 답변에서 근거가 된 부분을 짚은 문장이다. `mastery`가 `null`이면 함께 `null`이다. |
+| `grading.rubricCriteria` | Array | 루브릭 항목별 채점 결과. 어떤 채점 기준을 맞추고 어떤 기준을 놓쳤는지 보여준다. **`null`로 내려가지 않는다** — 루브릭이 없는 문항이거나 꼬리질문 턴이면 빈 배열이다. |
+| `grading.rubricCriteria[].point` | String | 채점 기준 항목. 답변이 담아야 할 내용이다. |
+| `grading.rubricCriteria[].weight` | int | 그 항목의 배점. 한 문항의 배점 합은 항상 10이다. |
+| `grading.rubricCriteria[].met` | boolean | 답변이 그 항목을 담았는지. `true`인 항목의 `weight` 합이 `grading.score`다. |
+| `grading.rubricCriteria[].reason` | String | 그 판정의 근거. `met`이 `false`면 무엇이 빠졌는지를 짚는다. |
+| `grading.solvingTime` | Object \| null | 소요시간이 점수에 어떻게 반영됐는지. 요청에 `elapsedSeconds`를 보내지 않았거나 0 이하였으면 `null`이며, 그때는 시간이 점수에 반영되지 않았다. |
+| `grading.solvingTime.elapsedSeconds` | int | 채점에 실제로 쓰인 소요시간(초). 요청값을 상한 600초로 자른 값이다. |
+| `grading.solvingTime.averageSeconds` | int | 비교 기준이 된 그 문항의 평균 소요시간(초). 통계가 없거나 표본이 5건 미만이면 기본값 180이다. |
+| `grading.solvingTime.pace` | String | 평균 대비 속도. `FAST` \| `NORMAL` \| `SLOW`. |
+| `grading.solvingTime.scoreAdjustment` | int | 점수에 더해진 값. `FAST`면 `+1`, `SLOW`면 `-1`, `NORMAL`이면 `0`이다. **`rubricCriteria`의 배점 합과 `score`가 다르면 이 값 때문이다.** |
 
 > 채점과 동시에 서버가 그 문항의 태그·카테고리에 숙련도를 기록한다(→ `docs/RECOMMENDATION.md` 숙련도 기록·조회). 그래서 이 API는 **인증이 필요**하다. 기록된 숙련도는 `GET /api/mastery`로 조회한다.
 | `nextFollowup` | Object | 생성된 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`(면접 종료). |
@@ -805,7 +839,7 @@ POST /api/solved-sessions
 - **600초(10분)를 넘으면 세션은 저장되고 그 문항의 소요 시간은 600초로 잘라 저장한다.** 문제를 띄워둔 채 자리를 비운 시간을 "푸는 데 걸린 시간"으로 볼 수 없기 때문이며, 이것 때문에 실제로 푼 기록까지 잃게 하지는 않는다.
 - **0초는 저장하지 않는다(`null`).** 문제를 읽고 답을 고르는 데 0초가 걸릴 수는 없으므로 측정 실패로 본다.
 
-정규화 규칙은 `solvedsession.domain.ElapsedSecondsPolicy` 한 곳에 있고 서술형 풀이(`essay_solved`)에도 같은 규칙이 적용된다.
+정규화 규칙은 `common.domain.ElapsedSecondsPolicy` 한 곳에 있고 서술형 풀이(`essay_solved`)와 서술형 채점의 소요시간에도 같은 규칙이 적용된다.
 
 **체인 검증 규칙** (실패 시 `SOLVED_SESSION_BROKEN_CHAIN`):
 
@@ -1383,6 +1417,7 @@ POST /api/interviews/{interviewId}/answers
 | --- | --- | --- | --- |
 | `question` | String | O | 이번에 채점할 문항 발문. 1턴은 시작 API의 `question.content`, 이후는 직전 응답의 `nextFollowup.question`. 공백 불가. |
 | `answer` | String | O | 사용자가 작성한 답변. **공백을 허용한다**(제한 시간 안에 못 쓴 경우를 인정) — `null`만 거부한다. |
+| `elapsedSeconds` | int | X | 이번 문항에 답하는 데 걸린 시간(초). 채점에 반영된다(→ `docs/DOMAIN.md` 서술형 소요시간 반영 정책). 보내지 않으면 시간을 채점에 쓰지 않는다. 음수는 `INVALID_INPUT`이다. |
 
 ### **Response Body**
 
@@ -1391,9 +1426,30 @@ POST /api/interviews/{interviewId}/answers
   "grading": {
     "feedback": "흐름 제어와 혼잡 제어의 목적 차이를 명확히 구분하면 더 좋습니다.",
     "modelAnswer": "수신자가 광고한 윈도우 크기(rwnd)만큼만 송신자가 미확인 데이터를 보내도록 조절합니다.",
+    "score": 10,
     "isCorrect": true,
     "mastery": "SOLID",
-    "masteryReason": "윈도우 크기로 송신량을 조절한다는 점과 그 목적을 함께 설명했습니다."
+    "masteryReason": "윈도우 크기로 송신량을 조절한다는 점과 그 목적을 함께 설명했습니다.",
+    "rubricCriteria": [
+      {
+        "point": "흐름 제어는 수신자가 광고한 윈도우 크기만큼만 보내도록 송신량을 조절한다.",
+        "weight": 6,
+        "met": true,
+        "reason": "윈도우 크기만큼만 보낸다고 정확히 서술했습니다."
+      },
+      {
+        "point": "그 목적은 수신 버퍼가 넘치지 않게 수신자를 보호하는 것이다.",
+        "weight": 4,
+        "met": true,
+        "reason": "수신 버퍼 보호라는 목적까지 짚었습니다."
+      }
+    ],
+    "solvingTime": {
+      "elapsedSeconds": 80,
+      "averageSeconds": 150,
+      "pace": "FAST",
+      "scoreAdjustment": 1
+    }
   },
   "nextFollowup": {
     "question": "혼잡이 감지되면 TCP는 전송 속도를 어떻게 조절하나요?"
@@ -1405,9 +1461,12 @@ POST /api/interviews/{interviewId}/answers
 | --- | --- | --- |
 | `grading.feedback` | String | AI 피드백. |
 | `grading.modelAnswer` | String | 모범답안·해설. |
+| `grading.score` | int | 0~10 점수. 문항에 루브릭이 있으면 충족한 루브릭 항목의 배점 합이고, 없으면 LLM이 매긴 점수다. 거기에 소요시간 가감을 얹은 최종값이다. |
 | `grading.isCorrect` | boolean | 통과 여부(→ `docs/DOMAIN.md` 서술형 정답 판정 정책). |
 | `grading.mastery` | String \| null | 이 답변이 드러낸 이해 수준. AI가 판정하지 못하면 `null`. 서술형 채점과 같은 6분류다. |
 | `grading.masteryReason` | String \| null | 그 판정의 근거. |
+| `grading.rubricCriteria` | Array | 루브릭 항목별 채점 결과(`point`·`weight`·`met`·`reason`). 서술형 채점 응답과 형식이 같다. 루브릭이 없는 문항이거나 꼬리질문 턴이면 **빈 배열**이며 `null`로 내려가지 않는다. |
+| `grading.solvingTime` | Object \| null | 소요시간이 점수에 어떻게 반영됐는지(`elapsedSeconds`·`averageSeconds`·`pace`·`scoreAdjustment`). 서술형 채점 응답과 형식이 같다. `elapsedSeconds`를 보내지 않았으면 `null`이다. |
 | `nextFollowup` | Object | 다음 꼬리질문. 마지막 문항(3턴째)이면 `null`. |
 | `nextFollowup.question` | String | 생성된 꼬리질문 발문. |
 

@@ -1,5 +1,6 @@
 package com.neogul.whynago.integration;
 
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -58,7 +59,7 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
     void runFullInterview() {
         given(essayAiClient.completedTurns(anyString())).willReturn(0, 1, 2);
         given(essayAiClient.gradeAndGenerateFollowup(
-                anyString(), anyString(), anyString(), anyBoolean(), any(EssayGradingMode.class)))
+                anyString(), any(EssayGradingTarget.class), anyBoolean(), any(EssayGradingMode.class)))
                 .willReturn(
                         GradeAndFollowupResultFixture.of("피드백1", "모범답안1", 9, "꼬리질문1"),
                         GradeAndFollowupResultFixture.of("피드백2", "모범답안2", 4, "꼬리질문2"),
@@ -71,7 +72,7 @@ class DailyInterviewIntegrationTest extends IntegrationTestSupport {
         String currentQuestion = started.question().content();
         for (int turn = 1; turn <= 3; turn++) {
             AnswerInterviewResult answered = interviewService.answer(
-                    USER_ID, started.interviewId(), new AnswerInterviewCommand(currentQuestion, "답변" + turn));
+                    USER_ID, started.interviewId(), new AnswerInterviewCommand(currentQuestion, "답변" + turn, null));
             snapshots.add(new InterviewAnswerSnapshotCommand(
                     currentQuestion,
                     "답변" + turn,

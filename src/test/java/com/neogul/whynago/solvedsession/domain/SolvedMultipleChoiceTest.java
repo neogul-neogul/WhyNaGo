@@ -1,5 +1,6 @@
 package com.neogul.whynago.solvedsession.domain;
 
+import com.neogul.whynago.common.domain.ElapsedSecondsPolicy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;

@@ -1,9 +1,13 @@
 package com.neogul.whynago.question.implement.dto;
 
 import com.neogul.whynago.common.domain.MasteryLevel;
+import com.neogul.whynago.question.domain.SolvingTime;
+import java.util.List;
 
 // score는 AI가 항상 산출하므로 int다. 저장 경로에서 클라이언트가 중계하지 않았을 때만 null이 된다.
 // mastery·masteryReason은 AI가 판정하지 못했으면 null이며, 그때는 숙련도를 기록하지 않는다.
+// rubricCriteria는 루브릭이 적용된 턴에만 채워지고, 그 외에는 빈 리스트다.
+// solvingTime은 점수에 얼마가 가감됐는지를 클라이언트가 설명할 수 있게 함께 내보낸다.
 public record EssayEvaluation(
         String feedback,
         String modelAnswer,
@@ -11,10 +15,20 @@ public record EssayEvaluation(
         boolean isCorrect,
         String followupQuestion,
         MasteryLevel mastery,
-        String masteryReason
+        String masteryReason,
+        List<RubricEvaluation> rubricCriteria,
+        SolvingTime solvingTime
 ) {
 
     public boolean hasMastery() {
         return mastery != null;
+    }
+
+    public List<RubricEvaluation> rubricCriteria() {
+        return rubricCriteria == null ? List.of() : rubricCriteria;
+    }
+
+    public SolvingTime solvingTime() {
+        return solvingTime == null ? SolvingTime.unmeasured() : solvingTime;
     }
 }
