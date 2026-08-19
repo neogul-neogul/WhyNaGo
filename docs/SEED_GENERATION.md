@@ -1,6 +1,6 @@
 # 객관식 문제 시드 생성 가이드
 
-> 이 문서는 **새 컨텍스트에서 이 문서만 읽고 바로 객관식 문제 시드 SQL을 생성·검증**할 수 있도록, 지금까지의 결정·규칙·절차를 정리한 핸드오프 문서다. 실제 "생성 규칙 프롬프트"는 [`docs/SCRIPT.md`](./SCRIPT.md)에 있고, 도메인 정의는 [`docs/DOMAIN.md`](./DOMAIN.md)에 있다. 이 문서는 그 둘을 어떻게 굴려서 시드를 만들고 검증했는지에 대한 절차·맥락이다.
+> 이 문서는 **새 컨텍스트에서 이 문서만 읽고 바로 객관식 문제 시드 SQL을 생성·검증**할 수 있도록, 지금까지의 결정·규칙·절차를 정리한 핸드오프 문서다. 실제 "생성 규칙 프롬프트"는 [`docs/SCRIPT.md`](./SCRIPT.md)(객관식)·[`docs/SCRIPT_ESSAY.md`](./SCRIPT_ESSAY.md)(서술형)에 있고, 두 프롬프트가 공통으로 쓰는 태그 사전은 [`docs/TAG.md`](./TAG.md), 도메인 정의는 [`docs/DOMAIN.md`](./DOMAIN.md)에 있다. 이 문서는 그 둘을 어떻게 굴려서 시드를 만들고 검증했는지에 대한 절차·맥락이다.
 
 ---
 
@@ -8,8 +8,9 @@
 
 - **만드는 것**: WhyNaGo 객관식 문제 시드 데이터(SQL INSERT문).
 - **생성 규칙 원본**: `docs/SCRIPT.md` (LLM에게 주는 프롬프트). 생성 시 이 규칙을 그대로 따른다.
+- **태그 사전**: `docs/TAG.md` — 8개 카테고리 총 238개(카테고리당 22~40개, 개수 고정 아님). 생성은 **태그 먼저 확정 → 태그를 축으로 문항 생성** 순서다. 프롬프트를 줄 때 `docs/SCRIPT.md`와 `docs/TAG.md`를 **함께** 준다.
 - **현재 결과물**: `src/main/resources/data2.sql` — 7개 카테고리 × 25문항 = **175문항, 700보기** + 테스트 유저 1명.
-- **카테고리(enum 7종)**: `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE`.
+- **카테고리(enum 8종)**: `DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` · `GENERAL_CS`(기타 CS).
 
 ---
 
@@ -18,7 +19,8 @@
 ### 테이블 3개 (컬럼 순서 그대로, `id`는 AUTO_INCREMENT라 INSERT에 명시하지 않음)
 - `question(id, title, content, type, difficulty, category, explanation)`
 - `answer_choice(id, question_id, content, sequence, is_correct, explanation, related_question_id)`
-- `question_tag(id, question_id, name)`
+- `tag(id, name, category)` — 태그 사전. `docs/TAG.md` 238개가 `data-tag.sql`로 적재된다. 시드보다 **먼저** 로드해야 한다.
+- `question_tag(id, question_id, tag_id)` — 태그 이름이 아니라 `tag_id`를 참조한다. 시드에서는 `(SELECT id FROM tag WHERE name = '...')`로 채운다.
 
 ### enum 값
 - `type`: `MULTIPLE_CHOICE` | `ESSAY` (시드는 항상 `MULTIPLE_CHOICE`)
@@ -39,14 +41,16 @@
 
 카테고리 1개당 **5개 그룹**을 만든다. 각 그룹 = 본질문(main) 1개 + 그 보기 4개에 각각 연결되는 꼬리질문 4개 = **5문항**. → 카테고리당 **25문항**.
 
+0. **태그 사전을 먼저 확정한다**(가장 먼저 할 일): `docs/TAG.md`에서 그 카테고리의 태그 전체를 그대로 가져오고, 그중 **이번 회차에 소비할 25개**를 고른다(아직 주 태그로 안 쓴 태그 우선). 사전에 없는 태그·표기 변형은 만들지 않는다. 그다음 25개 태그를 **5개 클러스터 × 5개 태그**로 나누고, 클러스터 1개 = 그룹 1개에 대응시킨다. **이번 회차의 태그 25개와 문항 25개가 1:1**이다 (본질문 = 클러스터 대표 태그, 꼬리질문 4개 = 나머지 태그 4개). 카테고리 태그가 25개보다 많으므로 **한 카테고리를 다 덮으려면 회차를 나눠 진행**한다.
 1. **세션 변수로 id 캡처**: `id`는 AUTO_INCREMENT. `INSERT INTO question ...;`은 **한 행씩** 실행하고 **직후에 반드시** `SET @변수 = LAST_INSERT_ID();`. (⚠️ H2 MySQL 호환모드에서 `:=` 는 문법 오류 — 반드시 `=` 를 쓴다.)
    - 변수명: 그룹 N의 본질문 = `@qN`; 그 본질문의 보기 순서 K(1~4)에 연결되는 꼬리질문 = `@qN_K`.
 2. **순환 연결로 NULL 제거**: 본질문의 보기 K는 `related_question_id = @qN_K`. 각 꼬리질문의 보기 4개는 **전부 `related_question_id = @qN`**(부모로 되돌아가는 순환). → 모든 `answer_choice.related_question_id`가 **NULL이 절대 없다**. (이렇게 해야 새 문항을 무한히 만들지 않으면서 NULL을 없앨 수 있음)
 3. **그룹 내 실행 순서**: 본질문 INSERT+`SET @qN` → 꼬리질문 4개 INSERT+`SET @qN_1..@qN_4` → 본질문의 answer_choice 4행 → 꼬리질문 4개 각각의 answer_choice 4행 → 태그. (보기를 넣는 시점에 필요한 변수가 모두 준비돼 있어야 함)
 4. **정답/해설**: 문항당 정답(`is_correct = TRUE`) **정확히 1개**, 정답 보기의 `explanation`은 `''`(빈 문자열). 오답 3개는 `FALSE` + 각각 "왜 틀렸나" 상세 서술.
 5. **정답 위치 무작위**(중요): 정답 보기의 `sequence`를 문항마다 1·2·3·4로 **고르게 분산**. 1번에만 몰리면 안 됨. (choice→꼬리질문 연결은 정답 여부가 아니라 순서 번호로만 정해지므로 정답 위치를 옮겨도 구조는 안 깨짐.)
-6. **품질**: 보기는 단답형이 아닌 **서술형**(SCRIPT.md 예시 톤/길이). 문항당 태그 1~2개. 한 카테고리의 본질문 5개는 세부 주제가 서로 겹치지 않게. 난이도는 신입 백엔드 수준.
-7. **출력**: 순수 SQL만. 마크다운 코드펜스(```)·머리말·설명 금지. 그룹 구분 주석 정도만 허용. `users` INSERT는 시드 본문에 넣지 않음(테스트 유저는 파일 헤더에서 한 번만).
+6. **태그**: 문항당 **주 태그 1개 + 관련 태그 0~2개**(1~3행). `question_tag`에서 **주 태그를 그 문항의 첫 행**으로 쓴다. 전부 `docs/TAG.md`의 해당 카테고리 사전 문자열 그대로. **한 회차 안에서 주 태그 중복 0개**(25문항 = 서로 다른 태그 25개). 카테고리 전체 커버리지는 회차를 누적해 달성한다. 관련 태그는 겹쳐도 무방.
+7. **품질**: 보기는 단답형이 아닌 **서술형**(SCRIPT.md 예시 톤/길이). 본질문 5개는 서로 다른 클러스터의 대표 태그를 다루므로 세부 주제가 겹치지 않는다. 난이도는 신입 백엔드 수준.
+8. **출력**: SQL 맨 앞의 **태그 사전 주석 블록** + SQL INSERT문만. 마크다운 코드펜스(```)·머리말·설명 금지. 그룹 구분 주석 정도만 허용. `users` INSERT는 시드 본문에 넣지 않음(테스트 유저는 파일 헤더에서 한 번만).
 
 작은따옴표가 들어가는 내용(예: 자바 코드 `it's`)은 `''`로 이스케이프하거나 아포스트로피를 피한다.
 
@@ -56,8 +60,8 @@
 
 대량(카테고리 7개 × 25 = 175문항)은 **카테고리별 병렬 서브에이전트**로 만드는 게 효율적이었다.
 
-1. `docs/SCRIPT.md`(+ `data2.sql` 톤 참고)를 읽는다.
-2. 카테고리마다 `general-purpose` 서브에이전트 1개를 띄운다(한 메시지에서 동시에). 각 에이전트에 **§2 규칙 전체 + 그 카테고리의 세부주제 힌트**를 embed하고, 결과 SQL을 **세션 스크래치패드**의 `gen_<ENUM>.sql`로 Write하게 한다. (반환 메시지로 받지 말고 파일로 저장 → 트렁케이션·재구성 방지)
+1. `docs/SCRIPT.md`와 `docs/TAG.md`(+ `data2.sql` 톤 참고)를 읽는다.
+2. 카테고리마다 `general-purpose` 서브에이전트 1개를 띄운다(한 메시지에서 동시에). 각 에이전트에 **§2 규칙 전체 + `docs/TAG.md`의 그 카테고리 태그 25개 목록**을 embed하고, 결과 SQL을 **세션 스크래치패드**의 `gen_<ENUM>.sql`로 Write하게 한다. (반환 메시지로 받지 말고 파일로 저장 → 트렁케이션·재구성 방지)
 3. 각 파일을 grep으로 구조 검증: `INSERT INTO question ` 25개, `^SET @` 25개, `NULL)` 참조 0개, 정답 `sequence` 분포.
 4. 결합: **헤더 주석 + 테스트 유저 INSERT 1회** + 7개 카테고리 순서대로 이어붙인다.
 5. **실제 스키마에 넣어 검증**(§4).
@@ -65,7 +69,7 @@
 
 > ⚠️ 세션 한도/네트워크 오류로 에이전트가 "failed"로 죽어도, Write가 이미 끝났으면 파일은 온전히 남아 있다. 누락된 카테고리만 `SendMessage`로 그 에이전트를 재개하거나 다시 생성하면 된다. (실제로 이번에 DESIGN_PATTERN 1개가 연결 끊김으로 누락돼 재개로 채웠다.)
 
-세부주제 배분(이번에 쓴 예 — 재생성 시 중복 피하려면 참고):
+세부주제 배분은 이제 **`docs/TAG.md`의 태그 사전이 대신한다**(카테고리당 25개, 태그 1개 = 문항 1개). 아래는 태그 사전이 생기기 전에 쓰던 배분으로, 클러스터를 묶을 때 참고만 한다:
 - **DB**: 인덱스 · 트랜잭션 격리수준/이상현상 · 정규화·반정규화 · 락 · 조인
 - **NETWORK**: HTTP 상태코드 · DNS · HTTPS/TLS · OSI 7계층 · 쿠키/세션/토큰
 - **ALGORITHM**: Big-O · 정렬(퀵/병합/힙) · 이진탐색 · DP · DFS/BFS
@@ -87,6 +91,8 @@ Hibernate가 엔티티로 만든 실제 스키마(H2 MySQL 호환모드)에 SQL�
    - 문항당 정답 개수 MAX·MIN 모두 **1**
    - 끊어진 FK 0 (`NOT EXISTS (SELECT 1 FROM question q WHERE q.id = ac.related_question_id)`)
    - 정답 `sequence` 분포가 1~4에 고르게 (각 최소치 이상)
+   - **태그 사전 준수**: `question_tag.name` 중 `docs/TAG.md`에 없는 값이 **0개**
+   - **태그 커버리지**: 한 회차 안에서 주 태그 중복 0개. 카테고리 전체를 다 만들었다면 사전의 모든 태그가 주 태그로 **최소 1회** 등장
    - `questionRepository.findQuestions(MULTIPLE_CHOICE, null, 카테고리, null)`이 카테고리별 25개 전부 반환
    - 테스트 유저 비밀번호 매칭: `passwordEncoder.matches("test", 저장된해시)` → true
 3. 통과하면 **임시 테스트 클래스와 scratch 리소스를 삭제**한다(커밋 대상 아님).
@@ -135,7 +141,9 @@ class SeedValidationTest extends IntegrationTestSupport {
 
 | 무엇 | 경로 |
 | --- | --- |
-| 생성 규칙(프롬프트) | `docs/SCRIPT.md` |
+| 생성 규칙(프롬프트, 객관식) | `docs/SCRIPT.md` |
+| 생성 규칙(프롬프트, 서술형) | `docs/SCRIPT_ESSAY.md` |
+| 태그 사전 (두 프롬프트 공통) | `docs/TAG.md` |
 | 도메인 정의 | `docs/DOMAIN.md` |
 | 이 가이드 | `docs/SEED_GENERATION.md` |
 | 시드 결과물 | `src/main/resources/data2.sql` |
