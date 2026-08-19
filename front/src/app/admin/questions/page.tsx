@@ -2,22 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type {
-  AdminQuestionResponse,
-  PageResponse,
-  QuestionCategory,
-  QuestionDifficulty,
-} from "@/types";
+import type { AdminQuestionResponse, PageResponse, QuestionCategory } from "@/types";
 import { ApiError } from "@/lib/api";
 import {
   ADMIN_CATEGORIES,
-  ADMIN_DIFFICULTIES,
+  ADMIN_DIFFICULTY_LABELS,
   ADMIN_QUESTION_PAGE_SIZE,
   ADMIN_QUESTION_TYPES,
   fetchAdminQuestions,
   formatRate,
 } from "@/lib/admin";
-import { TYPE_LABELS, typeFromLabel } from "@/lib/questions";
+import { TYPE_LABELS, difficultyFromLabel, typeFromLabel } from "@/lib/questions";
 import { mockQuestionMeta } from "@/mocks/admin";
 import Input from "@/components/ui/Input";
 import Pagination from "@/components/ui/Pagination";
@@ -27,7 +22,7 @@ import FilterSelect from "@/components/admin/FilterSelect";
 
 const ALL = "전체";
 const CATEGORY_OPTIONS = [ALL, ...ADMIN_CATEGORIES];
-const DIFFICULTY_OPTIONS = [ALL, ...ADMIN_DIFFICULTIES];
+const DIFFICULTY_OPTIONS = [ALL, ...ADMIN_DIFFICULTY_LABELS];
 const TYPE_OPTIONS = [ALL, ...ADMIN_QUESTION_TYPES.map((type) => TYPE_LABELS[type])];
 
 const COLUMNS: AdminColumn<AdminQuestionResponse>[] = [
@@ -126,7 +121,7 @@ export default function AdminQuestionsPage() {
     fetchAdminQuestions(
       {
         type: typeFromLabel(type),
-        difficulty: difficulty === ALL ? undefined : (difficulty as QuestionDifficulty),
+        difficulty: difficultyFromLabel(difficulty),
         category: category === ALL ? undefined : (category as QuestionCategory),
         keyword: keyword || undefined,
       },

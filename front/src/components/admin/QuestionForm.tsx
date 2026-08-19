@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  AdminQuestionForm,
-  QuestionCategory,
-  QuestionDifficulty,
-  QuestionTypeCode,
-} from "@/types";
-import { ADMIN_CATEGORIES, ADMIN_DIFFICULTIES } from "@/lib/admin";
+import type { AdminQuestionForm, QuestionCategory, QuestionTypeCode } from "@/types";
+import { ADMIN_CATEGORIES, ADMIN_DIFFICULTY_LABELS } from "@/lib/admin";
+import { DIFFICULTY_LABELS, difficultyFromLabel } from "@/lib/questions";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Input from "@/components/ui/Input";
@@ -66,9 +62,12 @@ export default function QuestionForm({
           </Field>
           <Field label="난이도">
             <FilterSelect
-              value={form.difficulty}
-              options={ADMIN_DIFFICULTIES}
-              onChange={(v) => update({ difficulty: v as QuestionDifficulty })}
+              value={DIFFICULTY_LABELS[form.difficulty]}
+              options={ADMIN_DIFFICULTY_LABELS}
+              onChange={(v) => {
+                const difficulty = difficultyFromLabel(v);
+                if (difficulty) update({ difficulty });
+              }}
             />
           </Field>
         </div>

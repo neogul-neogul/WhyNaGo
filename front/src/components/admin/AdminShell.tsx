@@ -14,14 +14,14 @@ const NAV_ITEMS = [
   { href: "/admin/emails", label: "이메일 발송 관리" },
 ] as const;
 
-// 상단바 제목은 경로에서 끌어낸다 (문제 상세만 문제 ID를 덧붙이고, 배치 상세만 상위 경로를 얹는다)
+// 상단바 제목은 경로에서 끌어낸다 (배치 상세만 상위 경로를 얹는다)
 function pageTitle(pathname: string): { title: string; parent?: string } {
   const [, , section, id, sub] = pathname.split("/");
   if (section === undefined) return { title: "대시보드" };
   if (section === "members") return { title: "회원 목록" };
   if (section === "questions") {
     if (!id) return { title: "문제 목록" };
-    return sub === "edit" ? { title: "문제 수정" } : { title: `문제 상세 · ${id}` };
+    return sub === "edit" ? { title: "문제 수정" } : { title: "문제 상세" };
   }
   if (section === "interviews") return { title: "일일면접 이력" };
   if (section === "emails") {

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api";
-import type { QuestionFilters, QuestionPaging } from "@/lib/questions";
+import { DIFFICULTY_LABELS, type QuestionFilters, type QuestionPaging } from "@/lib/questions";
 import type {
   AdminQuestionDetailResponse,
   AdminQuestionResponse,
@@ -25,6 +25,11 @@ export const ADMIN_CATEGORIES: QuestionCategory[] = [
 ];
 
 export const ADMIN_DIFFICULTIES: QuestionDifficulty[] = ["HIGH", "MEDIUM", "LOW"];
+
+/** 난이도 필터·폼 드롭다운에 노출하는 라벨 (상/중/하) — 값은 enum으로 되돌려 서버에 보낸다 */
+export const ADMIN_DIFFICULTY_LABELS: string[] = ADMIN_DIFFICULTIES.map(
+  (difficulty) => DIFFICULTY_LABELS[difficulty],
+);
 
 export const ADMIN_QUESTION_TYPES: QuestionTypeCode[] = ["MULTIPLE_CHOICE", "ESSAY"];
 

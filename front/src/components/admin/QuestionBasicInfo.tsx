@@ -23,7 +23,6 @@ export default function QuestionBasicInfo({
     <Card className="overflow-hidden">
       <CardHeader className="flex-wrap justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="font-mono text-[13.5px] font-semibold text-secondary">{question.id}</span>
           <CategoryBadge category={question.category} />
           <DifficultyBadge difficulty={question.difficulty} />
           <TypeBadge type={TYPE_LABELS[question.type]} />
