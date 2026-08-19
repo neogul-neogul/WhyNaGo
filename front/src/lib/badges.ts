@@ -47,4 +47,5 @@ export const CATEGORIES = [
   "운영체제",
   "디자인패턴",
   "언어",
+  "기타 CS",
 ] as const;

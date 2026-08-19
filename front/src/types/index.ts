@@ -139,7 +139,8 @@ export type QuestionCategory =
   | "DATA_STRUCTURE"
   | "OS"
   | "DESIGN_PATTERN"
-  | "LANGUAGE";
+  | "LANGUAGE"
+  | "GENERAL_CS";
 
 /** 문제 난이도 (백엔드 Difficulty enum) */
 export type QuestionDifficulty = "LOW" | "MEDIUM" | "HIGH";
@@ -183,6 +184,43 @@ export interface QuestionResponse {
   tags: string[];
   /** 이미 푼 문제인지 여부. 비로그인 조회와 꼬리질문 응답에서는 항상 false */
   solved: boolean;
+}
+
+// ===== 맞춤 문제 추천 API =====
+
+/** 추천 API가 반환하는 문제 요약. 실제 풀이 시에는 id로 문제 단건 조회를 다시 한다. */
+export interface RecommendedQuestionResponse {
+  id: number;
+  title: string;
+  content: string;
+  type: QuestionTypeCode;
+  difficulty: QuestionDifficulty;
+  category: QuestionCategory;
+  tags: string[];
+  generated: boolean;
+}
+
+/** GET /api/recommendations/questions 응답 */
+export interface RecommendationResponse {
+  personalized: boolean;
+  generated: boolean;
+  questions: RecommendedQuestionResponse[];
+}
+
+/** 전체 풀이 이력에서 계산한 태그별 약점도 */
+export interface WeakTagResponse {
+  tag: string;
+  /** 0~1 범위, 높을수록 취약함 */
+  weaknessScore: number;
+  /** 해당 태그가 붙은 문제를 푼 횟수 */
+  sampleCount: number;
+}
+
+/** GET /api/recommendations/weak-tags 응답 */
+export interface WeakTagsResponse {
+  /** 약점 계산에 반영된 전체 풀이 문항 수 */
+  sampleCount: number;
+  tags: WeakTagResponse[];
 }
 
 // ===== 문제집 API (백엔드 problemset 도메인) — 유튜브 재생목록과 같은 개념, 항상 본인만 볼 수 있다 =====
@@ -285,11 +323,27 @@ export interface EssayAnswerRequest {
 }
 
 /** 서술형 한 문항 채점 결과 */
+/**
+ * 숙련도 판정. 서술형은 채점 AI가 답변 내용을 근거로 판정하고,
+ * 객관식은 정답 여부와 소요시간 비율로 서버가 판정한다.
+ */
+export type MasteryLevel =
+  | "MASTERED"
+  | "SOLID"
+  | "UNSTABLE"
+  | "GUESSED"
+  | "WEAK"
+  | "NOT_LEARNED";
+
 export interface EssayGradingResponse {
   feedback: string;
   modelAnswer: string;
   /** 통과 여부 (LLM 점수를 서버가 임계값으로 환산한 값) */
   isCorrect: boolean;
+  /** 이 답변이 드러낸 이해 수준. AI가 판정하지 못하면 null */
+  mastery: MasteryLevel | null;
+  /** 그 판정의 근거. 답변에서 근거가 된 부분을 짚은 문장 */
+  masteryReason: string | null;
 }
 
 /** AI가 생성한 다음 꼬리질문 */

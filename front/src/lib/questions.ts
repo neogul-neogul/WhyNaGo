@@ -33,6 +33,7 @@ export const CATEGORY_LABELS: Record<QuestionCategory, string> = {
   OS: "운영체제",
   DESIGN_PATTERN: "디자인패턴",
   LANGUAGE: "언어",
+  GENERAL_CS: "기타 CS",
 };
 
 /** 유형 enum → 화면 라벨 */
