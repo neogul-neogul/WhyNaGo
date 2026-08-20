@@ -1,25 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ProgressResponse, ProgressSummaryResponse } from "@/types";
+import type { MasteryResponse, ProgressResponse, ProgressSummaryResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { fetchProgress, fetchProgressSummary, toProgressMetrics } from "@/lib/progress";
+import { fetchMastery, hasMastery } from "@/lib/mastery";
 import PageHeader, { PageBody } from "@/components/layout/PageHeader";
 import ProgressMetrics from "@/components/progress/ProgressMetrics";
 import ProgressDashboard from "@/components/progress/ProgressDashboard";
+import MasteryDashboard from "@/components/progress/MasteryDashboard";
 
 export default function ProgressPage() {
   const [summary, setSummary] = useState<ProgressSummaryResponse | null>(null);
   const [progress, setProgress] = useState<ProgressResponse | null>(null);
+  const [mastery, setMastery] = useState<MasteryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchProgressSummary(), fetchProgress()])
-      .then(([summaryResult, progressResult]) => {
+    Promise.all([fetchProgressSummary(), fetchProgress(), fetchMastery()])
+      .then(([summaryResult, progressResult, masteryResult]) => {
         if (cancelled) return;
         setSummary(summaryResult);
         setProgress(progressResult);
+        setMastery(masteryResult);
       })
       .catch((e) => {
         if (!cancelled) {
@@ -51,6 +55,8 @@ export default function ProgressPage() {
           <div className="flex flex-col gap-[22px]">
             <ProgressMetrics metrics={toProgressMetrics(summary)} />
             <ProgressDashboard progress={progress} />
+            {/* 판정 이력이 없으면 빈 카드를 띄우지 않는다. 아직 서술형을 풀지 않은 사용자다. */}
+            {mastery && hasMastery(mastery) && <MasteryDashboard mastery={mastery} />}
           </div>
         )}
       </PageBody>

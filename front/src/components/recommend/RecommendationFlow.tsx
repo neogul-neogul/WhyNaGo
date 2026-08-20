@@ -10,7 +10,9 @@ import { SparkleIcon } from "@/components/today/RecommendationEntry";
 
 type Phase = "idle" | "loading" | "done";
 
-const LOAD_STEPS = ["취약 카테고리 분석 중", "오답 이력에서 개념 추출 중", "문제 문장을 작성하는 중"];
+// 서버가 실제로 하는 일만 적는다. 오개념 추출은 구현되지 않았고, 없는 단계를 보여주면
+// 사용자는 받은 문항이 그 분석의 결과라고 믿는다.
+const LOAD_STEPS = ["취약 카테고리 분석 중", "취약 태그 선정 중", "문제 문장을 작성하는 중"];
 
 /**
  * 맞춤 문제 추천의 idle → loading → done 상태를 관리한다.

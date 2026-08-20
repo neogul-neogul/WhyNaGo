@@ -350,6 +350,30 @@ export type MasteryLevel =
   | "WEAK"
   | "NOT_LEARNED";
 
+/** 태그 1개의 현재 숙련도. reason은 AI가 답변에서 근거를 짚은 문장이다 */
+export interface TagMasteryResponse {
+  tagId: number;
+  name: string;
+  level: MasteryLevel;
+  reason: string | null;
+  updatedAt: string;
+}
+
+/**
+ * 카테고리 1개의 숙련도 현황.
+ * levelCounts는 그 숙련도를 받은 **문항 수**(이력 기반, 꼬리질문 턴 제외)이고
+ * tags[].level은 **현재값**이다. 둘의 합이 일치하지 않는 것이 정상이다.
+ */
+export interface CategoryMasteryResponse {
+  category: QuestionCategory;
+  levelCounts: Partial<Record<MasteryLevel, number>>;
+  tags: TagMasteryResponse[];
+}
+
+export interface MasteryResponse {
+  categories: CategoryMasteryResponse[];
+}
+
 export interface EssayGradingResponse {
   feedback: string;
   modelAnswer: string;
