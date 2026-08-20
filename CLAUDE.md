@@ -52,6 +52,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`docs/RECOMMENDATION.md`** — 맞춤 문제 추천 전략.
   약점을 진단해 그에 맞는 서술형 문항을 AI로 생성해 추천하는 파이프라인(`recommendation` 도메인)을 규정한다. 숙련도 판정·약점 프로필·취약 주제 선정은 결정적으로 처리하고 문항 생성만 AI에 맡긴다. 생성 문항은 `source = GENERATED`·`review_status = PENDING`으로 저장돼 검수 승인 전에는 문제은행 목록에 노출되지 않는다. 추천을 건드리기 전에 읽는다.
 
+- **`docs/WEAKNESS.md`** — 취약점 탐지 전략.
+  숙련도를 6분류에서 10분류로 넓히고 밴드 안에서 연속 점수화하며, 태그별 숙련도 벡터와 **태그 간 의미 유사도 그래프**로 약점의 성격(`OBSERVED`·`STRUCTURAL`·`INCIDENTAL`·`LATENT`)을 분류하는 방향을 규정한다. 유사도 그래프는 오프라인(`bge-m3`)에서 구워 `src/main/resources/tag-neighbors.tsv`로 두므로 런타임 AI 호출이 0회다. 단계별 게이트와 검증 한계를 함께 적었다. 약점 프로필·숙련도 판정을 건드리기 전에 `RECOMMENDATION.md`와 함께 읽는다.
+
 - **`docs/SCRIPT_RECOMMENDATION.md`** — 맞춤 문제 생성 프롬프트.
   추천 파이프라인이 **런타임에** 서술형 문항 1개를 생성할 때 LLM에 주는 프롬프트의 원본. 시드 생성(`SCRIPT.md`·`SCRIPT_ESSAY.md`)과 달리 출력이 SQL이 아니라 JSON 1건이고, 난이도가 약점도에서 계산돼 내려온다. 실행본은 `src/main/resources/prompts/essay-question-generation.st`이며 둘을 함께 고친다.
 
@@ -63,6 +66,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **`docs/SCRIPT_ESSAY.md`** — 서술형 문제 시드 생성 프롬프트.
   서술형(`type = 'ESSAY'`) 문항 시드를 생성하는 규칙. 객관식과 달리 `answer_choice`·`related_question_id`가 없고 본 질문만 저장하며(꼬리질문은 런타임에 AI가 생성), 태그 사전의 태그 1개당 문항 1개를 만든다.
+
+- **`docs/SCRIPT_PERSONA.md`** — 페르소나 더미데이터 생성 프롬프트.
+  "OS는 강하지만 네트워크가 약하고 TCP에 오개념이 많은 사용자"처럼 **성격이 뚜렷한 가상 사용자의 풀이 이력·숙련도**를 SQL로 만드는 규칙. 문항이 아니라 문항을 푼 흔적을 만든다. 추천·숙련도 화면을 실제 데이터로 확인할 때 쓴다. 레벨 4종(strong/average/weak/misconception) → 정답률·소요시간·서술형 점수·AI 판정 매핑과 실행 가능한 few-shot을 담고 있다.
 
 
 ## 프론트엔드
