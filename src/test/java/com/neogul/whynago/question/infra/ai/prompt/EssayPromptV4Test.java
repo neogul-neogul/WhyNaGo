@@ -3,6 +3,7 @@ package com.neogul.whynago.question.infra.ai.prompt;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.neogul.whynago.common.domain.MasteryLevel;
+import com.neogul.whynago.fixture.EssayGradingTargetFixture;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
@@ -56,7 +57,7 @@ class EssayPromptV4Test {
     @Test
     @DisplayName("마지막 턴에는 꼬리질문을 생성하지 말라고 지시한다.")
     void userPrompt_lastTurn() {
-        String userPrompt = prompt.userPrompt(EssayGradingMode.PRACTICE, "질문", "답변", false);
+        String userPrompt = prompt.userPrompt(EssayGradingMode.PRACTICE, EssayGradingTargetFixture.plain(), false);
 
         assertThat(userPrompt).contains("꼬리질문을 생성하지 말고");
         assertThat(userPrompt).contains("질문: 질문").contains("답변: 답변");

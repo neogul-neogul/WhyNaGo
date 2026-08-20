@@ -71,6 +71,13 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private List<String> gradingCriteria;
 
+    // 서술형 채점 기준. tools/question-pipeline이 배점 있는 항목으로 생성해 UPDATE로 채운다.
+    // 채점 시 AI에 그대로 내려 항목별 충족 여부를 판정받고, 점수는 충족 항목의 배점 합으로 계산한다.
+    // null이면(루브릭 미백필 문항·객관식) 기준 없는 기존 채점으로 폴백한다.
+    @Convert(converter = RubricConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private Rubric rubric;
+
     private Question(
             String title,
             String content,
@@ -156,6 +163,10 @@ public class Question {
             throw new BusinessException(QuestionErrorCode.QUESTION_REVIEW_ALREADY_DECIDED);
         }
         this.reviewStatus = decided;
+    }
+
+    public boolean hasRubric() {
+        return rubric != null && !rubric.isEmpty();
     }
 
     public boolean isEssay() {

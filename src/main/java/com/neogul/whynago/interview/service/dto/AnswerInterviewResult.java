@@ -15,7 +15,13 @@ public record AnswerInterviewResult(InterviewGradingResult grading, InterviewFol
                         evaluation.score(),
                         evaluation.isCorrect(),
                         evaluation.mastery(),
-                        evaluation.masteryReason()
+                        evaluation.masteryReason(),
+                        evaluation.rubricCriteria().stream()
+                                .map(InterviewRubricCriterionResult::from)
+                                .toList(),
+                        evaluation.solvingTime().isMeasured()
+                                ? InterviewSolvingTimeResult.from(evaluation.solvingTime())
+                                : null
                 ),
                 nextFollowup
         );

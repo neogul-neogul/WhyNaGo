@@ -1,4 +1,4 @@
-package com.neogul.whynago.solvedsession.domain;
+package com.neogul.whynago.common.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

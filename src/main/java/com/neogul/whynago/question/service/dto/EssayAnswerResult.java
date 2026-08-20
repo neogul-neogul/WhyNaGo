@@ -15,7 +15,13 @@ public record EssayAnswerResult(GradingResult grading, NextFollowupResult nextFo
                         evaluation.score(),
                         evaluation.isCorrect(),
                         evaluation.mastery(),
-                        evaluation.masteryReason()
+                        evaluation.masteryReason(),
+                        evaluation.rubricCriteria().stream()
+                                .map(RubricCriterionResult::from)
+                                .toList(),
+                        evaluation.solvingTime().isMeasured()
+                                ? SolvingTimeResult.from(evaluation.solvingTime())
+                                : null
                 ),
                 nextFollowup
         );

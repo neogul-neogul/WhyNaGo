@@ -1,13 +1,13 @@
 package com.neogul.whynago.question.infra.ai;
 
 import com.neogul.whynago.question.domain.EssayGradingMode;
+import com.neogul.whynago.question.domain.EssayGradingTarget;
 
 public interface EssayAiClient {
 
     GradeAndFollowupResult gradeAndGenerateFollowup(
             String conversationId,
-            String question,
-            String answer,
+            EssayGradingTarget target,
             boolean generateFollowup,
             EssayGradingMode mode
     );
