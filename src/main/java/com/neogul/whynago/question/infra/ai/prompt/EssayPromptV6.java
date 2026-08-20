@@ -218,15 +218,16 @@ public class EssayPromptV6 implements EssayPrompt {
     }
 
     // followupScope는 루브릭이 꼬리질문 가드레일로 함께 만들어 둔 값이다. 있으면 그대로 범위로 쓴다.
-    private String followupInstruction(boolean generateFollowup, Rubric rubric) {
+    protected String followupInstruction(boolean generateFollowup, Rubric rubric) {
         if (!generateFollowup) {
             return NO_FOLLOWUP_INSTRUCTION;
         }
+        String base = generateFollowupInstruction();
         if (rubric == null || !rubric.hasFollowupScope()) {
-            return GENERATE_FOLLOWUP_INSTRUCTION;
+            return base;
         }
 
-        StringBuilder scoped = new StringBuilder(GENERATE_FOLLOWUP_INSTRUCTION);
+        StringBuilder scoped = new StringBuilder(base);
         List<String> allowed = rubric.followupScope().allowed();
         List<String> forbidden = rubric.followupScope().forbidden();
         if (!allowed.isEmpty()) {
@@ -236,5 +237,11 @@ public class EssayPromptV6 implements EssayPrompt {
             scoped.append("\n다음 영역으로는 넘어가지 마라: ").append(String.join(", ", forbidden));
         }
         return scoped.toString();
+    }
+
+    // 꼬리질문 지시의 본문이다. 이후 버전이 이 지시만 덧붙여 바꿀 수 있게 분리해 둔다.
+    // 루브릭의 허용·금지 범위는 이 값 뒤에 붙으므로 하위 버전도 가드레일을 그대로 물려받는다.
+    protected String generateFollowupInstruction() {
+        return GENERATE_FOLLOWUP_INSTRUCTION;
     }
 }
