@@ -23,8 +23,8 @@ uv sync
 uv run run.py tags --category DB
 
 # 1. interrupt 지점까지 돌려 리뷰 파일을 만든다
-uv run run.py generate --tag 인덱스 --difficulty MEDIUM --count 3 --rag
-uv run run.py generate --category DB --count 5 --rag   # 사전 순서대로 태그 자동 선택
+uv run run.py generate --tag 인덱스 --difficulty MEDIUM --count 3
+uv run run.py generate --category DB --count 5         # 사전 순서대로 태그 자동 선택
 
 # 2. 사람이 읽는다 (컨펌 단계)
 uv run run.py review
@@ -69,10 +69,10 @@ ollama pull bge-m3       # 임베딩 (RAG·중복 게이트)
 
 | 필드 | 성격 |
 | --- | --- |
-| `name` | `question_tag.name` 에 그대로 저장된다. 검증·집계의 축 |
+| `name` | 시드에서 `tag` 테이블을 이름으로 찾아 `question_tag.tag_id` 로 넣는다. 검증·집계의 축 |
 
 태그당 상한은 없다. 같은 태그로 몇 개를 요청하든 자르지 않고, 몇 개까지 갈리는지는
-RAG 주입과 유사도 0.90 게이트가 판정한다.
+RAG 주입과 유사도 0.88 게이트가 판정한다.
 
 문항 하나에 붙는 태그는 1~3개이고 **첫 번째는 반드시 주제 태그**이며,
 나머지도 같은 카테고리 목록 안에서만 고른다.
@@ -103,7 +103,7 @@ uv run -m unittest tests.test_pipeline -v
 | 경로 | 층 |
 | --- | --- |
 | `run.py` | 드라이버 (그래프 바깥). 유일한 진입점 |
-| `core/` | 그래프 본체 — `graph.py`(LangGraph 배선) · `nodes.py`(노드) · `state.py` · `prompts.yml` |
+| `core/` | 그래프 본체 — `graph.py`(LangGraph 배선) · `nodes.py`(노드) · `state.py` · `prompts.py`(버전 로딩)·`prompts-v*.yml` |
 | `vocabulary/` | 태그 어휘 — `tags.py`(로딩·폐쇄집합 검사·태그 배분) · `tags.yml` |
 | `similarity/` | 중복 판정 — `duplicates.py`(어휘) · `embeddings.py`(의미, Ollama) · `probes.json` |
 | `adapters/` | 바깥과 닿는 층 — `llm.py`(Ollama·Gemini) · `seed.py`(시드 파싱) · `sql.py`(산출) |
@@ -118,6 +118,42 @@ uv run -m unittest tests.test_pipeline -v
 
 **노드는 LangGraph를 import 하지 않는다.** 그래야 단독으로 돌려볼 수 있고, LangGraph를
 걷어내도 코드가 남는다. `review`만 예외이며 `graph.py`에 있다.
+
+## 프롬프트 형상관리
+
+**버전마다 파일을 따로 둔다.** `core/prompts-v1.yml`, `core/prompts-v2.yml`, `core/prompts-v3.yml` 처럼 쌓고,
+현재 버전은 `core/prompts.py`의 `CURRENT_VERSION`이 가리킨다.
+
+한 파일을 덮어쓰는 방식은 "올리기 전에 커밋한다"는 사람 규율에 보존이 걸리는데,
+실제로 그게 안 지켜져 v1을 잃을 뻔했다. 파일을 **추가**하면 규율 없이도 남는다.
+두 버전을 동시에 가질 수 있어야 A/B도 한자리에서 된다.
+
+```bash
+uv run run.py generate --category OS --count 10              # CURRENT_VERSION
+uv run run.py generate --category OS --count 10 --prompt v1  # 비교할 때만
+```
+
+**지난 버전 파일은 고치지 않는다.** 고칠 것이 있으면 새 버전을 만든다.
+얼어붙어야 할 파일의 해시는 테스트가 고정한다(`PromptVersionTest`).
+
+각 파일 첫머리에 `version`이 있고, 파일 전체의 sha256 앞 8자가 `hash`다.
+둘을 합친 `v3+fc103de2` 형태를 **문항마다** 찍어 리뷰 파일과 시드 SQL까지 흘려보낸다.
+
+```
+-- 프롬프트 v3+fc103de2            ← 파일 첫머리. 이 배치에 쓰인 것 전부
+-- promptVersion=v3+fc103de2      ← 문항마다
+INSERT INTO question (...) VALUES
+```
+
+- **version은 사람이 올린다.** 지시가 바뀌면 새 파일을 만든다.
+- **hash는 자동이다.** 얼어붙어야 할 파일이 정말 안 바뀌었는지를 검증한다.
+  파일명과 `version` 키가 어긋나면 로드에서 실패한다 — stamp가 거짓이 되는 걸 막는다.
+- 리뷰 파일은 프롬프트를 고쳐도 남아 있어서 한 산출 파일에 두 버전이 섞일 수 있다.
+  그래서 파일 첫머리는 하나로 단정하지 않고 쓰인 것을 전부 적는다.
+
+표기(`promptVersion`, `v4` 꼴)는 백엔드 채점 프롬프트(`EssayPromptV*.version`)와 맞췄다.
+문항 품질에 문제가 생겼을 때 **발문(생성 프롬프트)인지 채점(채점 프롬프트)인지**를
+가르려면 두 값이 같은 축에 있어야 한다.
 
 ## 셀프체크를 왜 뺐나
 

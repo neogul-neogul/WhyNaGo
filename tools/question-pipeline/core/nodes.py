@@ -7,31 +7,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
-
-import yaml
 
 from similarity import duplicates
 from adapters import seed
+from core import prompts as prompts_module
 from vocabulary import tags as tags_module
 from adapters.llm import LlmClient, complete_json
 from core.state import GraphState
 
-PROMPTS_PATH = Path(__file__).resolve().parent / "prompts.yml"
+# 문항에 붙는 프롬프트 식별자의 키. 리뷰 파일과 시드 SQL 까지 이 이름 그대로 흘러간다.
+PROMPT_KEY = "promptVersion"
 
-# 세 번 정했다. 탐침 0.70 → 생성물 10문항 0.80 → **시드 전수 비교 0.90.**
-# 앞의 둘은 표본이 작아 컷 위쪽만 봤고, 아래쪽에 무엇이 걸리는지를 못 봤다.
-# 시드 184문항 2,334쌍(같은 카테고리)을 전부 재니 정밀도가 이렇게 갈렸다.
+# 네 번 정했다. 탐침 0.70 → 생성물 10문항 0.80 → 시드 전수 비교 0.90 → **재생 0.88.**
+#
+# 0.90은 시드 184문항 2,334쌍(같은 카테고리)을 전부 재서 정한 값이고, 그 범위에서는 지금도 옳다.
 #
 #   0.90 이상  2건  정규화와 반정규화 0.974 · TCP 흐름/혼잡 0.917   둘 다 진짜 중복
 #   0.80~0.90  1건  인덱스 원리 x 커버링 인덱스 0.803             다른 문항인데 막힌다
 #   0.75~0.80  4건  연결리스트 · 팩토리/커맨드 · 디스크 스케줄링 등     전부 다른 문항
 #
-# 생성물 21건에서도 진짜 중복은 전부 0.92 이상이고 0.80~0.90 구간은 비어 있다.
-# 즉 0.80으로 내려서 잡히는 것은 없고 멀쩡한 문항만 막는다.
-# 눈금 자료는 evidence/2026-08-18-cut-calibration.md 에 있다.
-SEMANTIC_CUT = 0.90
+# 0.88로 내린 근거는 **시드끼리가 아니라 생성물 대 기존 문항** 구간이다. 그때 "0.80~0.90이
+# 비어 있다"고 본 것은 생성물 표본이 21건일 때였고, 31건으로 늘자 그 구간이 채워졌다.
+# 기록 5개 31문항을 두 컷으로 재생하니 0.88에서 2건이 더 걸리고 둘 다 진짜 중복이다.
+#
+#   0.893  시스템 콜의 동작 방식 x 사용자 모드와 커널 모드의 역할   사람이 반려한 문항이다
+#   0.886  쿠키와 세션의 차이와 저장 위치 x 쿠키와 세션의 개념과 차이점
+#
+# 0.86까지 내리면 사람이 승인한 쌍(멀티프로세스/IPC 0.870)이 막힌다. 거기가 경계다.
+# 눈금 자료는 evidence/2026-08-20-cut-recalibration.md 에 있다.
+SEMANTIC_CUT = 0.88
 RETRIEVE_TOP = 5
 REQUIRED_TOTAL_WEIGHT = 10
 MIN_CRITERIA = 3
@@ -47,7 +52,7 @@ GROUNDING_CUT = 0.20
 class Deps:
     llm: LlmClient
     existing: list[seed.Question]
-    prompts: dict[str, Any] = field(default_factory=dict)
+    prompts: prompts_module.Prompts | None = None
     # 승인 대기까지 간 것만이 아니라 **이번 실행에서 만든 문항 전부**다. 폐기된 것도 넣는다.
     # 폐기를 빼면 다음 문항이 그 존재를 모른 채 같은 주제를 또 만든다. 실제로 그렇게 물렸다 —
     # 컷을 넘은 두 쌍(0.918, 0.574)의 앞 문항이 모두 폐기된 것이었다.
@@ -56,6 +61,8 @@ class Deps:
     retriever: Any = None
     # (query, [(title, text)]) -> (title, score). None 이면 어휘 게이트만 돈다.
     semantic: Any = None
+    # 중복 컷. 눈금을 다시 잴 때만 바꾼다(replay.py --cut).
+    cut: float = SEMANTIC_CUT
 
     @classmethod
     def create(
@@ -64,13 +71,16 @@ class Deps:
         existing: list[seed.Question] | None = None,
         retriever: Any = None,
         semantic: Any = None,
+        cut: float = SEMANTIC_CUT,
+        prompt_version: str | None = None,
     ) -> "Deps":
         return cls(
             llm=llm,
             existing=seed.essays(seed.load()) if existing is None else existing,
-            prompts=yaml.safe_load(PROMPTS_PATH.read_text(encoding="utf-8")),
+            prompts=prompts_module.load(prompt_version),
             retriever=retriever,
             semantic=semantic,
+            cut=cut,
         )
 
 
@@ -98,6 +108,7 @@ def generate(state: GraphState, deps: Deps) -> GraphState:
     question = complete_json(deps.llm, system, "문항을 만들어라.")
     question["category"] = primary.category
     question["difficulty"] = state["difficulty"]
+    question[PROMPT_KEY] = deps.prompts.stamp
     return {
         "question": question,
         "category": primary.category,
@@ -161,7 +172,7 @@ def dedup(state: GraphState, deps: Deps) -> GraphState:
     ]
 
     match = _semantic_match(_text(question), candidates, deps)
-    if match is None or match[1] < SEMANTIC_CUT:
+    if match is None or match[1] < deps.cut:
         return {"last_problems": []}
     problem = "기존 문항 '%s'와 의미 유사도 %.3f로 중복이다. 다른 주제를 잡아라." % match
     return _duplicate(state, problem)
@@ -196,8 +207,10 @@ def make_rubric(state: GraphState, deps: Deps) -> GraphState:
         system += deps.prompts["rubricRetry"] % _bullets(state["rubric_failures"])
 
     rubric = complete_json(deps.llm, system, "채점 기준을 만들어라.")
+    # backfill 은 문항을 생성하지 않고 여기부터 시작한다. generate 가 못 찍은 식별자를 여기서 찍는다.
     return {
         "rubric": rubric,
+        "question": {**question, PROMPT_KEY: deps.prompts.stamp},
         "rubric_attempts": state.get("rubric_attempts", 0) + 1,
         "last_problems": [],
     }
