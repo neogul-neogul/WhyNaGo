@@ -20,6 +20,14 @@ spring:
           # 현재 로컬에 내려받은 모델. 다른 설치 모델은 OLLAMA_MODEL로 바꾼다.
           model: ${OLLAMA_MODEL:gemma3:4b}
           temperature: 0.3
+          # 작은 로컬 모델은 JSON을 ```json 펜스로 감싸 내보내는 일이 잦고, 그러면 응답 파싱이 깨진다.
+          # Ollama의 JSON 모드로 형식을 강제해 프롬프트 품질과 무관한 실패를 없앤다.
+          # 운영 Gemini는 이 프로필을 쓰지 않으므로 영향받지 않는다.
+          format: json
+          # Ollama 기본 컨텍스트는 4096 토큰이라 프롬프트가 길어지면 응답이 중간에 잘려 파싱이 깨진다.
+          # 실제로 v8 프롬프트에서 응답이 전부 잘렸다. 프롬프트 길이 차이가 품질 차이로 오인되지 않게 넉넉히 잡는다.
+          num-ctx: 16384
+          num-predict: 2048
 
 whynago:
   ai:

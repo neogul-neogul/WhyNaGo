@@ -65,7 +65,29 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // 실제 모델을 호출하는 프롬프트 평가는 명시적으로 실행할 때만 돌린다.
+        excludeTags 'prompt-evaluation'
+    }
+}
+
+// v6 이후 서술형 채점 프롬프트를 같은 골든셋으로 비교하는 수동 평가 태스크다.
+// Ollama가 떠 있어야 하며, 결과는 프로젝트의 docs/prompt-evaluations/에 새 파일로 기록한다.
+tasks.register('promptEvaluation', Test) {
+    group = 'verification'
+    description = 'Runs the opt-in Ollama-backed essay prompt evaluation and updates its Markdown report.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'prompt-evaluation'
+    }
+    systemProperty 'spring.profiles.active', 'ai-local'
+    // Gradle Test worker의 작업 디렉터리는 프로젝트 루트가 아닐 수 있어 절대 경로를 전달한다.
+    systemProperty 'prompt.evaluation.report.dir', layout.projectDirectory.dir('docs/prompt-evaluations').asFile.absolutePath
+    // 비교할 프롬프트 쌍을 고른다: ./gradlew promptEvaluation -Pcomparison=v6-v8
+    systemProperty 'prompt.evaluation.comparison', providers.gradleProperty('comparison').getOrElse('v7-v8')
+    // 같은 쌍을 다시 돌려도 이전 실행 결과가 캐시로 재사용되지 않게 한다.
+    outputs.upToDateWhen { false }
 }
 
 // 산출물 이름을 app.jar 로 고정

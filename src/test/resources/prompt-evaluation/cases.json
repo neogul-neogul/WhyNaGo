@@ -1,0 +1,245 @@
+[
+  {
+    "id": "tcp-partial-answer",
+    "mode": "PRACTICE",
+    "generateFollowup": true,
+    "question": "TCP가 신뢰성 있는 전송을 제공하는 방법을 설명해 주세요.",
+    "answer": "TCP는 연결을 맺고 데이터를 보내는 프로토콜입니다. 패킷이 사라져도 다시 보내서 신뢰성이 있습니다.",
+    "rubric": [
+      {
+        "point": "수신 확인과 재전송으로 유실된 데이터를 복구한다고 설명한다.",
+        "weight": 4
+      },
+      {
+        "point": "순서 번호를 사용해 데이터 순서를 보장한다고 설명한다.",
+        "weight": 3
+      },
+      {
+        "point": "흐름 제어나 혼잡 제어가 전송량을 조절한다고 설명한다.",
+        "weight": 3
+      }
+    ],
+    "followupScope": {
+      "allowed": [
+        "수신 확인",
+        "재전송",
+        "순서 번호"
+      ],
+      "forbidden": [
+        "TCP 내부 타이머 구현",
+        "커널 네트워크 스택 구조"
+      ]
+    },
+    "elapsedSeconds": 180,
+    "averageElapsedSeconds": 120,
+    "sampleCount": 20,
+    "expected": {
+      "scoringFocus": "재전송은 언급했지만 순서 보장과 전송량 조절은 빠진 부분 정답이다.",
+      "feedbackMustCover": [
+        "순서 번호",
+        "흐름 제어 또는 혼잡 제어"
+      ],
+      "followupMustMention": [
+        "수신 확인 또는 재전송 또는 순서 번호"
+      ],
+      "followupMustNotMention": [
+        "TCP 내부 타이머 구현",
+        "커널 네트워크 스택 구조"
+      ]
+    }
+  },
+  {
+    "id": "hash-unknown-answer",
+    "mode": "PRACTICE",
+    "generateFollowup": true,
+    "question": "해시 함수가 어떤 용도로 쓰이는지 설명해 주세요.",
+    "answer": "잘 모르겠습니다. 들어본 적은 있는데 설명은 못 하겠어요.",
+    "rubric": [
+      {
+        "point": "임의 길이의 입력을 일정한 길이의 값으로 변환한다고 설명한다.",
+        "weight": 4
+      },
+      {
+        "point": "같은 입력은 항상 같은 결과를 낸다고 설명한다.",
+        "weight": 3
+      },
+      {
+        "point": "값 비교나 조회를 빠르게 하는 데 쓰인다고 설명한다.",
+        "weight": 3
+      }
+    ],
+    "followupScope": {
+      "allowed": [
+        "입력과 결과",
+        "값 비교",
+        "빠른 조회"
+      ],
+      "forbidden": [
+        "해시 충돌 해결 기법",
+        "암호학적 해시 알고리즘 내부 구조"
+      ]
+    },
+    "elapsedSeconds": 25,
+    "averageElapsedSeconds": 150,
+    "sampleCount": 18,
+    "expected": {
+      "scoringFocus": "모른다고 밝힌 답변이므로 0점에 NOT_LEARNED여야 하고, 꼬리질문은 깊어지지 않고 기초로 낮아져야 한다.",
+      "feedbackMustCover": [
+        "입력을 일정한 길이의 값으로 바꾸는 역할"
+      ],
+      "followupMustMention": [
+        "값 비교 또는 빠른 조회 또는 일상적인 예"
+      ],
+      "followupMustNotMention": [
+        "해시 충돌 해결 기법",
+        "암호학적 해시 알고리즘 내부 구조"
+      ]
+    }
+  },
+  {
+    "id": "index-term-listing",
+    "mode": "PRACTICE",
+    "generateFollowup": true,
+    "question": "데이터베이스 인덱스가 조회 성능을 높이는 이유를 설명해 주세요.",
+    "answer": "B-Tree, 클러스터링, 카디널리티 때문에 인덱스가 빠릅니다.",
+    "rubric": [
+      {
+        "point": "인덱스가 없으면 테이블 전체를 훑어야 한다고 설명한다.",
+        "weight": 4
+      },
+      {
+        "point": "인덱스가 정렬된 구조라 탐색 범위를 줄인다고 설명한다.",
+        "weight": 3
+      },
+      {
+        "point": "쓰기 비용이 늘어나는 대가가 있다고 설명한다.",
+        "weight": 3
+      }
+    ],
+    "followupScope": {
+      "allowed": [
+        "전체 탐색",
+        "정렬된 구조",
+        "탐색 범위"
+      ],
+      "forbidden": [
+        "B-Tree 노드 분할 알고리즘",
+        "옵티마이저 실행 계획 비용 모델"
+      ]
+    },
+    "elapsedSeconds": 30,
+    "averageElapsedSeconds": 140,
+    "sampleCount": 22,
+    "expected": {
+      "scoringFocus": "용어만 나열하고 근거가 없어 GUESSED에 가깝다. 꼬리질문은 나열한 용어 하나를 자기 말로 설명하게 해야 한다.",
+      "feedbackMustCover": [
+        "전체 탐색",
+        "정렬된 구조"
+      ],
+      "followupMustMention": [
+        "답변자가 말한 용어 중 하나"
+      ],
+      "followupMustNotMention": [
+        "B-Tree 노드 분할 알고리즘",
+        "옵티마이저 실행 계획 비용 모델"
+      ]
+    }
+  },
+  {
+    "id": "process-thread-misconception",
+    "mode": "PRACTICE",
+    "generateFollowup": true,
+    "question": "프로세스와 스레드의 차이를 설명해 주세요.",
+    "answer": "스레드는 프로세스보다 작은 단위라서 메모리를 아예 공유하지 않고 각자 따로 씁니다. 그래서 스레드끼리는 동기화가 필요 없습니다.",
+    "rubric": [
+      {
+        "point": "같은 프로세스의 스레드는 힙과 코드 영역을 공유한다고 설명한다.",
+        "weight": 4
+      },
+      {
+        "point": "스레드마다 스택과 실행 흐름은 따로 가진다고 설명한다.",
+        "weight": 3
+      },
+      {
+        "point": "공유 자원 때문에 동기화가 필요하다고 설명한다.",
+        "weight": 3
+      }
+    ],
+    "followupScope": {
+      "allowed": [
+        "메모리 공유",
+        "스택",
+        "동기화"
+      ],
+      "forbidden": [
+        "커널 스케줄러 구현",
+        "메모리 배리어와 캐시 일관성 프로토콜"
+      ]
+    },
+    "elapsedSeconds": 130,
+    "averageElapsedSeconds": 140,
+    "sampleCount": 25,
+    "expected": {
+      "scoringFocus": "전형적인 오개념을 드러낸 오답이라 WEAK여야 한다. 꼬리질문은 오개념을 반박하는 대신 그것이 성립하지 않는 단순한 상황을 떠올리게 해야 한다.",
+      "feedbackMustCover": [
+        "힙 또는 코드 영역 공유",
+        "동기화"
+      ],
+      "followupMustMention": [
+        "메모리 공유 또는 동기화 상황"
+      ],
+      "followupMustNotMention": [
+        "커널 스케줄러 구현",
+        "메모리 배리어와 캐시 일관성 프로토콜"
+      ]
+    }
+  },
+  {
+    "id": "http-cache-full-answer",
+    "mode": "PRACTICE",
+    "generateFollowup": true,
+    "question": "HTTP 캐시가 응답 속도를 높이는 원리를 설명해 주세요.",
+    "answer": "한 번 받은 응답을 클라이언트나 중간 서버에 저장해 두고, 같은 요청이 오면 원 서버까지 가지 않고 저장된 응답을 바로 돌려줍니다. 그래서 네트워크 왕복과 서버 처리 비용이 줄어듭니다. 다만 저장된 응답이 원본과 달라질 수 있어 유효 기간을 정해 두고, 기간이 지나면 원 서버에 변경 여부를 물어본 뒤 그대로면 저장본을 재사용합니다.",
+    "rubric": [
+      {
+        "point": "응답을 저장해 두고 재사용해 원 서버 왕복을 줄인다고 설명한다.",
+        "weight": 4
+      },
+      {
+        "point": "유효 기간이 지나면 원본과의 일치 여부를 확인한다고 설명한다.",
+        "weight": 3
+      },
+      {
+        "point": "저장된 응답이 원본과 달라질 수 있다는 점을 짚는다.",
+        "weight": 3
+      }
+    ],
+    "followupScope": {
+      "allowed": [
+        "응답 재사용",
+        "유효 기간",
+        "원본과의 차이"
+      ],
+      "forbidden": [
+        "CDN 엣지 노드 배치 전략",
+        "HTTP/2 서버 푸시 내부 동작"
+      ]
+    },
+    "elapsedSeconds": 95,
+    "averageElapsedSeconds": 150,
+    "sampleCount": 20,
+    "expected": {
+      "scoringFocus": "세 항목을 모두 충족한 정답이다. 꼬리질문은 이미 설명한 내용을 되묻지 말고 적용 상황으로 한 걸음 넓혀야 한다.",
+      "feedbackMustCover": [
+        "응답 재사용 또는 유효 기간"
+      ],
+      "followupMustMention": [
+        "유효 기간 또는 원본과의 차이가 문제 되는 상황"
+      ],
+      "followupMustNotMention": [
+        "CDN 엣지 노드 배치 전략",
+        "HTTP/2 서버 푸시 내부 동작"
+      ]
+    }
+  }
+]
