@@ -5,15 +5,18 @@
 
 from __future__ import annotations
 
+import json
 import re
 import tempfile
 import pathlib
 import unittest
+import unittest.mock
 
 from similarity import duplicates
 from testing import fakes
 from core import graph as graph_module
 from core import nodes
+from core import prompts as prompts_module
 import run
 from adapters import seed
 from adapters import sql
@@ -64,17 +67,50 @@ def deps(existing=None):
 
 
 class SeedTest(unittest.TestCase):
-    """시드 파일마다 형식이 다르다. 하나만 읽으면 중복 기준선에 구멍이 난다."""
+    """기준선은 실제 DB와 같아야 한다. 어긋나면 멀쩡한 문항이 반려되거나 중복이 새어 나간다."""
 
     def setUp(self):
         self.questions = seed.load()
 
-    def test_시드_파일을_전부_읽는다(self):
+    def test_부팅이_로드하는_시드를_읽는다(self):
         names = [path.name for path in seed.seed_paths()]
 
-        self.assertIn("data.sql", names)
-        self.assertIn("data2.sql", names)
-        self.assertIn("data4-generated.sql", names, "파이프라인 산출물도 기준선에 들어가야 한다")
+        self.assertIn("data3.sql", names)
+
+    def test_대체된_시드는_읽지_않는다(self):
+        """data2.sql 은 data3.sql 로 대체돼 부팅에서 로드되지 않는다.
+
+        읽으면 DB에 없는 문항과 겹친다는 이유로 멀쩡한 문항이 반려된다.
+        """
+        names = [path.name for path in seed.seed_paths()]
+
+        self.assertNotIn("data2.sql", names)
+        self.assertTrue(
+            (seed.RESOURCES / "data2.sql").exists(), "파일은 남아 있는데도 빠져야 한다"
+        )
+
+    def test_기준선은_로드_목록과_파이프라인_산출물이다(self):
+        """산출물은 아직 로드 목록에 없어도 넣는다. 이미 만든 문항을 또 만들면 안 된다.
+
+        실제 파일에 기대지 않는다 — 산출물 시드는 저장소에 없을 수도 있다.
+        """
+        with tempfile.TemporaryDirectory() as directory:
+            resources = pathlib.Path(directory)
+            (resources / "config").mkdir()
+            (resources / "config" / "application-db-local.yml").write_text(
+                "spring:\n  sql:\n    init:\n"
+                "      data-locations: classpath:data.sql,classpath:data3.sql\n",
+                encoding="utf-8",
+            )
+            for name in ("data.sql", "data2.sql", "data3.sql", "data9-generated.sql"):
+                (resources / name).write_text("", encoding="utf-8")
+
+            with unittest.mock.patch.object(seed, "RESOURCES", resources), \
+                    unittest.mock.patch.object(
+                        seed, "CONFIG_PATH", resources / "config" / "application-db-local.yml"):
+                names = [path.name for path in seed.seed_paths()]
+
+        self.assertEqual(names, ["data.sql", "data3.sql", "data9-generated.sql"])
 
     def test_id_컬럼과_다중행_형식을_읽는다(self):
         """id 컬럼이 있고 한 문장에 여러 행이 들어가는 형식. 지금 시드에는 없지만 파서는 남겨 둔다."""
@@ -92,10 +128,10 @@ class SeedTest(unittest.TestCase):
         self.assertEqual(titles, ["첫 문항", "둘째 문항"])
 
     def test_세션변수_형식을_읽는다(self):
-        """data2.sql — id 없이 SET @eN = LAST_INSERT_ID() 로 참조한다."""
+        """data3.sql — id 없이 SET @eN = LAST_INSERT_ID() 로 참조한다."""
         tagged = [
             question for question in self.questions
-            if question.title == "인덱스가 조회를 빠르게 하는 원리"
+            if question.title == "인덱스의 동작 원리와 대가"
         ]
 
         self.assertEqual(len(tagged), 1)
@@ -335,7 +371,90 @@ class SqlTest(unittest.TestCase):
         rendered = sql.render([{**question(), "rubric": rubric()}])
 
         self.assertIn('"criteria": [', rendered)
-        self.assertIn("(@p1, '인덱스')", rendered)
+        self.assertIn("(@p1, (SELECT id FROM tag WHERE name = '인덱스'))", rendered)
+
+
+class TagInsertTest(unittest.TestCase):
+    """question_tag 가 tag_id 를 참조하도록 정규화됐다. 이름으로 넣으면 부팅에서 죽는다."""
+
+    def test_태그를_tag_테이블_id로_넣는다(self):
+        rendered = sql.render([{**question(), "rubric": rubric()}])
+
+        self.assertIn("INSERT INTO question_tag (question_id, tag_id) VALUES", rendered)
+        self.assertIn("(@p1, (SELECT id FROM tag WHERE name = '인덱스'))", rendered)
+        self.assertNotIn("(question_id, name)", rendered)
+
+    def test_두_형식의_태그를_모두_읽는다(self):
+        """옛 시드는 이름을 직접 넣고, 지금 시드는 tag 테이블을 찾아 넣는다."""
+        legacy = "INSERT INTO question_tag (question_id, name) VALUES\n(@q1, '인덱스');"
+        current = (
+            "INSERT INTO question_tag (question_id, tag_id) VALUES\n"
+            "(@q2, (SELECT id FROM tag WHERE name = '실행 계획'));"
+        )
+
+        parsed = seed._tags(legacy + "\n" + current)
+
+        self.assertEqual(parsed["@q1"], ["인덱스"])
+        self.assertEqual(parsed["@q2"], ["실행 계획"])
+
+    def test_현재_시드의_태그가_읽힌다(self):
+        tagged = [question for question in seed.load() if question.tags]
+
+        self.assertTrue(tagged, "시드 형식이 바뀌면 태그가 통째로 사라진다")
+
+    def test_시드와_같은_형식이다(self):
+        seeded = (seed.RESOURCES / "data3.sql").read_text(encoding="utf-8")
+        rendered = sql.render([{**question(), "rubric": rubric()}])
+
+        self.assertIn("(question_id, tag_id)", seeded, "시드 형식이 바뀌면 산출도 같이 바꾼다")
+        self.assertIn("(SELECT id FROM tag WHERE name = ", seeded)
+        self.assertIn("(SELECT id FROM tag WHERE name = ", rendered)
+
+
+class VerdictDefaultTest(unittest.TestCase):
+    """사람이 손대지 않은 문항이 resume 한 번으로 시드에 들어가면 승인 단계가 무의미하다."""
+
+    def test_기본값은_pending이다(self):
+        entry = run._parked_entry(
+            {"configurable": {"thread_id": "인덱스-1"}},
+            {"question": question(), "rubric": rubric()},
+        )
+
+        self.assertEqual(entry["verdict"], run.PENDING)
+
+    def test_pending은_재개하지_않는다(self):
+        self.assertFalse(run.decided({"verdict": run.PENDING}))
+        self.assertFalse(run.decided({}), "verdict 키를 지워도 재개하지 않는다")
+
+    def test_검수_대기_리뷰_파일은_덮어쓰기_전에_옮긴다(self):
+        """generate 를 다시 돌리면 리뷰 파일이 통째로 갈린다. 검수 대기분을 날린 적이 있다."""
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "review.json"
+            path.write_text(
+                json.dumps([{"status": "awaiting_review", "verdict": run.PENDING}]),
+                encoding="utf-8",
+            )
+            with unittest.mock.patch.object(run, "REVIEW_PATH", path):
+                run._write_review([{"status": "awaiting_review", "verdict": run.PENDING}])
+                backups = sorted(p.name for p in path.parent.glob("review-*.json"))
+
+        self.assertEqual(len(backups), 1, "옮긴 파일이 있어야 한다")
+
+    def test_결정이_끝났으면_옮기지_않는다(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "review.json"
+            path.write_text(
+                json.dumps([{"status": "awaiting_review", "verdict": "approved"}]), encoding="utf-8"
+            )
+            with unittest.mock.patch.object(run, "REVIEW_PATH", path):
+                run._write_review([])
+                backups = list(path.parent.glob("review-*.json"))
+
+        self.assertEqual(backups, [], "resume 으로 소진한 파일까지 쌓을 필요는 없다")
+
+    def test_결정한_것만_재개한다(self):
+        self.assertTrue(run.decided({"verdict": "approved"}))
+        self.assertTrue(run.decided({"verdict": "rejected"}))
 
 
 class ParseJsonTest(unittest.TestCase):
@@ -401,13 +520,35 @@ class BackfillTest(unittest.TestCase):
         catalog = seed.load()
         return catalog, seed.needs_rubric(catalog)[0]
 
-    def test_루브릭이_있는_문항은_대상에서_빠진다(self):
+    def test_세션변수로_붙인_루브릭을_알아본다(self):
+        """data4-generated.sql — 같은 파일에서 잡은 @p 변수로 UPDATE 한다."""
         catalog = seed.load()
 
         titles = {question.title for question in seed.needs_rubric(catalog)}
 
-        self.assertNotIn("인덱스가 조회를 빠르게 하는 원리", titles, "data3-rubric.sql이 title로 붙였다")
-        self.assertNotIn("데드락의 발생 원인과 해결 방법", titles, "data4-generated.sql이 @p 변수로 붙였다")
+        self.assertNotIn("복합 인덱스와 단일 인덱스의 선택 기준", titles)
+        self.assertNotIn("락 기반 동시성 제어의 장단점과 동작 방식", titles)
+
+    def test_title로_붙인_루브릭을_알아본다(self):
+        """루브릭만 따로 UPDATE 하는 파일(backfill 산출물)은 title 로 문항을 찾는다."""
+        with tempfile.TemporaryDirectory() as directory:
+            questions = pathlib.Path(directory) / "data0.sql"
+            questions.write_text(
+                "INSERT INTO question (title, content, type, difficulty, category, explanation) VALUES\n"
+                "('붙은 문항', '발문', 'ESSAY', 'MEDIUM', 'OS', '해설');\n"
+                "INSERT INTO question (title, content, type, difficulty, category, explanation) VALUES\n"
+                "('안 붙은 문항', '발문', 'ESSAY', 'MEDIUM', 'OS', '해설');\n",
+                encoding="utf-8",
+            )
+            rubrics = pathlib.Path(directory) / "data0-rubric.sql"
+            rubrics.write_text(
+                "UPDATE question SET rubric = '{}' WHERE type = 'ESSAY' AND title = '붙은 문항';\n",
+                encoding="utf-8",
+            )
+
+            titles = {q.title for q in seed.needs_rubric(seed.load([questions, rubrics]))}
+
+        self.assertEqual(titles, {"안 붙은 문항"})
 
     def test_제목이_겹치는_문항은_대상에서_빠진다(self):
         catalog = seed.load()
@@ -545,6 +686,99 @@ class PromptContractTest(unittest.TestCase):
         system = client.calls[0][0]
         self.assertIn(fakes.TAG_MARK, system)
         self.assertIn(fakes.DIFFICULTY_MARK, system)
+
+
+class PromptVersionTest(unittest.TestCase):
+    """산출물만 보고 어느 프롬프트가 만든 것인지 되짚을 수 있어야 한다."""
+
+    def _write(self, version, body):
+        directory = pathlib.Path(tempfile.mkdtemp())
+        (directory / (prompts_module.NAME_FORMAT % version)).write_text(body, encoding="utf-8")
+        return directory
+
+    def test_version과_hash를_읽는다(self):
+        directory = self._write("v7", "version: v7\ngenerate: |\n  본문\n")
+
+        loaded = prompts_module.load("v7", directory)
+
+        self.assertEqual(loaded.version, "v7")
+        self.assertEqual(len(loaded.hash), prompts_module.HASH_LENGTH)
+        self.assertEqual(loaded.stamp, "v7+%s" % loaded.hash)
+        self.assertEqual(loaded["generate"].strip(), "본문", "version 은 섹션이 아니다")
+
+    def test_본문이_바뀌면_hash가_바뀐다(self):
+        before = prompts_module.load("v7", self._write("v7", "version: v7\ngenerate: |\n  본문\n"))
+        after = prompts_module.load("v7", self._write("v7", "version: v7\ngenerate: |\n  다른 본문\n"))
+
+        self.assertNotEqual(before.hash, after.hash, "같은 version 안의 변경을 가려야 한다")
+
+    def test_파일명과_version_키가_다르면_실패한다(self):
+        """둘이 어긋나면 산출물에 찍힌 stamp 가 거짓이 된다."""
+        directory = self._write("v7", "version: v6\ngenerate: |\n  본문\n")
+
+        with self.assertRaises(ValueError):
+            prompts_module.load("v7", directory)
+
+    def test_없는_버전은_실패한다(self):
+        with self.assertRaises(FileNotFoundError):
+            prompts_module.load("v99")
+
+    def test_기본값은_현재_버전이다(self):
+        self.assertEqual(prompts_module.load().version, prompts_module.CURRENT_VERSION)
+        self.assertIn(prompts_module.CURRENT_VERSION, prompts_module.versions())
+
+    def test_지난_버전은_얼어붙는다(self):
+        """산출물에 찍힌 stamp 가 가리키는 파일이다. 바뀌면 그 기록이 거짓이 된다.
+
+        고칠 것이 있으면 이 값을 고치지 말고 새 버전을 만든다.
+        """
+        frozen = {"v1": "2873f41c", "v2": "621b0dc6"}
+
+        for version, digest in frozen.items():
+            self.assertEqual(prompts_module.load(version).hash, digest, version)
+
+    def test_생성한_문항에_찍는다(self):
+        dependencies = deps()
+
+        state = nodes.generate({"difficulty": "MEDIUM", "tag": "인덱스"}, dependencies)
+
+        self.assertEqual(state["question"][nodes.PROMPT_KEY], dependencies.prompts.stamp)
+
+    def test_백필한_문항에도_찍는다(self):
+        """backfill 은 generate 를 안 거친다. 루브릭 프롬프트 버전이 남아야 한다."""
+        dependencies = deps()
+
+        state = nodes.make_rubric({"question": question()}, dependencies)
+
+        self.assertEqual(state["question"][nodes.PROMPT_KEY], dependencies.prompts.stamp)
+
+    def test_시드_SQL에_문항마다_남는다(self):
+        stamped = {**question(), nodes.PROMPT_KEY: "v7+abcd1234", "rubric": rubric()}
+
+        rendered = sql.render([stamped, stamped])
+
+        self.assertEqual(rendered.count("-- promptVersion=v7+abcd1234"), 2)
+        self.assertIn("-- 프롬프트 v7+abcd1234", rendered)
+
+    def test_섞인_버전을_첫머리에_모두_적는다(self):
+        first = {**question(), nodes.PROMPT_KEY: "v7+aaaaaaaa", "rubric": rubric()}
+        second = {**question(), nodes.PROMPT_KEY: "v8+bbbbbbbb", "rubric": rubric()}
+
+        rendered = sql.render([first, second])
+
+        self.assertIn("-- 프롬프트 v7+aaaaaaaa, v8+bbbbbbbb", rendered)
+
+    def test_루브릭_백필_SQL에도_남는다(self):
+        stamped = {**question(), nodes.PROMPT_KEY: "v7+abcd1234", "rubric": rubric()}
+
+        rendered = sql.render_rubrics([stamped])
+
+        self.assertIn("-- promptVersion=v7+abcd1234", rendered)
+
+    def test_식별자가_없으면_주석을_붙이지_않는다(self):
+        rendered = sql.render([{**question(), "rubric": rubric()}])
+
+        self.assertNotIn("promptVersion", rendered)
 
 
 class LocalClientTest(unittest.TestCase):
@@ -701,9 +935,9 @@ class TagPipelineTest(unittest.TestCase):
     def test_출제_SQL에_태그가_실린다(self):
         rendered = sql.render([{**question(), "tags": ["인덱스", "실행 계획"], "rubric": rubric()}])
 
-        self.assertIn("INSERT INTO question_tag (question_id, name) VALUES", rendered)
-        self.assertIn("(@p1, '인덱스')", rendered)
-        self.assertIn("(@p1, '실행 계획')", rendered)
+        self.assertIn("INSERT INTO question_tag (question_id, tag_id) VALUES", rendered)
+        self.assertIn("(@p1, (SELECT id FROM tag WHERE name = '인덱스'))", rendered)
+        self.assertIn("(@p1, (SELECT id FROM tag WHERE name = '실행 계획'))", rendered)
 
 
 if __name__ == "__main__":

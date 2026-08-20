@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,7 @@ from langgraph.types import Command
 from testing import fakes
 from core import graph as graph_module
 from core import nodes
+from core import prompts as prompts_module
 from adapters import seed
 from adapters import sql
 from core import state as state_module
@@ -45,6 +47,11 @@ REVIEW_PATH = WORK_DIR / "review.json"
 NEW_QUESTION = "new"
 EXISTING_QUESTION = "existing"
 
+# 기본값은 pending 이다. 사람이 손대지 않은 문항이 resume 한 번으로 전부 시드에 들어가면
+# 승인 단계가 있으나 마나다. 결정이 찍힌 것만 재개한다.
+PENDING = "pending"
+DECIDED = ("approved", "rejected")
+
 
 def _client(arguments):
     """기본은 로컬(Ollama)이다. --gemini 를 줘야 외부 API를 쓴다."""
@@ -56,13 +63,29 @@ def _client(arguments):
 
 
 def _retriever(enabled: bool):
-    """--rag 면 임베딩으로 '이미 있는 주제'를 좁힌다. 아니면 카테고리 전체를 그대로 넣는다."""
+    """'이미 있는 주제'를 질의에 가까운 것만 남긴다. --no-rag 면 카테고리 전체를 넣는다.
+
+    기본값이다. 껐을 때 OS 배치에서 10개 중 4개가 중복으로 폐기됐는데, 같은 프롬프트로
+    켜고 다시 돌리니 4개 태그가 전부 통과했다(PCB 0.966 -> 0.809).
+    카테고리가 50개를 넘어가면 정작 겹칠 문항이 목록에 묻힌다.
+    근거는 evidence/2026-08-20-rag-retry.md 에 있다.
+    """
     return embeddings.retriever if enabled else None
 
 
 def _semantic(enabled: bool):
     """--no-semantic 이 아니면 중복 게이트 2단계(의미 유사도)를 켠다."""
     return None if enabled else embeddings.nearest
+
+
+def _conditions(deps: nodes.Deps) -> str:
+    """실행 조건을 한 줄로. evidence 기록만 보고 어떤 설정이었는지 복원돼야 한다.
+
+    프롬프트 버전만 찍던 때에 RAG 를 켜고 잰 결과와 끄고 잰 결과를 섞어 비교할 뻔했다.
+    """
+    gate = "컷 %.2f" % deps.cut if deps.semantic else "중복 게이트 꺼짐"
+    rag = "RAG 켬" if deps.retriever else "RAG 끔"
+    return "프롬프트 %s · %s · %s" % (deps.prompts.stamp, rag, gate)
 
 
 def _thread(tag: str, index: int) -> dict[str, Any]:
@@ -104,9 +127,11 @@ def command_generate(arguments: argparse.Namespace) -> None:
     deps = nodes.Deps.create(
         _client(arguments),
         existing=catalog,
-        retriever=_retriever(arguments.rag),
+        retriever=_retriever(not arguments.no_rag),
         semantic=_semantic(arguments.no_semantic),
+        prompt_version=arguments.prompt,
     )
+    print("%s\n" % _conditions(deps))
 
     with SqliteSaver.from_conn_string(str(CHECKPOINT_DB)) as checkpointer:
         compiled = graph_module.build(deps, checkpointer)
@@ -158,7 +183,10 @@ def command_backfill(arguments: argparse.Namespace) -> None:
     print("루브릭 없는 서술형 %d개 중 %d개를 처리한다.\n" % (len(targets), min(len(targets), arguments.limit)))
     targets = targets[: arguments.limit]
 
-    deps = nodes.Deps.create(_client(arguments), existing=seed.essays(catalog))
+    deps = nodes.Deps.create(
+        _client(arguments), existing=seed.essays(catalog), prompt_version=arguments.prompt
+    )
+    print("%s\n" % _conditions(deps))
     parked: list[dict[str, Any]] = []
 
     with SqliteSaver.from_conn_string(str(CHECKPOINT_DB)) as checkpointer:
@@ -198,10 +226,44 @@ def _backfill_input(target: seed.Question) -> dict[str, Any]:
     )
 
 
+def decided(entry: dict[str, Any]) -> bool:
+    """사람이 결정을 찍었는가.
+
+    pending 인 채로 resume 하면 안 된다. interrupt 를 소모해 버려서 나중에 승인으로
+    바꿔도 그 문항은 다시 재개할 수 없다. 그래서 아예 건너뛰고 파킹 상태를 유지한다.
+    """
+    return entry.get("verdict") in DECIDED
+
+
+def _backup_undecided() -> None:
+    """결정이 안 끝난 리뷰 파일은 덮어쓰기 전에 옆으로 옮긴다.
+
+    generate 는 리뷰 파일을 통째로 갈아엎는다. dry-run 한 번에 검수 대기 중이던
+    배치를 날린 적이 두 번 있다. 체크포인트에서 복구는 되지만 알아채기 전까지가 문제다.
+    """
+    if not REVIEW_PATH.exists():
+        return
+    try:
+        entries = json.loads(REVIEW_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        entries = []
+    undecided = [
+        entry for entry in entries
+        if entry.get("status") == "awaiting_review" and not decided(entry)
+    ]
+    if not undecided:
+        return
+    backup = REVIEW_PATH.with_name("review-%s.json" % datetime.now().strftime("%Y%m%d-%H%M%S"))
+    REVIEW_PATH.replace(backup)
+    print("검수 대기 %d건이 있어 %s 로 옮겼다." % (len(undecided), backup.name))
+
+
 def _write_review(parked: list[dict[str, Any]]) -> None:
+    _backup_undecided()
     REVIEW_PATH.write_text(json.dumps(parked, ensure_ascii=False, indent=2), encoding="utf-8")
     print("\n리뷰 파일 %s" % REVIEW_PATH)
-    print("verdict 를 approved/rejected 로 바꾸고 필요하면 question·rubric 을 직접 고친 뒤 resume 하라.")
+    print("verdict 가 %s 다. approved/rejected 로 바꾸고 필요하면 question·rubric 을 "
+          "직접 고친 뒤 resume 하라. %s 인 문항은 재개하지 않는다." % (PENDING, PENDING))
 
 
 def _parked_entry(
@@ -222,7 +284,7 @@ def _parked_entry(
         "thread_id": config["configurable"]["thread_id"],
         "mode": mode,
         "status": "awaiting_review",
-        "verdict": "approved",
+        "verdict": PENDING,
         "question": state["question"],
         "rubric": state["rubric"],
         "timings": state.get("timings", []),
@@ -255,7 +317,8 @@ def _summary(entry: dict[str, Any]) -> str:
 def command_review(_: argparse.Namespace) -> None:
     for entry in _load_review():
         print("=" * 78)
-        print("%s  %s" % (entry["thread_id"], entry["status"]))
+        verdict = "  verdict=%s" % entry["verdict"] if entry.get("verdict") else ""
+        print("%s  %s%s" % (entry["thread_id"], entry["status"], verdict))
         if entry["status"] == "failed":
             print("  오류: %s" % entry["error"])
             continue
@@ -269,6 +332,7 @@ def command_review(_: argparse.Namespace) -> None:
         print("  발문: %s" % question["content"])
         print("  해설: %s" % question["explanation"])
         print("  태그: %s" % ", ".join(question.get("tags", [])))
+        print("  프롬프트: %s" % question.get(nodes.PROMPT_KEY, "-"))
         for item in entry["rubric"]["criteria"]:
             print("   (%s점) %s" % (item["weight"], item["point"]))
 
@@ -278,10 +342,14 @@ def command_resume(arguments: argparse.Namespace) -> None:
     deps = nodes.Deps.create(UnusedClient())
 
     approved: list[dict[str, Any]] = []
+    pending: list[str] = []
     with SqliteSaver.from_conn_string(str(CHECKPOINT_DB)) as checkpointer:
         compiled = graph_module.build(deps, checkpointer)
         for entry in reviewed:
             if entry["status"] != "awaiting_review":
+                continue
+            if not decided(entry):
+                pending.append(entry["thread_id"])
                 continue
             config = {"configurable": {"thread_id": entry["thread_id"]}}
             state = compiled.invoke(
@@ -298,6 +366,9 @@ def command_resume(arguments: argparse.Namespace) -> None:
                 approved.append({**state["question"], "rubric": state["rubric"]})
             print("%-14s %s" % (entry["thread_id"], state.get("verdict")))
 
+    if pending:
+        print("\n%d개는 %s 라서 건너뛴다 - %s" % (len(pending), PENDING, ", ".join(pending)))
+        print("결정한 뒤 다시 resume 하면 이어서 재개한다.")
     if not approved:
         print("\n승인된 문항이 없다. SQL을 만들지 않는다.")
         return
@@ -354,9 +425,9 @@ def main() -> None:
         help="중복 게이트에서 의미 유사도 단계를 끈다 (어휘만 본다)",
     )
     generate.add_argument(
-        "--rag",
+        "--no-rag",
         action="store_true",
-        help="'이미 있는 주제'를 임베딩으로 좁혀 넣는다 (Ollama 필요)",
+        help="'이미 있는 주제'를 좁히지 않고 카테고리 전체를 넣는다",
     )
     generate.set_defaults(handler=command_generate)
 
@@ -381,6 +452,11 @@ def main() -> None:
         subparser.add_argument("--gemini", action="store_true", help="로컬 대신 Gemini API를 쓴다")
         subparser.add_argument("--model", default=None, help="Ollama 모델 (기본 qwen3:8b)")
         subparser.add_argument("--api-key", help="--gemini 일 때. 없으면 환경변수 API_KEY")
+        subparser.add_argument(
+            "--prompt",
+            choices=prompts_module.versions(),
+            help="프롬프트 버전 (기본 %s). 버전을 비교할 때만 쓴다" % prompts_module.CURRENT_VERSION,
+        )
 
     arguments = parser.parse_args()
     arguments.handler(arguments)

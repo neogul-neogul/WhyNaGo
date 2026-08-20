@@ -10,8 +10,12 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+import yaml
+
 RESOURCES = Path(__file__).resolve().parents[3] / "src" / "main" / "resources"
-SEED_GLOB = "data*.sql"
+CONFIG_PATH = RESOURCES / "config" / "application-db-local.yml"
+GENERATED_GLOB = "data*-generated.sql"
+CLASSPATH_PREFIX = "classpath:"
 
 # 시드 파일마다 형식이 다르다. data.sql은 id 컬럼을 갖고 한 문장에 여러 행을 넣고,
 # data2.sql은 id 없이 한 행씩 넣고 SET @eN = LAST_INSERT_ID() 로 참조한다.
@@ -25,7 +29,15 @@ _TAG_BLOCK = re.compile(
     r"INSERT\s+INTO\s+question_tag\s*\([^)]*\)\s*VALUES\s*(?P<rows>.*?);",
     re.DOTALL | re.IGNORECASE,
 )
-_TAG_ROW = re.compile(r"\(\s*(?P<key>@?\w+)\s*,\s*'(?P<name>(?:[^']|'')*)'\s*\)")
+# 태그 행도 형식이 둘이다. 이름을 직접 넣던 것(data2.sql)과 tag 테이블을 찾아 넣는 것(data3.sql).
+# 뒤엣것만 읽으면 옛 시드의 태그가 사라지고, 앞엣것만 읽으면 지금 시드의 태그가 통째로 빠진다.
+_TAG_ROW = re.compile(
+    r"\(\s*(?P<key>@?\w+)\s*,\s*(?:"
+    r"'(?P<name>(?:[^']|'')*)'"
+    r"|\(\s*SELECT\s+id\s+FROM\s+tag\s+WHERE\s+name\s*=\s*'(?P<lookup>(?:[^']|'')*)'\s*\)"
+    r")\s*\)",
+    re.IGNORECASE,
+)
 
 # 루브릭 UPDATE도 형식이 둘이다. 손으로 붙인 data3-rubric.sql은 title로 찾고,
 # 파이프라인이 뽑는 data4-generated.sql은 같은 파일에서 잡은 세션 변수로 찾는다.
@@ -54,13 +66,30 @@ class Question:
 
 
 def seed_paths() -> list[Path]:
-    """data*.sql 을 전부 읽는다.
+    """부팅이 실제로 로드하는 시드 + 파이프라인 산출물.
 
-    파일 하나만 읽으면 파이프라인이 직접 만든 문항(data4-generated.sql)이 다음 실행의
-    중복 기준선에서 빠져 같은 주제를 또 만든다. 문항 INSERT가 없는 파일은 0건을 내므로
-    글롭으로 잡아도 안전하고, 새 시드 파일이 생겨도 자동으로 포함된다.
+    data*.sql 을 전부 글롭하면 안 된다. data2.sql 처럼 대체돼 이제 로드되지 않는 파일이
+    저장소에 남아 있어서, **DB에 없는 문항과 겹친다**는 이유로 멀쩡한 문항이 반려된다.
+    로드 목록을 정하는 것은 application-db-local.yml 이므로 그것을 그대로 읽는다.
+
+    산출물(data*-generated.sql)은 아직 로드 목록에 없어도 넣는다. 우리가 이미 만든
+    문항이라 다시 만들면 안 된다.
     """
-    return sorted(RESOURCES.glob(SEED_GLOB))
+    listed = [RESOURCES / name for name in _data_locations()]
+    generated = list(RESOURCES.glob(GENERATED_GLOB))
+    return sorted({path for path in listed + generated if path.exists()})
+
+
+def _data_locations() -> list[str]:
+    if not CONFIG_PATH.exists():
+        raise FileNotFoundError("시드 로드 목록을 못 찾았다 - %s" % CONFIG_PATH)
+    config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
+    locations = config["spring"]["sql"]["init"]["data-locations"]
+    return [
+        location.strip().removeprefix(CLASSPATH_PREFIX)
+        for location in locations.split(",")
+        if location.strip()
+    ]
 
 
 def load(paths: list[Path] | None = None) -> list[Question]:
@@ -199,7 +228,8 @@ def _tags(seed: str) -> dict[str, list[str]]:
     tags: dict[str, list[str]] = {}
     for block in _TAG_BLOCK.finditer(seed):
         for row in _TAG_ROW.finditer(block.group("rows")):
-            tags.setdefault(row.group("key"), []).append(_unquote(row.group("name")))
+            name = row.group("name") or row.group("lookup")
+            tags.setdefault(row.group("key"), []).append(_unquote(name))
     return tags
 
 
