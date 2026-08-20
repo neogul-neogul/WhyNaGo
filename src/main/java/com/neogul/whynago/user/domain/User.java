@@ -12,6 +12,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -64,6 +65,9 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    // 가입 시각 추적을 시작하기 전에 가입한 회원은 null이다
+    private LocalDateTime createdAt;
+
     private User(
             Email email,
             String password,
@@ -72,7 +76,8 @@ public class User {
             String providerId,
             Position position,
             int dailyGoal,
-            Role role) {
+            Role role,
+            LocalDateTime createdAt) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
@@ -81,6 +86,7 @@ public class User {
         this.position = position;
         this.dailyGoal = dailyGoal;
         this.role = role;
+        this.createdAt = createdAt;
     }
 
     // 직무 BACKEND로 고정
@@ -88,14 +94,16 @@ public class User {
         validateNickname(nickname);
         return new User(
                 new Email(email), password, nickname,
-                AuthProvider.LOCAL, null, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER);
+                AuthProvider.LOCAL, null, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER,
+                LocalDateTime.now());
     }
 
     public static User createSocial(String email, String nickname, AuthProvider provider, String providerId) {
         validateNickname(nickname);
         return new User(
                 new Email(email), null, nickname,
-                provider, providerId, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER);
+                provider, providerId, Position.BACKEND, DEFAULT_DAILY_GOAL, Role.USER,
+                LocalDateTime.now());
     }
 
     public boolean isAdmin() {

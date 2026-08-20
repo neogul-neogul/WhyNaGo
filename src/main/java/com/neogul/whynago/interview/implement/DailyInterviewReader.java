@@ -49,4 +49,8 @@ public class DailyInterviewReader {
     public List<DailyInterview> readCompletedAll(Long userId) {
         return dailyInterviewRepository.findByUserIdAndStatusOrderByInterviewDateDesc(userId, InterviewStatus.COMPLETED);
     }
+
+    public long countCompleted(Long userId) {
+        return dailyInterviewRepository.countByUserIdAndStatus(userId, InterviewStatus.COMPLETED);
+    }
 }

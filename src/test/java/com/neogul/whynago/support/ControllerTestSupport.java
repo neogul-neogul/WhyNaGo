@@ -1,7 +1,12 @@
 package com.neogul.whynago.support;
 
+import com.neogul.whynago.admin.presentation.AdminDashboardController;
+import com.neogul.whynago.admin.presentation.AdminMemberController;
 import com.neogul.whynago.admin.presentation.AdminQuestionController;
 import com.neogul.whynago.admin.presentation.AdminQuestionStatisticsController;
+import com.neogul.whynago.admin.service.AdminDashboardService;
+import com.neogul.whynago.admin.service.AdminMemberDetailService;
+import com.neogul.whynago.admin.service.AdminMemberListService;
 import com.neogul.whynago.admin.service.AdminQuestionDetailService;
 import com.neogul.whynago.admin.service.AdminQuestionListService;
 import com.neogul.whynago.admin.service.AdminQuestionStatisticsService;
@@ -59,7 +64,9 @@ import org.springframework.test.web.servlet.MockMvc;
         RecommendationController.class,
         MasteryController.class,
         AdminQuestionStatisticsController.class,
-        AdminQuestionController.class
+        AdminQuestionController.class,
+        AdminDashboardController.class,
+        AdminMemberController.class
 })
 @Import({JwtProvider.class, TokenExtractor.class})
 public abstract class ControllerTestSupport {
@@ -120,6 +127,15 @@ public abstract class ControllerTestSupport {
 
     @MockitoBean
     protected AdminQuestionDetailService adminQuestionDetailService;
+
+    @MockitoBean
+    protected AdminDashboardService adminDashboardService;
+
+    @MockitoBean
+    protected AdminMemberListService adminMemberListService;
+
+    @MockitoBean
+    protected AdminMemberDetailService adminMemberDetailService;
 
     @BeforeEach
     void setUpMockMvc() {

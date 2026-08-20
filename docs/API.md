@@ -2625,3 +2625,221 @@ GET /api/admin/questions/{questionId}/statistics
 | 400 | `QUESTION_NOT_MULTIPLE_CHOICE` | `questionId`가 서술형(`ESSAY`) 문제임. |
 | 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
 | 404 | `QUESTION_NOT_FOUND` | `questionId`가 존재하지 않음. |
+
+---
+
+## **대시보드 조회**
+
+관리자 백오피스 대시보드(`/admin`)의 KPI 카드와 운영 알림을 한 번에 조회한다. 화면이 한 번에 그리는 블록이라 지표별로 쪼개지 않고 **엔드포인트 하나**로 합쳤다.
+
+모든 지표는 집계 테이블 없이 조회 시점에 계산하며, 날짜 경계는 **`Asia/Seoul` 기준**이다("오늘"은 KST 자정부터 하루의 끝까지).
+
+> **서버는 숫자만 내려준다.** `▲ 27.6% (전일 29)` 같은 증감 문자열·퍼센트·화살표, 알림 문구와 CTA 링크는 클라이언트가 만든다. 비교가 필요한 지표는 `{ current, previous }` 쌍으로 내려간다.
+
+### **Endpoint**
+
+```
+GET /api/admin/dashboard
+```
+
+- 성공 시 `200 OK`를 반환한다.
+- 데이터가 없어도 빈 응답이 아니라 모든 지표가 `0`인 응답을 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "totalMemberCount": 1204,
+  "activeMember7Days": { "current": 312, "previous": 294 },
+  "cumulativeSolveCount": {
+    "total": 48920,
+    "multipleChoiceCount": 34180,
+    "essayCount": 14740
+  },
+  "todaySolveCount": { "current": 1284, "previous": 1142 },
+  "todaySignUpCount": { "current": 37, "previous": 29 },
+  "todayInterview": {
+    "started": { "current": 412, "previous": 435 },
+    "completed": { "current": 323, "previous": 340 }
+  },
+  "alerts": [
+    { "type": "DAILY_INTERVIEW_NOT_PINNED", "interviewDate": "2026-08-19" }
+  ]
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `totalMemberCount` | long | 전체 회원 수. |
+| `activeMember7Days.current` | long | 최근 7일(오늘 포함) 동안 풀이한 회원 수. 같은 회원은 한 번만 센다. |
+| `activeMember7Days.previous` | long | 그 직전 7일의 같은 값. 두 구간은 겹치지 않는다. |
+| `cumulativeSolveCount.total` | long | 누적 풀이 문항 수. |
+| `cumulativeSolveCount.multipleChoiceCount` | long | 그중 객관식 문항 수. |
+| `cumulativeSolveCount.essayCount` | long | 그중 서술형 문항 수. |
+| `todaySolveCount.current` / `.previous` | long | 오늘 / 전일 풀이 문항 수. |
+| `todaySignUpCount.current` / `.previous` | long | 오늘 / 전일 가입자 수. |
+| `todayInterview.started.current` / `.previous` | long | 오늘 / 전일 면접 참여 수(시작된 면접 수). |
+| `todayInterview.completed.current` / `.previous` | long | 오늘 / 전일 면접 완료 수. |
+| `alerts` | Array | 운영 알림 목록. 해당 사항이 없으면 빈 배열이다. |
+| `alerts[].type` | String | 알림 종류. 현재 `DAILY_INTERVIEW_NOT_PINNED` 하나다. |
+| `alerts[].interviewDate` | String \| null | `DAILY_INTERVIEW_NOT_PINNED`의 대상 일자(`yyyy-MM-dd`). 다른 종류의 알림에서는 `null`이다. |
+
+**"풀이 수"는 세션 수가 아니라 문항 수**(`SolvedSession.totalCount` 합)다. 학습 기록의 일자별 문항 수와 같은 정의라 화면 간 숫자가 어긋나지 않는다. 면접 완료도 서술형 풀이 세션을 남기므로 면접 문항이 함께 집계된다.
+
+**가입자 수는 `createdAt`이 있는 회원만 센다.** 가입 시각 추적을 시작하기 전에 가입한 회원은 `createdAt`이 `null`이라 일자별 집계에서 제외된다.
+
+> **`DAILY_INTERVIEW_NOT_PINNED`은 경고가 아니라 사실 전달이다.** 오늘의 면접 문항은 배치가 아니라 **첫 사용자가 면접을 시작할 때 고정**되므로, 아무도 시작하지 않은 이른 시각의 미고정은 정상 상태다. 서버는 기준 시각(예: 09시)을 정해 경고로 격상하지 않고 미고정이라는 사실만 내려주며, 노출 여부와 문구는 클라이언트가 판단한다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 목록 조회**
+
+관리자 백오피스 회원 관리(`/admin/members`)의 목록을 조회한다. 회원 수가 많아 **서버 페이징**이 필수다.
+
+정렬은 **회원 ID 내림차순(가입 역순) 고정**이다. `createdAt`은 가입 시각 추적 이전에 가입한 회원이 `null`이라 정렬 키로 쓸 수 없다.
+
+> **티어·점수는 내려가지 않는다.** 둘 다 풀이 이력에서 조회 시점에 파생되는 값이라(→ `docs/DOMAIN.md` 점수·티어) 서버가 컬럼으로 갖고 있지 않고, 따라서 티어로 정렬·필터할 수도 없다. `users`에 점수 스냅샷을 도입한 뒤 목록 응답과 서버 필터에 함께 추가한다.
+
+### **Endpoint**
+
+```
+GET /api/admin/members
+```
+
+- 성공 시 `200 OK`와 페이지 응답을 반환한다.
+
+### **Query Parameters**
+
+모두 선택이다.
+
+| **파라미터** | **타입** | **설명** |
+| --- | --- | --- |
+| `q` | String | 닉네임·이메일 키워드. 부분 일치이며 대소문자를 구분하지 않는다. 공백만 있으면 조건을 적용하지 않는다. |
+| `page` | int | 0부터 시작하는 페이지 번호. 생략하거나 음수면 `0`으로 보정한다. |
+| `size` | int | 한 페이지 회원 수. 생략하거나 1 미만이면 `20`, 100을 넘으면 `100`으로 보정한다. |
+
+### **Response Body**
+
+```json
+{
+  "content": [
+    {
+      "id": 20481,
+      "nickname": "devhoon",
+      "email": "devhoon@gmail.com",
+      "position": "BACKEND",
+      "provider": "GOOGLE",
+      "createdAt": "2025-11-02T09:12:00"
+    }
+  ],
+  "page": 0,
+  "size": 8,
+  "totalElements": 1204,
+  "totalPages": 151,
+  "last": false
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `content[].id` | long | 회원 ID. |
+| `content[].nickname` | String | 닉네임. |
+| `content[].email` | String | 이메일. **마스킹하지 않은 원본**이다. |
+| `content[].position` | String | 포지션. `BACKEND` \| `FRONTEND` \| `FULLSTACK` |
+| `content[].provider` | String | 가입 경로. `LOCAL` \| `GOOGLE` |
+| `content[].createdAt` | String \| null | 가입 시각(`yyyy-MM-dd'T'HH:mm:ss`). 추적 이전 가입 회원은 `null`이다. |
+
+**이메일은 서버가 마스킹하지 않는다.** 관리자는 문의 대응·검색에 원본이 필요하다. 표시용 마스킹이 필요하면 클라이언트가 처리한다.
+
+**포지션·가입 경로는 enum 코드를 그대로 내려준다.** 관리자 화면은 사용자 화면과 달리 코드를 그대로 노출하는 규칙을 따른다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 요약 조회**
+
+회원 목록 화면 상단의 요약 줄(`총 1,204명 · 최근 7일 활동 312명`)을 조회한다. 페이지 응답(`PageResponse`)에는 추가 필드를 끼울 수 없어 목록과 분리했다.
+
+두 값은 대시보드 조회와 **같은 집계 경로**를 쓰므로 두 화면의 숫자가 어긋나지 않는다. 날짜 경계는 `Asia/Seoul` 기준이다.
+
+### **Endpoint**
+
+```
+GET /api/admin/members/summary
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{ "totalCount": 1204, "activeWeekCount": 312 }
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `totalCount` | long | 전체 회원 수. |
+| `activeWeekCount` | long | 최근 7일(오늘 포함) 동안 풀이한 회원 수. 같은 회원은 한 번만 센다. |
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+
+---
+
+## **회원 상세 조회**
+
+회원 상세 모달에 필요한 학습 지표를 조회한다. 스트릭·풀이 문항 수·완료 면접 수는 목록 컬럼에 없고 모달을 열 때만 필요해 **단건 조회로 분리**했다(목록 응답에 넣으면 행마다 스트릭 계산이 붙는다).
+
+### **Endpoint**
+
+```
+GET /api/admin/members/{userId}
+```
+
+- 성공 시 `200 OK`를 반환한다.
+
+### **Response Body**
+
+```json
+{
+  "id": 20481,
+  "nickname": "devhoon",
+  "email": "devhoon@gmail.com",
+  "position": "BACKEND",
+  "provider": "GOOGLE",
+  "createdAt": "2025-11-02T09:12:00",
+  "streakDays": 62,
+  "solvedQuestionCount": 1208,
+  "completedInterviewCount": 214
+}
+```
+
+| **필드** | **타입** | **설명** |
+| --- | --- | --- |
+| `id` ~ `createdAt` | - | 회원 목록 조회의 같은 필드와 동일하다. |
+| `streakDays` | int | 연속 학습일. 오늘 아직 풀지 않았어도 어제까지 이어진 연속은 끊긴 것으로 보지 않는다(→ 스트릭 조회와 같은 규칙). |
+| `solvedQuestionCount` | long | 누적 풀이 문항 수. |
+| `completedInterviewCount` | long | 완료한 1일1면접 수. 진행 중인 면접은 세지 않는다. |
+
+**`solvedQuestionCount`도 세션 수가 아니라 문항 수**(`SolvedSession.totalCount` 합)다. 면접 완료가 남기는 서술형 세션이 함께 집계된다.
+
+### **에러**
+
+| **HTTP** | **code** | **발생 조건** |
+| --- | --- | --- |
+| 403 | `AUTH_FORBIDDEN` | `role`이 `ADMIN`이 아님. |
+| 404 | `USER_NOT_FOUND` | 해당 ID의 회원이 없음. |

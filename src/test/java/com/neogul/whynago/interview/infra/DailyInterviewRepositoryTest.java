@@ -80,4 +80,47 @@ class DailyInterviewRepositoryTest extends RepositoryTestSupport {
         assertThat(dailyInterviewRepository
                 .findByUserIdAndStatusOrderByInterviewDateDesc(10L, InterviewStatus.COMPLETED)).isEmpty();
     }
+
+    @Test
+    @DisplayName("해당 일자에 시작된 전체 면접 수를 센다.")
+    void countByInterviewDate() {
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(11L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(12L, INTERVIEW_DATE.minusDays(1)));
+
+        assertThat(dailyInterviewRepository.countByInterviewDate(INTERVIEW_DATE)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("해당 일자에 완료된 전체 면접 수를 센다.")
+    void countByInterviewDateAndStatus() {
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(11L, INTERVIEW_DATE));
+
+        assertThat(dailyInterviewRepository.countByInterviewDateAndStatus(INTERVIEW_DATE, InterviewStatus.COMPLETED))
+                .isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("면접이 없는 일자의 면접 수는 0이다.")
+    void countByInterviewDate_noInterview() {
+        assertThat(dailyInterviewRepository.countByInterviewDate(INTERVIEW_DATE)).isZero();
+    }
+
+    @Test
+    @DisplayName("회원이 완료한 면접 수만 센다.")
+    void countByUserIdAndStatus() {
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(10L, INTERVIEW_DATE));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(10L, INTERVIEW_DATE.minusDays(1)));
+        dailyInterviewRepository.save(DailyInterviewFixture.inProgress(10L, INTERVIEW_DATE.minusDays(2)));
+        dailyInterviewRepository.save(DailyInterviewFixture.completed(20L, INTERVIEW_DATE));
+
+        assertThat(dailyInterviewRepository.countByUserIdAndStatus(10L, InterviewStatus.COMPLETED)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("면접 이력이 없는 회원의 완료 면접 수는 0이다.")
+    void countByUserIdAndStatus_noInterview() {
+        assertThat(dailyInterviewRepository.countByUserIdAndStatus(10L, InterviewStatus.COMPLETED)).isZero();
+    }
 }

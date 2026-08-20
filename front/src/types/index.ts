@@ -784,30 +784,115 @@ export interface MultipleChoiceStatisticsResponse {
   choiceDistribution: ChoiceDistributionResponse[];
 }
 
+/** 전일/전주 대비 비교가 필요한 지표. 증감률·화살표는 서버가 만들지 않으므로 lib/admin.ts에서 조립한다 */
+export interface MetricComparisonResponse {
+  current: number;
+  previous: number;
+}
+
+/** 누적 풀이 수 — 세션 수가 아니라 문항 수다 */
+export interface CumulativeSolveCountResponse {
+  total: number;
+  multipleChoiceCount: number;
+  essayCount: number;
+}
+
+/** 오늘 면접 참여(시작)·완료 수 */
+export interface InterviewMetricResponse {
+  started: MetricComparisonResponse;
+  completed: MetricComparisonResponse;
+}
+
+/** 대시보드 운영 알림 — 표시 문구·CTA 링크는 프런트가 type으로 결정한다 */
+export interface DashboardAlertResponse {
+  type: DashboardAlertCode;
+  /** DAILY_INTERVIEW_NOT_PINNED의 대상 일자 (YYYY-MM-DD) */
+  interviewDate: string | null;
+}
+
+/** 서버가 판정하는 알림 종류. 메일 배치·고정 실패 알림은 아직 근거 데이터가 없어 내려오지 않는다 */
+export type DashboardAlertCode = "DAILY_INTERVIEW_NOT_PINNED";
+
+/** 관리자 대시보드 — GET /api/admin/dashboard */
+export interface DashboardResponse {
+  totalMemberCount: number;
+  /** 최근 7일(오늘 포함) 풀이한 회원 수 · previous는 직전 7일 */
+  activeMember7Days: MetricComparisonResponse;
+  cumulativeSolveCount: CumulativeSolveCountResponse;
+  todaySolveCount: MetricComparisonResponse;
+  todaySignUpCount: MetricComparisonResponse;
+  todayInterview: InterviewMetricResponse;
+  /** 해당 사항이 없으면 빈 배열 */
+  alerts: DashboardAlertResponse[];
+}
+
+/** 회원 가입 경로 (백엔드 AuthProvider enum과 대응) */
+export type AuthProviderCode = "LOCAL" | "GOOGLE";
+
+/** GET /api/admin/members 의 한 행 */
+export interface AdminMemberResponse {
+  id: number;
+  nickname: string;
+  /** 마스킹하지 않은 원본. 표시용 마스킹은 화면이 한다 */
+  email: string;
+  position: Position;
+  provider: AuthProviderCode;
+  /** 가입 시각 추적 이전에 가입한 회원은 null */
+  createdAt: string | null;
+}
+
+/** GET /api/admin/members/summary */
+export interface AdminMemberSummaryResponse {
+  totalCount: number;
+  activeWeekCount: number;
+}
+
+/** GET /api/admin/members/{userId} — 목록 필드 + 학습 지표 */
+export interface AdminMemberDetailResponse extends AdminMemberResponse {
+  streakDays: number;
+  solvedQuestionCount: number;
+  completedInterviewCount: number;
+}
+
+// ===== 대시보드 화면 조립용 =====
+// 서버 응답이 아니라 화면이 그릴 형태다. 응답의 숫자를 표시 문자열로 바꾼 결과가 담긴다.
+
+/** 대시보드 KPI 카드 */
+export interface AdminKpi {
+  label: string;
+  value: string;
+  unit?: string;
+  /** 전일/전주 대비 증감 (없으면 표시하지 않음) */
+  delta?: string;
+  increased?: boolean;
+  /** 값 아래 보조 내역 (예: "객관식 34,180 · 서술형 14,740") */
+  breakdown?: string;
+}
+
+/** 대시보드 알림 카드 */
+export interface AdminDashboardAlert {
+  title: string;
+  detail: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
 // ===== 관리자 화면 (더미 전용) =====
 // 문제 목록·상세를 뺀 나머지 어드민 화면은 백엔드 API가 아직 없어 화면만 유지한다.
 // 아래 타입은 전부 src/mocks/admin.ts의 더미용이며, 백엔드 스펙이 나오면 위 API 응답 타입들처럼 서버 스펙 그대로 다시 정의한다.
 
-/** 어드민 회원 목록/상세 행 */
-export interface AdminMember {
-  id: string;
-  nickname: string;
-  email: string;
-  position: string;
+/**
+ * 회원 목록·상세에서 API가 내려주지 않는 값.
+ * 점수·티어는 조회 시점 파생값이라 컬럼이 없고, 최근활동일·이상징후·상태는 판정할 데이터가 없다.
+ * 회원 ID로 고정 배정해 목록과 모달이 같은 값을 본다 (→ mocks/admin.ts의 mockMemberMeta).
+ */
+export interface AdminMemberMeta {
   tier: ProgressTier;
-  joinedAt: string;
-  lastVisitedAt: string;
   score: number;
-  streakDays: number;
-  solvedCount: number;
-  interviewCount: number;
-  signupMethod: AdminMemberSignupMethod;
+  lastVisitedAt: string;
   anomaly?: AdminMemberAnomaly;
   status: AdminMemberStatus;
 }
-
-/** 회원 가입 경로 */
-export type AdminMemberSignupMethod = "Google" | "일반";
 
 /** 회원 이상징후 태그 */
 export interface AdminMemberAnomaly {
@@ -875,22 +960,3 @@ export interface AdminEmailRecipient {
   reason: string;
 }
 
-/** 대시보드 KPI 카드 */
-export interface AdminKpi {
-  label: string;
-  value: string;
-  unit?: string;
-  /** 전일/전주 대비 증감 (없으면 표시하지 않음) */
-  delta?: string;
-  increased?: boolean;
-  /** 값 아래 보조 내역 (예: "객관식 34,180 · 서술형 14,740") */
-  breakdown?: string;
-}
-
-/** 대시보드 알림 카드 */
-export interface AdminDashboardAlert {
-  title: string;
-  detail: string;
-  ctaLabel: string;
-  ctaHref: string;
-}

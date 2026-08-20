@@ -1,12 +1,10 @@
 import type {
-  AdminDashboardAlert,
   AdminEmailBatch,
   AdminEmailRecipient,
   AdminInterviewRecord,
   AdminKpi,
-  AdminMember,
   AdminMemberAnomaly,
-  AdminMemberSignupMethod,
+  AdminMemberMeta,
   AdminMemberStatus,
   ProgressTier,
   QuestionCategory,
@@ -24,137 +22,50 @@ export const ADMIN_TIERS: ProgressTier[] = [
   "BRONZE",
 ];
 
-export const adminKpis: AdminKpi[] = [
-  { label: "전체 회원 수", value: "1,204", unit: "명" },
-  {
-    label: "최근 7일 활동 회원 수",
-    value: "312",
-    unit: "명",
-    delta: "▲ 6.1% (전주 294)",
-    increased: true,
-  },
-  {
-    label: "누적 풀이 수",
-    value: "48,920",
-    unit: "건",
-    breakdown: "객관식 34,180 · 서술형 14,740",
-  },
-  {
-    label: "오늘 면접 참여 / 완료",
-    value: "412 / 323",
-    delta: "▼ 5.3% (전일 435 / 340)",
-    increased: false,
-  },
-  { label: "오늘 가입자 수", value: "37", unit: "명", delta: "▲ 27.6% (전일 29)", increased: true },
-  { label: "오늘 풀이 수", value: "1,284", unit: "건", delta: "▲ 12.4% (전일 1,142)", increased: true },
-  {
-    label: "오늘 면접 참여자 수",
-    value: "412",
-    unit: "명",
-    delta: "▼ 5.3% (전일 435)",
-    increased: false,
-  },
-];
+// KPI·운영 알림은 GET /api/admin/dashboard로 연동됐다 (조립은 lib/admin.ts).
+// 메일 배치 알림은 배치 실행 이력이, 1일1면접 고정 실패 알림은 실패 기록이 없어 아직 서버가 판정하지 못한다.
 
-/** 대시보드 · 운영 알림 */
-export const adminDashboardAlerts: AdminDashboardAlert[] = [
-  {
-    title: "메일 배치 미실행",
-    detail: "오늘 21:00 메일 배치가 실행되지 않았습니다",
-    ctaLabel: "메일 관리로 이동",
-    ctaHref: "/admin/emails",
-  },
-  {
-    title: "메일 배치 실패",
-    detail:
-      "실행 21:00 · 대상자 2,893건 · 성공 2,881 / 실패 12 · Invalid address 4, Mailbox full 3, Network error 5",
-    ctaLabel: "메일 관리로 이동",
-    ctaHref: "/admin/emails",
-  },
-  {
-    title: "1일1면접 미고정",
-    detail: "오늘 면접 문항이 고정되지 않았습니다",
-    ctaLabel: "1일1면접 이력으로 이동",
-    ctaHref: "/admin/interviews",
-  },
-  {
-    title: "1일1면접 고정 실패",
-    detail: "조건을 만족하는 후보 문항을 찾지 못했습니다 (NETWORK · MEDIUM)",
-    ctaLabel: "1일1면접 이력으로 이동",
-    ctaHref: "/admin/interviews",
-  },
-];
-
-/** 대시보드 · AI 사용량 */
+/** 대시보드 · AI 사용량 — 호출 로깅이 없어 서버가 내려주지 않는다 */
 export const adminAiUsage: AdminKpi[] = [
   { label: "오늘 호출 수", value: "1,842", unit: "회" },
   { label: "최근 7일 호출 수", value: "11,306", unit: "회" },
   { label: "최근 7일 추정 비용", value: "$142.60" },
 ];
 
-type MemberSeed = [
-  string,
-  string,
-  string,
-  string,
-  ProgressTier,
-  string,
-  string,
-  number,
-  number,
-  number,
-  number,
-  AdminMemberSignupMethod,
-  AdminMemberAnomaly | null,
-  AdminMemberStatus,
+// 점수·티어는 조회 시점 파생값이라 컬럼이 없고(서버가 정렬·필터도 못 한다),
+// 최근활동일·이상징후·상태는 판정할 데이터 자체가 없다. 화면은 유지하되 아래 값으로 채운다.
+const MOCK_MEMBER_TIERS: ProgressTier[] = ["DIAMOND", "GOLD", "SILVER", "PLATINUM", "BRONZE"];
+
+const MOCK_MEMBER_SCORES = [18420, 12180, 8640, 15760, 4120];
+
+const MOCK_MEMBER_VISITED_DATES = [
+  "08-14 09:12",
+  "08-13 22:31",
+  "08-12 11:44",
+  "08-11 20:18",
+  "08-08 13:02",
 ];
 
-/** 회원 목록 헤더 요약 (총 인원 · 최근 7일 활동) */
-export const adminMemberSummary = { total: 1204, activeWeek: 312 };
+const MOCK_MEMBER_ANOMALIES: (AdminMemberAnomaly | null)[] = [
+  null,
+  null,
+  { label: "⚠ AI 과다", tone: "danger" },
+  null,
+  { label: "⚠ 점수 불일치", tone: "warning" },
+];
 
-export const adminMembers: AdminMember[] = (
-  [
-    ["U20481", "devhoon", "dev****@gmail.com", "백엔드", "DIAMOND", "2025-11-02", "08-14 09:12", 18420, 62, 214, 1208, "Google", { label: "⚠ AI 과다", tone: "danger" }, "활성"],
-    ["U20475", "mina_kim", "min****@naver.com", "프론트엔드", "GOLD", "2026-01-15", "08-14 08:40", 12180, 31, 142, 864, "일반", null, "활성"],
-    ["U20460", "jaewon.dev", "jae****@kakao.com", "백엔드", "SILVER", "2026-03-08", "08-13 22:31", 8640, 12, 96, 551, "일반", { label: "⚠ 점수 불일치", tone: "warning" }, "정지"],
-    ["U20431", "cs_master", "csm****@gmail.com", "데브옵스", "PLATINUM", "2025-09-21", "08-13 19:05", 15760, 48, 188, 1042, "Google", null, "활성"],
-    ["U20402", "seoyeon", "seo****@naver.com", "안드로이드", "BRONZE", "2026-05-30", "08-12 11:44", 4120, 6, 52, 288, "일반", null, "활성"],
-    ["U20388", "nodejs_lee", "nod****@gmail.com", "풀스택", "GOLD", "2026-02-11", "08-11 20:18", 11340, 27, 131, 742, "Google", { label: "⚠ AI 과다", tone: "danger" }, "활성"],
-    ["U20350", "algo_park", "alg****@daum.net", "백엔드", "SILVER", "2026-04-19", "08-08 13:02", 7480, 9, 84, 470, "일반", null, "활성"],
-    ["U20311", "yuna_os", "yun****@gmail.com", "iOS", "BRONZE", "2026-06-07", "08-02 08:57", 3260, 4, 41, 214, "일반", null, "탈퇴"],
-    ["U20299", "hyunwoo.k", "hyu****@gmail.com", "백엔드", "SILVER", "2026-01-09", "08-01 12:30", 9140, 21, 132, 612, "일반", null, "활성"],
-    ["U20287", "devsora", "dev****@naver.com", "프론트엔드", "GOLD", "2025-12-02", "07-30 19:44", 13020, 35, 151, 908, "Google", null, "활성"],
-    ["U20265", "kim_ds", "kim****@kakao.com", "데이터", "BRONZE", "2026-06-21", "07-29 09:05", 2980, 3, 36, 182, "일반", null, "활성"],
-    ["U20240", "leejh_dev", "lee****@gmail.com", "백엔드", "PLATINUM", "2025-10-14", "07-28 22:10", 16410, 52, 196, 1120, "일반", null, "활성"],
-    ["U20233", "os_hunter", "osh****@daum.net", "데브옵스", "SILVER", "2026-02-27", "07-27 13:52", 8820, 14, 102, 588, "Google", null, "활성"],
-    ["U20221", "frontnara", "fro****@naver.com", "프론트엔드", "GOLD", "2026-04-02", "07-26 11:19", 10460, 24, 118, 689, "일반", null, "활성"],
-    ["U20208", "backend_yu", "bac****@gmail.com", "백엔드", "DIAMOND", "2025-08-19", "07-25 20:33", 19240, 71, 228, 1364, "일반", null, "활성"],
-    ["U20194", "minseo.dev", "min****@kakao.com", "iOS", "BRONZE", "2026-05-11", "07-24 08:26", 3840, 5, 47, 246, "Google", null, "활성"],
-    ["U20180", "querymaster", "que****@gmail.com", "데이터", "GOLD", "2026-03-19", "07-23 17:41", 11890, 29, 136, 798, "일반", null, "활성"],
-    ["U20166", "android_ko", "and****@naver.com", "안드로이드", "SILVER", "2026-01-28", "07-22 10:07", 7960, 11, 91, 502, "일반", null, "활성"],
-    ["U20151", "hoonsdev", "hoo****@gmail.com", "풀스택", "PLATINUM", "2025-11-25", "07-21 21:15", 15020, 44, 181, 1006, "Google", null, "활성"],
-    ["U20139", "net_jiwon", "net****@daum.net", "백엔드", "BRONZE", "2026-07-03", "07-20 09:48", 2410, 2, 28, 146, "일반", null, "활성"],
-    ["U20124", "sujin_c", "suj****@gmail.com", "프론트엔드", "GOLD", "2026-02-05", "07-19 14:22", 12640, 33, 147, 872, "일반", null, "활성"],
-    ["U20110", "dbkim", "dbk****@naver.com", "데이터", "SILVER", "2025-12-17", "07-18 08:59", 9520, 17, 109, 634, "Google", null, "활성"],
-    ["U20097", "taehodev", "tae****@kakao.com", "데브옵스", "BRONZE", "2026-06-30", "07-17 19:36", 3080, 3, 38, 196, "일반", null, "활성"],
-    ["U20082", "algo_yeon", "alg****@gmail.com", "백엔드", "PLATINUM", "2025-09-08", "07-16 12:04", 17280, 57, 204, 1188, "일반", null, "활성"],
-  ] satisfies MemberSeed[]
-).map((m) => ({
-  id: m[0],
-  nickname: m[1],
-  email: m[2],
-  position: m[3],
-  tier: m[4],
-  joinedAt: m[5],
-  lastVisitedAt: m[6],
-  score: m[7],
-  streakDays: m[8],
-  interviewCount: m[9],
-  solvedCount: m[10],
-  signupMethod: m[11],
-  anomaly: m[12] ?? undefined,
-  status: m[13],
-}));
+const MOCK_MEMBER_STATUSES: AdminMemberStatus[] = ["활성", "활성", "활성", "정지", "탈퇴"];
+
+/** 백엔드가 내려주지 않는 티어·점수·최근활동일·이상징후·상태 목업 (회원 ID가 같으면 항상 같은 값) */
+export function mockMemberMeta(userId: number): AdminMemberMeta {
+  return {
+    tier: MOCK_MEMBER_TIERS[userId % MOCK_MEMBER_TIERS.length],
+    score: MOCK_MEMBER_SCORES[userId % MOCK_MEMBER_SCORES.length],
+    lastVisitedAt: MOCK_MEMBER_VISITED_DATES[userId % MOCK_MEMBER_VISITED_DATES.length],
+    anomaly: MOCK_MEMBER_ANOMALIES[userId % MOCK_MEMBER_ANOMALIES.length] ?? undefined,
+    status: MOCK_MEMBER_STATUSES[userId % MOCK_MEMBER_STATUSES.length],
+  };
+}
 
 // 문제의 공개 상태·수정일은 Question에 컬럼이 없어 API가 내려주지 않는다.
 // 화면은 유지하되 값만 문제 ID로 고정 배정해 채운다 (컬럼·수정 API 설계는 별도 계획).

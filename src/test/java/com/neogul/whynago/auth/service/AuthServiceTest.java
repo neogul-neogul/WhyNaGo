@@ -83,6 +83,7 @@ class AuthServiceTest extends IntegrationTestSupport {
         assertThat(saved.getNickname()).isEqualTo("tester");
         assertThat(saved.getPassword()).isNotEqualTo("password123");
         assertThat(passwordHasher.matches("password123", saved.getPassword())).isTrue();
+        assertThat(saved.getCreatedAt()).isNotNull();
     }
 
     @DisplayName("이미 사용 중인 이메일이면 회원가입에 실패한다.")

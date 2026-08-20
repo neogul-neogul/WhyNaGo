@@ -14,4 +14,11 @@ public interface DailyInterviewRepository extends JpaRepository<DailyInterview, 
     boolean existsByUserIdAndInterviewDate(Long userId, LocalDate interviewDate);
 
     List<DailyInterview> findByUserIdAndStatusOrderByInterviewDateDesc(Long userId, InterviewStatus status);
+
+    long countByUserIdAndStatus(Long userId, InterviewStatus status);
+
+    // 아래 두 집계는 특정 사용자가 아니라 해당 일자의 전체 면접을 센다(관리자 대시보드).
+    long countByInterviewDate(LocalDate interviewDate);
+
+    long countByInterviewDateAndStatus(LocalDate interviewDate, InterviewStatus status);
 }
