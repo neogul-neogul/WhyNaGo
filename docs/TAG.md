@@ -10,7 +10,7 @@
 
 과거에는 문항을 만들면서 태그를 즉흥적으로 붙였다. 그 결과 `src/main/resources/data2.sql`(350문항)에는 **서로 다른 태그가 638개** 생겼고, 대부분 한 번만 등장하며 `시간복잡도`/`시간 복잡도`처럼 표기만 다른 중복도 섞였다.
 
-백엔드에는 `Tag` 엔티티도, `question_tag`의 유니크 제약도 없다(`QuestionTag`는 `question_id` + `name` 문자열을 그대로 들고 있다). 즉 **DB가 걸러 주지 않으므로 생성 단계에서 사전으로 통제해야 한다.**
+지금은 `Tag` 엔티티가 있고 `tag.name`에 유니크 제약이 걸려 있으며 `question_tag`는 `tag_id`를 참조한다(사용자별 숙련도를 태그 단위로 붙일 대상이 필요했다). 다만 `question_tag`에는 `(question_id, tag_id)` 유니크 제약이 여전히 없고, **어떤 태그를 붙일지는 DB가 걸러 주지 않으므로 생성 단계에서 사전으로 통제해야 한다.**
 
 태그 사전은 **8개 카테고리** 전체를 덮는다(`DB` · `NETWORK` · `ALGORITHM` · `DATA_STRUCTURE` · `OS` · `DESIGN_PATTERN` · `LANGUAGE` · `GENERAL_CS`).
 
@@ -47,7 +47,7 @@
 
 아래 문자열이 `tag.name`에 들어가는 값 **그대로**다. 복사해서 쓰고 변형하지 않는다.
 
-이 사전은 `src/main/resources/data-tag.sql`로 DB의 `tag` 테이블에 적재된다(카테고리 정보 포함). `question_tag`는 이름이 아니라 `tag.id`를 참조하므로, 사전을 고치면 그 시드 파일도 다시 생성해야 한다. 런타임에 태그를 새로 만드는 경로는 없다(생성 문항이 사전 밖 태그를 쓰면 검증에서 버려지고, 저장 단계에서도 `TAG_NOT_FOUND`로 막힌다).
+이 사전은 `src/main/resources/data-tag.sql`로 DB의 `tag` 테이블에 적재된다(카테고리 정보 포함). `question_tag`는 이름이 아니라 `tag.id`를 참조하므로, 사전을 고치면 그 시드 파일도 다시 생성해야 한다. 태그 간 의미 유사도 그래프(`src/main/resources/tag-neighbors.tsv`, [`docs/WEAKNESS.md`](./WEAKNESS.md))도 이 사전에서 파생되므로 **함께 재생성한다.** 런타임에 태그를 새로 만드는 경로는 없다(생성 문항이 사전 밖 태그를 쓰면 검증에서 버려지고, 저장 단계에서도 `TAG_NOT_FOUND`로 막힌다).
 
 ### DB (31)
 
