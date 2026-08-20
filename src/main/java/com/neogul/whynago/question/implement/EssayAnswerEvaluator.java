@@ -27,7 +27,11 @@ public class EssayAnswerEvaluator {
     public EssayEvaluation evaluate(String conversationId, EssayGradingTarget target, EssayGradingMode mode) {
         int completedTurns = essayAiClient.completedTurns(conversationId);
         boolean lastTurn = completedTurns >= MAX_TURNS - 1;
-        EssayGradingTarget applied = completedTurns == 0 ? target : target.withoutRubric();
+        // 대화 이력이 비어 있으면 본질문이다. ChatMemory는 프로세스 메모리라 재시작·다중 인스턴스에서
+        // 0으로 리셋되는데, 그때는 꼬리질문을 본질문으로 오인하는 쪽이 낫다 — 반대로 오인하면
+        // 본질문 판정이 조용히 버려져 사용자에게 숙련도가 아예 남지 않는다.
+        int turn = completedTurns + 1;
+        EssayGradingTarget applied = completedTurns == 0 ? target : target.asFollowupTurn();
 
         GradeAndFollowupResult result =
                 essayAiClient.gradeAndGenerateFollowup(conversationId, applied, !lastTurn, mode);
@@ -52,7 +56,8 @@ public class EssayAnswerEvaluator {
                 result.mastery(),
                 result.masteryReason(),
                 grading.criteria(),
-                solvingTime
+                solvingTime,
+                turn
         );
     }
 

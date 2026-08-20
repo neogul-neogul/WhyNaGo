@@ -37,6 +37,16 @@ public record SolvingTime(Integer elapsedSeconds, int baselineSeconds, ElapsedPa
         return elapsedSeconds != null;
     }
 
+    // 꼬리질문 턴에서 쓴다. 꼬리질문은 세션마다 AI가 만든 발문이라 그 발문의 평균 소요시간이 존재하지 않는다.
+    // 루트 문항의 평균을 그대로 들이대면 다른 질문의 기준으로 빠름·느림을 판정하게 되므로,
+    // 기준을 문서화된 기본값으로 되돌린다.
+    public SolvingTime withoutBaseline() {
+        if (!isMeasured()) {
+            return this;
+        }
+        return SolvingTime.of(elapsedSeconds, null, 0);
+    }
+
     public int scoreAdjustment() {
         if (!isMeasured()) {
             return 0;

@@ -1,6 +1,5 @@
 package com.neogul.whynago.question.implement;
 
-import com.neogul.whynago.mastery.domain.MasterySource;
 import com.neogul.whynago.mastery.service.MasteryService;
 import com.neogul.whynago.mastery.service.dto.RecordMasteryCommand;
 import com.neogul.whynago.question.domain.Question;
@@ -12,6 +11,9 @@ import org.springframework.stereotype.Component;
 
 // 채점 결과의 숙련도를 그 문항의 태그·카테고리에 연결해 기록한다.
 // 태그 해석은 question 도메인이 하고, 기록은 mastery 도메인이 한다 — mastery는 question을 조회하지 않는다.
+//
+// 본질문·꼬리질문 판정을 여기서 가른다. 연습 채점과 1일 1면접이 같은 엔드포인트로 모든 턴을 처리하므로
+// 호출부(EssayAnswerService·InterviewService)에 턴 검사를 흩어 두지 않고 이 한 곳에서 정한다.
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,14 +30,14 @@ public class EssayMasteryRecorder {
         }
 
         List<Long> tagIds = questionTagIdReader.readTagIds(question.getId());
-        masteryService.record(new RecordMasteryCommand(
+        masteryService.record(RecordMasteryCommand.ofEssay(
                 userId,
                 question.getId(),
                 question.getCategory(),
                 tagIds,
                 evaluation.mastery(),
                 evaluation.masteryReason(),
-                MasterySource.AI_ESSAY
+                evaluation.turn()
         ));
     }
 }

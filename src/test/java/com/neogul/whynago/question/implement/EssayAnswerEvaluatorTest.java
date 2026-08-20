@@ -10,6 +10,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.neogul.whynago.common.domain.ElapsedPace;
 import com.neogul.whynago.common.exception.BusinessException;
 import com.neogul.whynago.fixture.EssayGradingTargetFixture;
 import com.neogul.whynago.fixture.GradeAndFollowupResultFixture;
@@ -18,6 +19,7 @@ import com.neogul.whynago.fixture.SolvingTimeFixture;
 import com.neogul.whynago.question.domain.EssayGradingMode;
 import com.neogul.whynago.question.domain.EssayGradingTarget;
 import com.neogul.whynago.question.domain.Rubric;
+import com.neogul.whynago.question.domain.SolvingTime;
 import com.neogul.whynago.question.exception.QuestionErrorCode;
 import com.neogul.whynago.question.implement.dto.EssayEvaluation;
 import com.neogul.whynago.question.implement.dto.RubricEvaluation;
@@ -263,6 +265,57 @@ class EssayAnswerEvaluatorTest {
                 .as("전 항목 충족 10점에서 느린 시간으로 1점을 내린다")
                 .isEqualTo(9);
         assertThat(evaluation.solvingTime().scoreAdjustment()).isEqualTo(-1);
+    }
+
+    @Test
+    @DisplayName("대화 이력의 완료 턴 수로 몇 번째 턴인지 정한다.")
+    void evaluate_carriesTurn() {
+        givenAiResult(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "다음 꼬리질문"));
+
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        assertThat(essayAnswerEvaluator.evaluate("conv", PLAIN, EssayGradingMode.PRACTICE).turn()).isEqualTo(1);
+
+        given(essayAiClient.completedTurns("conv")).willReturn(1);
+        assertThat(essayAnswerEvaluator.evaluate("conv", PLAIN, EssayGradingMode.PRACTICE).turn()).isEqualTo(2);
+
+        given(essayAiClient.completedTurns("conv")).willReturn(2);
+        assertThat(essayAnswerEvaluator.evaluate("conv", PLAIN, EssayGradingMode.PRACTICE).turn()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("첫 턴만 본질문으로 판정한다.")
+    void evaluate_rootTurnOnlyOnFirstTurn() {
+        givenAiResult(GradeAndFollowupResultFixture.of("피드백", "모범답안", 8, "다음 꼬리질문"));
+
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        assertThat(essayAnswerEvaluator.evaluate("conv", PLAIN, EssayGradingMode.PRACTICE).isRootTurn()).isTrue();
+
+        given(essayAiClient.completedTurns("conv")).willReturn(1);
+        assertThat(essayAnswerEvaluator.evaluate("conv", PLAIN, EssayGradingMode.PRACTICE).isRootTurn()).isFalse();
+    }
+
+    @Test
+    @DisplayName("꼬리질문 턴은 루트 문항의 평균 소요시간을 기준으로 쓰지 않는다.")
+    void evaluate_followupTurnDropsRootBaseline() {
+        // given - 루트 문항 평균이 30초라 100초는 느림(-1)이지만,
+        // 꼬리질문에는 그 발문의 평균이 없으므로 기본 180초 대비 빠름(+1)이 되어야 한다.
+        EssayGradingTarget target =
+                EssayGradingTargetFixture.withSolvingTime(SolvingTime.of(100, 30, 10));
+        givenAiResult(GradeAndFollowupResultFixture.of("피드백", "모범답안", 6, "다음 꼬리질문"));
+
+        given(essayAiClient.completedTurns("conv")).willReturn(0);
+        EssayEvaluation mainTurn = essayAnswerEvaluator.evaluate("conv", target, EssayGradingMode.PRACTICE);
+
+        given(essayAiClient.completedTurns("conv")).willReturn(1);
+        EssayEvaluation followup = essayAnswerEvaluator.evaluate("conv", target, EssayGradingMode.PRACTICE);
+
+        // then
+        assertThat(mainTurn.solvingTime().pace()).isEqualTo(ElapsedPace.SLOW);
+        assertThat(mainTurn.score()).isEqualTo(5);
+        assertThat(followup.solvingTime().pace())
+                .as("다른 질문의 평균으로 빠름·느림을 판정하면 안 된다")
+                .isEqualTo(ElapsedPace.FAST);
+        assertThat(followup.score()).isEqualTo(7);
     }
 
     @Test

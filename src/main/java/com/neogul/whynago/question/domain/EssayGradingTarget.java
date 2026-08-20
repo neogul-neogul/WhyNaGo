@@ -14,4 +14,10 @@ public record EssayGradingTarget(String question, String answer, Rubric rubric, 
     public EssayGradingTarget withoutRubric() {
         return new EssayGradingTarget(question, answer, null, solvingTime);
     }
+
+    // 꼬리질문 턴은 채점 기준도, 시간 기준도 없다. 루브릭을 떼는 것과 같은 이유로
+    // 루트 문항의 평균 소요시간도 기준에서 뺀다.
+    public EssayGradingTarget asFollowupTurn() {
+        return new EssayGradingTarget(question, answer, null, solvingTime.withoutBaseline());
+    }
 }
