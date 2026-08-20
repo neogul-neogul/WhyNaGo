@@ -50,6 +50,10 @@ public class MasteryRecord {
     @Column(nullable = false, length = 20)
     private MasterySource source;
 
+    // 서술형 대화의 몇 번째 턴인지다(1 = 본질문). 객관식은 턴 개념이 없어 null이고,
+    // 턴을 싣기 전에 쌓인 이력도 null이다. null은 "본질문"이 아니라 "미지"로 취급한다.
+    private Integer turn;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -61,6 +65,7 @@ public class MasteryRecord {
             MasteryLevel level,
             String reason,
             MasterySource source,
+            Integer turn,
             LocalDateTime createdAt
     ) {
         this.userId = userId;
@@ -70,6 +75,7 @@ public class MasteryRecord {
         this.level = level;
         this.reason = reason;
         this.source = source;
+        this.turn = turn;
         this.createdAt = createdAt;
     }
 
@@ -81,8 +87,9 @@ public class MasteryRecord {
             MasteryLevel level,
             String reason,
             MasterySource source,
+            Integer turn,
             LocalDateTime createdAt
     ) {
-        return new MasteryRecord(userId, questionId, tagId, category, level, reason, source, createdAt);
+        return new MasteryRecord(userId, questionId, tagId, category, level, reason, source, turn, createdAt);
     }
 }
