@@ -21,7 +21,9 @@ class EssayPromptContractTest {
             new EssayPromptV2(),
             new EssayPromptV3(),
             new EssayPromptV5(),
-            new EssayPromptV6());
+            new EssayPromptV6(),
+            new EssayPromptV7(),
+            new EssayPromptV8());
 
     private static final String QUESTION = "고유질문-a1b2c3";
     private static final String ANSWER = "고유답변-x9y8z7";

@@ -3,7 +3,6 @@ package com.neogul.whynago.question.implement;
 import com.neogul.whynago.common.domain.MasteryLevel;
 import com.neogul.whynago.mastery.domain.ChoiceMasteryReason;
 import com.neogul.whynago.mastery.domain.MasteryPolicy;
-import com.neogul.whynago.mastery.domain.MasterySource;
 import com.neogul.whynago.mastery.domain.SolvedSignal;
 import com.neogul.whynago.mastery.service.MasteryService;
 import com.neogul.whynago.mastery.service.dto.RecordMasteryCommand;
@@ -64,14 +63,13 @@ public class ChoiceMasteryRecorder {
     }
 
     private RecordMasteryCommand command(Long userId, Question question, MasteryLevel level) {
-        return new RecordMasteryCommand(
+        return RecordMasteryCommand.ofChoice(
                 userId,
                 question.getId(),
                 question.getCategory(),
                 questionTagIdReader.readTagIds(question.getId()),
                 level,
-                ChoiceMasteryReason.of(level),
-                MasterySource.RULE_CHOICE
+                ChoiceMasteryReason.of(level)
         );
     }
 }

@@ -11,6 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 // 판정 1건을 이력에 쌓고 태그별 현재값을 갱신한다.
+//
+// 꼬리질문 판정은 이력에만 쌓고 현재값은 건드리지 않는다. 꼬리질문은 본질문보다 깊게 파고드는
+// 프로브라 판정이 더 낮게 나오는 것이 정상인데, 현재값을 덮어쓰면 마지막(가장 깊은) 프로브가
+// 그 태그의 숙련도가 되어 본질문을 제대로 답한 사용자가 그 주제를 모르는 것으로 기록된다.
 @Component
 @RequiredArgsConstructor
 public class MasteryRecordAppender {
@@ -31,6 +35,10 @@ public class MasteryRecordAppender {
         masteryRecordRepository.saveAll(command.tagIds().stream()
                 .map(tagId -> record(command, tagId, now))
                 .toList());
+
+        if (command.source().isFollowup()) {
+            return;
+        }
         userTagMasteryRepository.saveAll(command.tagIds().stream()
                 .map(tagId -> upsert(command, tagId, now))
                 .toList());
@@ -45,6 +53,7 @@ public class MasteryRecordAppender {
                 command.level(),
                 command.reason(),
                 command.source(),
+                command.turn(),
                 now
         );
     }

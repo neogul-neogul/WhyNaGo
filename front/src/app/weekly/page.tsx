@@ -18,7 +18,7 @@ export default function WeeklyPage() {
               <path d="M12 16v-4M12 8h.01" />
             </svg>
             <span className="text-[13px] leading-[1.6]">
-              주간 리포트는 AI 없이 정해진 템플릿과 데이터 계산으로 생성됩니다. 매주 월요일 이메일로도 발송돼요.
+              주간 리포트는 아직 준비 중입니다. 지금 보이는 수치는 예시이며, 실제 학습 기록이 아닙니다.
             </span>
           </div>
         </div>

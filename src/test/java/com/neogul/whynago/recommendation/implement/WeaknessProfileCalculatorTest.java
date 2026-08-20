@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 class WeaknessProfileCalculatorTest extends IntegrationTestSupport {
 
     private static final Long USER_ID = 10L;
+    private static final int MAIN_TURN = 1;
 
     @Autowired
     private WeaknessProfileCalculator weaknessProfileCalculator;
@@ -212,14 +213,14 @@ class WeaknessProfileCalculatorTest extends IntegrationTestSupport {
         essaySolvedRepository.save(EssaySolvedFixture.builder()
                 .userId(USER_ID).questionId(question.getId()).isCorrect(true).score(9).elapsedSeconds(60).build());
         // 그런데 채점 AI는 근거가 흔들린다고 판정했다.
-        masteryService.record(new RecordMasteryCommand(
+        masteryService.record(RecordMasteryCommand.ofEssay(
                 USER_ID,
                 question.getId(),
                 Category.DB,
                 List.of(),
                 MasteryLevel.UNSTABLE,
                 "결론은 맞지만 이유가 틀렸다",
-                MasterySource.AI_ESSAY
+                MAIN_TURN
         ));
 
         // when
@@ -253,9 +254,9 @@ class WeaknessProfileCalculatorTest extends IntegrationTestSupport {
         Question question = saveQuestion();
         essaySolvedRepository.save(EssaySolvedFixture.builder()
                 .userId(USER_ID).questionId(question.getId()).isCorrect(true).score(9).elapsedSeconds(60).build());
-        masteryService.record(new RecordMasteryCommand(
+        masteryService.record(RecordMasteryCommand.ofEssay(
                 USER_ID + 1, question.getId(), Category.DB, List.of(),
-                MasteryLevel.NOT_LEARNED, "개념이 없다", MasterySource.AI_ESSAY));
+                MasteryLevel.NOT_LEARNED, "개념이 없다", MAIN_TURN));
 
         // when
         WeaknessProfile profile = weaknessProfileCalculator.calculate(USER_ID);

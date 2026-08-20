@@ -8,6 +8,8 @@ import java.util.List;
 // mastery·masteryReason은 AI가 판정하지 못했으면 null이며, 그때는 숙련도를 기록하지 않는다.
 // rubricCriteria는 루브릭이 적용된 턴에만 채워지고, 그 외에는 빈 리스트다.
 // solvingTime은 점수에 얼마가 가감됐는지를 클라이언트가 설명할 수 있게 함께 내보낸다.
+// turn은 서술형 대화의 몇 번째 턴인지다(1 = 본질문). 서버가 대화 이력에서 세며,
+// 클라이언트가 보고하지 않는다 — 턴을 클라이언트에 맡기면 판정 출처를 조작할 수 있다.
 public record EssayEvaluation(
         String feedback,
         String modelAnswer,
@@ -17,8 +19,16 @@ public record EssayEvaluation(
         MasteryLevel mastery,
         String masteryReason,
         List<RubricEvaluation> rubricCriteria,
-        SolvingTime solvingTime
+        SolvingTime solvingTime,
+        int turn
 ) {
+
+    private static final int FIRST_TURN = 1;
+
+    // 본질문 턴인지다. 꼬리질문 판정은 태그별 현재 숙련도를 덮어쓰지 않는다.
+    public boolean isRootTurn() {
+        return turn <= FIRST_TURN;
+    }
 
     public boolean hasMastery() {
         return mastery != null;

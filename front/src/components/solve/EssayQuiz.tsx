@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { EssaySolvedQuestionRequest, QuestionResponse } from "@/types";
+import type { EssaySolvedQuestionRequest, MasteryLevel, QuestionResponse } from "@/types";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
@@ -18,6 +18,7 @@ import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
 import GradingProgress from "@/components/solve/GradingProgress";
 import LoginRequiredGate from "@/components/layout/LoginRequiredGate";
+import MasteryVerdict from "@/components/mastery/MasteryVerdict";
 import SaveToProblemSetButton from "@/components/problemSets/SaveToProblemSetButton";
 
 /** 채점이 끝난 문항 (발문·내 답변 + 채점 응답 스냅샷) */
@@ -28,6 +29,9 @@ interface GradedItem {
   /** 화면에는 표시하지 않지만 저장 API의 필수값이라 응답값을 보관해 그대로 전달한다 */
   modelAnswer: string;
   isCorrect: boolean;
+  /** 이 답변이 드러낸 이해 수준. AI가 판정하지 못하면 null */
+  mastery: MasteryLevel | null;
+  masteryReason: string | null;
 }
 
 const label = (i: number) => (i === 0 ? "본 질문" : `꼬리질문 ${i}`);
@@ -125,6 +129,8 @@ export default function EssayQuiz({
           feedback: result.grading.feedback,
           modelAnswer: result.grading.modelAnswer,
           isCorrect: result.grading.isCorrect,
+          mastery: result.grading.mastery,
+          masteryReason: result.grading.masteryReason,
         },
       ]);
       setCurrent(result.nextFollowup?.question ?? null);
@@ -272,6 +278,7 @@ export default function EssayQuiz({
                     <div className="border-t border-line-soft bg-paper px-4 py-3.5">
                       <div className="mb-1.5 text-[11.5px] font-bold text-alert">AI 피드백</div>
                       <div className="text-[13.5px] leading-[1.65] text-alert-deep">{e.feedback}</div>
+                      <MasteryVerdict mastery={e.mastery} masteryReason={e.masteryReason} />
                     </div>
                   )}
                 </div>
