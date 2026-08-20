@@ -79,9 +79,11 @@
 
 숙련도 분류는 하나(`common.domain.MasteryLevel`, 6분류)이고 **판정 주체는 두 트랙**이다.
 
+> 6분류를 10분류로 넓히고 밴드 안에서 연속 점수화하는 방향은 [`docs/WEAKNESS.md`](./WEAKNESS.md)에 있다.
+
 | 트랙 | 판정 주체 | 근거 | 기록 출처 |
 | --- | --- | --- | --- |
-| 서술형 | **채점 AI**(`EssayPromptV4`) | 답변 **내용** | `AI_ESSAY` |
+| 서술형 | **채점 AI**(`EssayPromptV6`) | 답변 **내용**(1차) + 소요시간(보조) | `AI_ESSAY` |
 | 객관식 | 서버(`MasteryPolicy`) | 정답 여부 × 소요시간 비율 | `RULE_CHOICE` |
 
 판정 규칙(`MasteryPolicy`·`SolvedSignal`)은 `mastery.domain`에 둔다. 기록(객관식 채점)과 조회(추천의 약점 프로필)가 함께 쓰는데, `recommendation`에 두면 `solvedsession -> recommendation -> solvedsession` 순환이 생긴다. 약점 가중치(`MasteryWeight`)는 추천만의 개념이라 `recommendation.domain`에 남는다.
@@ -90,7 +92,7 @@
 
 ### **서술형 — AI 판정 (근거 필수)**
 
-채점 응답에 `mastery`와 `masteryReason`을 함께 받는다. 판정 기준은 프롬프트에서 **답변 내용 기준으로** 정의한다(소요시간을 프롬프트에 넣지 않으므로 "빠름/느림"으로 판정할 수 없다).
+채점 응답에 `mastery`와 `masteryReason`을 함께 받는다. 판정 기준은 프롬프트에서 **답변 내용 기준으로** 정의하고, `v6`부터는 소요시간과 그 문항의 평균을 함께 내려 **평균 대비 빠름·보통·느림을 보조 근거로** 쓰게 한다(시간은 `mastery`와 `feedback`에만 반영하고 `score`는 건드리지 못하게 막는다). 시간이 없으면 내용만으로 판정한다.
 
 | 숙련도 | 답변이 보인 상태 |
 | --- | --- |
@@ -149,7 +151,9 @@
 - **카테고리(8개)** — 표본이 항상 충분하다. 큰 방향을 잡는 데 사용한다.
 - **태그** — 표본 2건 이상만 신뢰한다. 미달이면 소속 카테고리 값으로 폴백한다.
 
-태그를 1급 축으로 쓰지 않는 이유는 현재 문제은행 규모(175문항)에서 태그당 표본이 1건 수준이라, 우연한 오답 하나가 프로필 전체를 지배하기 때문이다.
+태그를 1급 축으로 쓰지 않는 이유는 **사용자의 풀이 이력이 희소**하기 때문이다. 문제은행 쪽은 충분하다 — `data3.sql` 실측으로 600문항 · `question_tag` 1,506쌍 · 사용된 태그 207/238 · 태그당 중앙값 6문항이다. 하지만 40문항을 푼 사용자는 약 100개 태그 인스턴스를 ~70개 태그에 흩뿌리므로 태그당 표본이 1건 수준이 되고, 우연한 오답 하나가 프로필 전체를 지배한다. 그래서 대부분의 태그가 카테고리 값으로 폴백한다.
+
+> 이 폴백을 8개 카테고리가 아니라 태그 간 의미 유사도로 대체하는 방향은 [`docs/WEAKNESS.md`](./WEAKNESS.md)에 있다.
 
 `weaknessScore` = 해당 주제 문항들의 약점 가중치(`MasteryWeight`) 평균 (0.0 ~ 1.0).
 
@@ -339,7 +343,7 @@ AI 출력은 신뢰하지 않는다. `GeneratedEssayValidator`(domain)가 다음
 - 숙련도 — 태그가 여러 개면 태그마다 이력·현재값이 남는지, 재판정 시 현재값이 덮어써지는지, 태그 없는 문항은 카테고리 신호로만 남는지, AI가 판정을 빠뜨리면 채점은 성공하고 기록만 생략되는지(`MasteryServiceTest`, `EssayAnswerServiceTest`).
 - 약점 프로필 2트랙 — 서술형에서 AI 판정이 시간 기반 판정을 이기는지, 판정이 없으면 폴백하는지, 다른 사용자 판정이 섞이지 않는지(`WeaknessProfileCalculatorTest`).
 - 생성 프롬프트 — 모든 변수로 렌더되고 미치환 중괄호가 없는지, 변수를 빼면 렌더가 실패하는지, 오답 해설 라벨링과 검증기 계약 문구가 들어 있는지(`EssayQuestionGenerationPromptTest`).
-- 채점 프롬프트 — `EssayPromptV4`가 6분류 기준과 근거 요구를 담고 v3 규칙을 승계하는지(`EssayPromptV4Test`).
+- 채점 프롬프트 — 현재 버전(`EssayPromptV6`)이 6분류 기준·근거 요구·소요시간 보조 근거를 담고 이전 버전 규칙을 승계하는지.
 - 추천 서비스 — 콜드스타트, 생성 문항 저장(`PENDING` 확인), 캐시 재사용(문항 수 증가 없음), 검증 실패 시 폴백을 통합 테스트로 확인한다(`RecommendationServiceTest`).
 - 문항 통계 집계 — 정답률·평균 계산, 시간 미측정 표본 제외, 꼬리질문 제외, 재집계 시 덮어쓰기(`QuestionStatAggregatorTest`).
 - 노출 필터 — `PENDING`·`REJECTED` 문항이 목록·오늘의 면접 질문·진척도 분모에서 빠지고 단건 조회로는 잡히는지 확인한다. `findQuestions`는 페이징이므로 **countQuery에도 같은 조건이 들어가야 한다**(빠뜨리면 행은 맞고 총 개수만 틀린다). 기존 `QuestionRepositoryTest.findQuestions_excludesGeneratedSource`가 이 함정을 잡는 패턴이므로 그대로 준용한다.
