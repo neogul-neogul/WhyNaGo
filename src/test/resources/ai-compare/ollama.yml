@@ -1,0 +1,32 @@
+# 로컬에 설치한 ollama로 모델을 비교할 때 쓰는 설정.
+#
+#   ollama serve                 # 데몬 실행 (macOS 앱을 켜 두면 자동 실행된다)
+#   ollama pull gemma3:4b        # 비교할 모델을 미리 받아 둔다
+#   ollama pull mistral
+#   ./gradlew test --tests "*EssayAiModelComparisonTest" -Dai.compare=true -Dai.compare.config=ollama
+#
+# ollama가 OpenAI 호환 엔드포인트(/v1)를 제공하므로, 운영과 같은 OpenAI 커넥터·프롬프트·클라이언트를
+# 그대로 태우고 접속 정보만 로컬로 바꾼다. 모든 값은 -Dai.compare.* 로 건별로 덮어쓸 수 있다.
+#
+#   ./gradlew test --tests "*EssayAiModelComparisonTest" -Dai.compare=true \
+#     -Dai.compare.config=ollama -Dai.compare.models=gemma3:4b -Dai.compare.repeat=5
+ai:
+  compare:
+    # 로컬에 받아 둔 모델을 쉼표로 나열한다. `ollama list` 로 확인한다.
+    models: "gemma3:4b,mistral:latest"
+
+    baseUrl: http://localhost:11434/v1
+    completionsPath: /chat/completions
+    # ollama는 인증을 하지 않지만 OpenAI 커넥터가 Authorization 헤더를 채우므로 더미 값을 준다.
+    apiKey: ollama
+
+    temperature: 0.3
+    # none이면 reasoning_effort를 아예 보내지 않는다.
+    # gemma3:4b는 이 옵션이 붙으면 `does not support thinking` 400으로 거절하므로 로컬 비교에서는 꺼 둔다.
+    reasoningEffort: none
+    promptVersion: v3
+    repeat: 3
+
+    # 로컬 추론은 느리고, 첫 호출에는 모델을 메모리에 올리는 시간까지 더해진다.
+    timeoutSeconds: 300
+    maxAttempts: 2
